@@ -2,13 +2,15 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useProduction } from '../context/ProductionContext';
 import { usePO } from '../context/POContext';
 import { useInspection } from '../context/InspectionContext';
-import { Calendar, Save, Check, Layers, Settings, Plus, X, ListFilter } from 'lucide-react';
+import { useEmployees } from '../context/EmployeeContext';
+import { Calendar, Save, Check, Layers, Settings, Plus, X, ListFilter, UserCheck } from 'lucide-react';
 import '../components/layout/Layout.css';
 
 const ProductionTracker = () => {
   const { productionLogs, productionLines, saveBatchesForDate, saveLines } = useProduction();
   const { capacities, pos, companies } = usePO();
   const { inspections } = useInspection();
+  const { employees } = useEmployees();
   
   const [companyFilter, setCompanyFilter] = useState('All');
   
@@ -16,6 +18,7 @@ const ProductionTracker = () => {
 
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [selectedLine, setSelectedLine] = useState('');
+  const [selectedEmployee, setSelectedEmployee] = useState('');
   
   const [gridData, setGridData] = useState({});
   const [isSaving, setIsSaving] = useState(false);
@@ -39,15 +42,19 @@ const ProductionTracker = () => {
   useEffect(() => {
     const existingLog = productionLogs.find(l => l.date === selectedDate);
     const loadedGrid = {};
+    let lineSupervisor = '';
+    
     if (existingLog && existingLog.batches) {
       existingLog.batches.forEach(b => {
         if (b.line === selectedLine) {
           if (!loadedGrid[b.capacity]) loadedGrid[b.capacity] = {};
           loadedGrid[b.capacity][b.component] = b.quantity;
+          if (b.assigned_to) lineSupervisor = b.assigned_to;
         }
       });
     }
     setGridData(loadedGrid);
+    setSelectedEmployee(lineSupervisor);
     setSaveSuccess(false);
   }, [selectedDate, selectedLine, productionLogs]);
 
@@ -91,7 +98,8 @@ const ProductionTracker = () => {
             line: selectedLine,
             component,
             capacity,
-            quantity: Number(qty)
+            quantity: Number(qty),
+            assigned_to: selectedEmployee
           });
         }
       });
@@ -225,6 +233,23 @@ const ProductionTracker = () => {
                 <button onClick={() => setShowSettings(!showSettings)} style={{ background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', padding: '0.6rem', borderRadius: '8px', cursor: 'pointer', color: 'var(--text-muted)' }}>
                   <Settings size={18} />
                 </button>
+              </div>
+            </div>
+
+            <div>
+              <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '0.5rem', fontWeight: '500' }}>ASSIGNED LEAD</label>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', backgroundColor: 'var(--bg-tertiary)', padding: '0.5rem 1rem', borderRadius: '8px', border: '1px solid var(--border-color)', marginBottom: 0 }}>
+                <UserCheck size={18} color="var(--text-secondary)" />
+                <select 
+                  value={selectedEmployee} 
+                  onChange={(e) => setSelectedEmployee(e.target.value)}
+                  style={{ background: 'transparent', border: 'none', color: selectedEmployee ? 'var(--accent-primary)' : 'var(--text-muted)', outline: 'none', fontWeight: '600', minWidth: '150px' }}
+                >
+                  <option value="">-- Optional --</option>
+                  {employees.filter(e => e.department === 'Production' && e.status === 'Active').map(emp => (
+                    <option key={emp.id} value={emp.name}>{emp.name} ({emp.designation})</option>
+                  ))}
+                </select>
               </div>
             </div>
           </div>

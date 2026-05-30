@@ -25,6 +25,10 @@ import DailyExpenses from './pages/DailyExpenses';
 import { ExpenseProvider } from './context/ExpenseContext';
 import Employees from './pages/Employees';
 import { EmployeeProvider } from './context/EmployeeContext';
+import VendorPurchasing from './pages/VendorPurchasing';
+import { VendorProvider } from './context/VendorContext';
+import PendingTasks from './pages/PendingTasks';
+import { TaskProvider } from './context/TaskContext';
 import { Navigate } from 'react-router-dom';
 
 // Protected Route Wrapper
@@ -51,6 +55,8 @@ function App() {
                     <InventoryProvider>
                       <ExpenseProvider>
                         <EmployeeProvider>
+                          <VendorProvider>
+                            <TaskProvider>
       <Router>
         <Routes>
           <Route path="/login" element={<AdminLogin />} />
@@ -62,6 +68,8 @@ function App() {
             <Route path="inventory" element={<InventoryManagement />} />
             <Route path="expenses" element={<DailyExpenses />} />
             <Route path="employees" element={<Employees />} />
+            <Route path="vendor-purchasing" element={<VendorPurchasing />} />
+            <Route path="pending-tasks" element={<PendingTasks />} />
             <Route path="warranty" element={<WarrantyManagement />} />
             <Route path="purchase-orders" element={<PurchaseOrders />} />
             <Route path="price-variation" element={<PriceVariation />} />
@@ -71,6 +79,8 @@ function App() {
           </Route>
         </Routes>
       </Router>
+                            </TaskProvider>
+                          </VendorProvider>
                         </EmployeeProvider>
                       </ExpenseProvider>
                     </InventoryProvider>

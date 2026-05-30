@@ -14,6 +14,8 @@ export const AVAILABLE_MODULES = [
   { id: 'price-variation', name: 'Price Variation' },
   { id: 'warranty', name: 'Warranty claims' },
   { id: 'employees', name: 'Employees' },
+  { id: 'vendor-purchasing', name: 'Vendor Purchasing' },
+  { id: 'pending-tasks', name: 'Pending Tasks' },
   { id: 'expenses', name: 'Daily Expenses' }
 ];
 

@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, Package, PackageSearch, Factory, Users, LogOut, Zap, Shield, ClipboardList, TrendingUp, UserCog, FileText, Activity, ClipboardCheck } from 'lucide-react';
+import { LayoutDashboard, Package, PackageSearch, Factory, Users, LogOut, Zap, Shield, ClipboardList, TrendingUp, UserCog, FileText, Activity, ClipboardCheck, ShoppingCart, ListTodo } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import './Layout.css';
 
@@ -16,6 +16,8 @@ const Sidebar = ({ isMobileMenuOpen, setIsMobileMenuOpen }) => {
     { name: 'Price Variation', icon: <TrendingUp size={20} />, path: '/price-variation', adminOk: true, normalOk: false },
     { name: 'Warranty claims', icon: <Shield size={20} />, path: '/warranty', adminOk: true, normalOk: true },
     { name: 'Employees', icon: <Users size={20} />, path: '/employees', adminOk: true, normalOk: true },
+    { name: 'Vendor Purchasing', icon: <ShoppingCart size={20} />, path: '/vendor-purchasing', adminOk: true, normalOk: false },
+    { name: 'Pending Tasks', icon: <ListTodo size={20} />, path: '/pending-tasks', adminOk: true, normalOk: true },
     { name: 'Daily Expenses', icon: <FileText size={20} />, path: '/expenses', adminOk: true, normalOk: true },
     { name: 'Audit Logs', icon: <ClipboardList size={20} />, path: '/logs', adminOk: false, normalOk: false },
     { name: 'User Management', icon: <UserCog size={20} />, path: '/users', adminOk: false, normalOk: false },
@@ -35,6 +37,8 @@ const Sidebar = ({ isMobileMenuOpen, setIsMobileMenuOpen }) => {
       '/price-variation': 'price-variation',
       '/warranty': 'warranty',
       '/employees': 'employees',
+      '/vendor-purchasing': 'vendor-purchasing',
+      '/pending-tasks': 'pending-tasks',
       '/expenses': 'expenses'
     };
     
