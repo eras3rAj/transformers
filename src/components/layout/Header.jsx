@@ -30,7 +30,6 @@ const Header = ({ setIsMobileMenuOpen }) => {
           </div>
           <div className="user-info">
             <span className="user-name">Admin User</span>
-            <span className="user-role">Super Admin</span>
           </div>
         </div>
       </div>

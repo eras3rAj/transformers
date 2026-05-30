@@ -23,6 +23,8 @@ import Inspections from './pages/Inspections';
 import InventoryManagement from './pages/InventoryManagement';
 import DailyExpenses from './pages/DailyExpenses';
 import { ExpenseProvider } from './context/ExpenseContext';
+import Employees from './pages/Employees';
+import { EmployeeProvider } from './context/EmployeeContext';
 import { Navigate } from 'react-router-dom';
 
 // Protected Route Wrapper
@@ -48,6 +50,7 @@ function App() {
                   <InspectionProvider>
                     <InventoryProvider>
                       <ExpenseProvider>
+                        <EmployeeProvider>
       <Router>
         <Routes>
           <Route path="/login" element={<AdminLogin />} />
@@ -58,7 +61,7 @@ function App() {
             <Route path="inspections" element={<Inspections />} />
             <Route path="inventory" element={<InventoryManagement />} />
             <Route path="expenses" element={<DailyExpenses />} />
-            <Route path="employees" element={<div>Employee Module (WIP)</div>} />
+            <Route path="employees" element={<Employees />} />
             <Route path="warranty" element={<WarrantyManagement />} />
             <Route path="purchase-orders" element={<PurchaseOrders />} />
             <Route path="price-variation" element={<PriceVariation />} />
@@ -68,6 +71,7 @@ function App() {
           </Route>
         </Routes>
       </Router>
+                        </EmployeeProvider>
                       </ExpenseProvider>
                     </InventoryProvider>
                   </InspectionProvider>

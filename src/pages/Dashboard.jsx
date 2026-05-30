@@ -4,7 +4,10 @@ import { usePO } from '../context/POContext';
 import { usePV } from '../context/PVContext';
 import { useProduction } from '../context/ProductionContext';
 import { useInspection } from '../context/InspectionContext';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
+import { useExpenses } from '../context/ExpenseContext';
+import { useWarranty } from '../context/WarrantyContext';
+import { useInventory } from '../context/InventoryContext';
+import { BarChart, Bar, AreaChart, Area, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import '../components/layout/Layout.css';
 
 const Dashboard = () => {
@@ -12,6 +15,9 @@ const Dashboard = () => {
   const { claims = [] } = usePV();
   const { productionLogs } = useProduction();
   const { inspections, schedules } = useInspection();
+  const { expenses } = useExpenses();
+  const { claims: warrantyClaims } = useWarranty();
+  const { transactions: invTxns } = useInventory();
 
   const [companyFilter, setCompanyFilter] = React.useState('All');
 
@@ -90,6 +96,57 @@ const Dashboard = () => {
     
     return all.sort((a, b) => new Date(a.date) - new Date(b.date)).slice(0, 5);
   }, [schedules, inspections, companyFilter, validPONos]);
+
+  // 4. Expense Burn Rate Data (Last 14 Days)
+  const expenseChartData = useMemo(() => {
+    const data = [];
+    for (let i = 13; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      const dateStr = d.toISOString().split('T')[0];
+      
+      const dayExps = expenses.filter(e => e.date === dateStr && e.status === 'Approved');
+      const totalAmt = dayExps.reduce((sum, e) => sum + Number(e.amount), 0);
+      
+      data.push({
+        name: d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }),
+        Amount: totalAmt
+      });
+    }
+    return data;
+  }, [expenses]);
+
+  // 5. Warranty Claims Status (Pie Chart)
+  const warrantyPieData = useMemo(() => {
+    let pending = 0, resolved = 0, rejected = 0;
+    warrantyClaims.forEach(c => {
+      if (companyFilter !== 'All' && c.client !== companyFilter) return;
+      if (c.status === 'Pending') pending++;
+      else if (c.status === 'Resolved' || c.status === 'Replaced' || c.status === 'Repaired') resolved++;
+      else if (c.status === 'Rejected') rejected++;
+    });
+    return [
+      { name: 'Pending', value: pending, color: 'var(--warning)' },
+      { name: 'Resolved', value: resolved, color: 'var(--success)' },
+      { name: 'Rejected', value: rejected, color: 'var(--danger)' }
+    ].filter(d => d.value > 0);
+  }, [warrantyClaims, companyFilter]);
+
+  // 6. Inventory Health (Global Stock)
+  const inventoryChartData = useMemo(() => {
+    // Group by item name
+    const stockMap = {};
+    invTxns.forEach(t => {
+      if (!stockMap[t.item]) stockMap[t.item] = 0;
+      if (t.type === 'IN') stockMap[t.item] += t.qty;
+      else stockMap[t.item] -= t.qty;
+    });
+    // Convert to array and sort by stock descending (take top 5)
+    return Object.entries(stockMap)
+      .map(([name, stock]) => ({ name, Stock: stock }))
+      .sort((a, b) => b.Stock - a.Stock)
+      .slice(0, 5);
+  }, [invTxns]);
 
   return (
     <div className="animate-fade-in" style={{ paddingBottom: '3rem' }}>
@@ -230,6 +287,80 @@ const Dashboard = () => {
               })}
             </div>
           )}
+        </div>
+
+      </div>
+      
+      {/* SECOND ROW OF CHARTS */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '2rem', marginTop: '2rem' }}>
+        
+        {/* Expense Burn Rate */}
+        <div className="card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column' }}>
+          <h2 style={{ margin: '0 0 1.5rem 0', fontSize: '1.2rem', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <FileText size={20} color="var(--danger)" />
+            14-Day Expense Burn Rate
+          </h2>
+          <div style={{ flex: 1, minHeight: '250px', width: '100%' }}>
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={expenseChartData} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
+                <defs>
+                  <linearGradient id="colorAmt" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="var(--danger)" stopOpacity={0.3}/>
+                    <stop offset="95%" stopColor="var(--danger)" stopOpacity={0}/>
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--border-color)" vertical={false} />
+                <XAxis dataKey="name" stroke="var(--text-muted)" fontSize={12} tickLine={false} axisLine={false} />
+                <YAxis stroke="var(--text-muted)" fontSize={12} tickLine={false} axisLine={false} />
+                <Tooltip contentStyle={{ backgroundColor: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', borderRadius: '8px' }} />
+                <Area type="monotone" dataKey="Amount" stroke="var(--danger)" fillOpacity={1} fill="url(#colorAmt)" />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        {/* Warranty Claims Pie */}
+        <div className="card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column' }}>
+          <h2 style={{ margin: '0 0 1.5rem 0', fontSize: '1.2rem', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <AlertCircle size={20} color="var(--warning)" />
+            Warranty Status
+          </h2>
+          <div style={{ flex: 1, minHeight: '250px', width: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+            {warrantyPieData.length === 0 ? (
+              <div style={{ color: 'var(--text-muted)' }}>No warranty claims found.</div>
+            ) : (
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie data={warrantyPieData} cx="50%" cy="50%" innerRadius={60} outerRadius={80} paddingAngle={5} dataKey="value">
+                    {warrantyPieData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <Tooltip contentStyle={{ backgroundColor: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', borderRadius: '8px' }} />
+                  <Legend />
+                </PieChart>
+              </ResponsiveContainer>
+            )}
+          </div>
+        </div>
+
+        {/* Top Inventory */}
+        <div className="card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column' }}>
+          <h2 style={{ margin: '0 0 1.5rem 0', fontSize: '1.2rem', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <Package size={20} color="var(--success)" />
+            Top Inventory Stock
+          </h2>
+          <div style={{ flex: 1, minHeight: '250px', width: '100%' }}>
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={inventoryChartData} layout="vertical" margin={{ top: 5, right: 30, left: 40, bottom: 5 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--border-color)" horizontal={false} />
+                <XAxis type="number" stroke="var(--text-muted)" fontSize={12} tickLine={false} axisLine={false} />
+                <YAxis dataKey="name" type="category" stroke="var(--text-muted)" fontSize={12} tickLine={false} axisLine={false} />
+                <Tooltip contentStyle={{ backgroundColor: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', borderRadius: '8px' }} />
+                <Bar dataKey="Stock" fill="var(--success)" radius={[0, 4, 4, 0]} barSize={20} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
         </div>
 
       </div>

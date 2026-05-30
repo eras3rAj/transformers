@@ -89,14 +89,10 @@ const Sidebar = ({ isMobileMenuOpen, setIsMobileMenuOpen }) => {
             onClick={() => setIsMobileMenuOpen && setIsMobileMenuOpen(false)}
           >
             <div style={{ width: '36px', height: '36px', borderRadius: '50%', backgroundColor: 'var(--accent-glow)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--accent-primary)', fontWeight: 'bold' }}>
-              {currentUser.name.charAt(0)}
+              {currentUser.name?.charAt(0) || 'U'}
             </div>
             <div style={{ overflow: 'hidden' }}>
-              <div style={{ fontWeight: '600', fontSize: '0.9rem', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>{currentUser.name}</div>
-              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.2rem' }}>
-                {currentUser.role === 'superadmin' && <Shield size={10} color="var(--danger)" />}
-                {currentUser.role === 'superadmin' ? 'Super Admin' : currentUser.role === 'admin' ? 'Admin' : 'Normal User'}
-              </div>
+              <div style={{ fontWeight: '600', fontSize: '0.9rem', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>{currentUser.name || 'User'}</div>
             </div>
           </NavLink>
         )}
