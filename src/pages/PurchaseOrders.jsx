@@ -4,15 +4,12 @@ import POForm from '../components/po/POForm';
 import ConfirmModal from '../components/common/ConfirmModal';
 import { usePO } from '../context/POContext';
 import { useInspection } from '../context/InspectionContext';
-import { usePV } from '../context/PVContext';
 import { useAuth } from '../context/AuthContext';
-import { calculatePVFinancials } from '../utils/pvCalculator';
 import '../components/layout/Layout.css';
 
 const PurchaseOrders = () => {
   const { pos, addPO, deletePO, companies } = usePO();
   const { inspections } = useInspection();
-  const { indices } = usePV();
   const { currentUser } = useAuth();
   
   const canViewFinancials = currentUser?.role === 'superadmin' || currentUser?.role === 'admin';
@@ -35,11 +32,7 @@ const PurchaseOrders = () => {
     let totalPendingValue = 0;
     let totalQuantity = 0;
     let totalPendingQuantity = 0;
-    let totalPVUpdatedValue = 0;
-    let totalPVPendingValue = 0;
     
-    const currData = indices?.[0]; // Latest month
-
     pos.forEach(po => {
       const unitTotal = (po.exWorks || 0) + (po.freight || 0) + (((po.exWorks || 0) + (po.freight || 0)) * ((po.gstRate || 0) / 100));
       totalContractValue += unitTotal * (po.quantity || 1);
@@ -50,25 +43,10 @@ const PurchaseOrders = () => {
       const pendingQty = Math.max(0, (po.quantity || 1) - totalAccepted);
       totalPendingValue += unitTotal * pendingQty;
       totalPendingQuantity += pendingQty;
-      
-      const baseData = indices?.find(i => i.month === po.baseMonthStr);
-      if (baseData && currData) {
-        const pvData = calculatePVFinancials(po, baseData, currData);
-        if (pvData) {
-          totalPVUpdatedValue += pvData.newTotal * (po.quantity || 1);
-          totalPVPendingValue += pvData.newTotal * pendingQty;
-        } else {
-          totalPVUpdatedValue += unitTotal * (po.quantity || 1);
-          totalPVPendingValue += unitTotal * pendingQty;
-        }
-      } else {
-        totalPVUpdatedValue += unitTotal * (po.quantity || 1);
-        totalPVPendingValue += unitTotal * pendingQty;
-      }
     });
 
-    return { totalContractValue, totalPendingValue, totalQuantity, totalPendingQuantity, totalPVUpdatedValue, totalPVPendingValue };
-  }, [pos, inspections, indices]);
+    return { totalContractValue, totalPendingValue, totalQuantity, totalPendingQuantity };
+  }, [pos, inspections]);
 
   return (
     <div className="animate-fade-in">
@@ -120,10 +98,6 @@ const PurchaseOrders = () => {
               const pendingQty = Math.max(0, (po.quantity || 1) - totalAccepted);
               const pendingValue = unitTotal * pendingQty;
               
-              const currData = indices?.[0];
-              const baseData = indices?.find(i => i.month === po.baseMonthStr);
-              const pvData = (baseData && currData) ? calculatePVFinancials(po, baseData, currData) : null;
-              
               return (
               <tr key={po.id} style={{ borderBottom: '1px solid var(--border-color)' }} className="table-row">
                 <td style={{ padding: '1rem' }}>
@@ -157,18 +131,8 @@ const PurchaseOrders = () => {
                         {formatCurrency(totalValue)}
                       </div>
                       <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                        Total (Original)
+                        Total
                       </div>
-                      {pvData && pvData.totalDiff !== 0 && (
-                        <div style={{ marginTop: '0.5rem', paddingTop: '0.5rem', borderTop: '1px dashed var(--border-color)' }}>
-                          <div style={{ fontSize: '1.05rem', fontWeight: 'bold', color: pvData.totalDiff > 0 ? 'var(--success)' : 'var(--danger)' }}>
-                            {formatCurrency(pvData.newTotal * (po.quantity || 1))}
-                          </div>
-                          <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
-                            w/ PV ({pvData.percentageChange}%)
-                          </div>
-                        </div>
-                      )}
                     </td>
                     <td style={{ padding: '1rem' }}>
                       <div style={{ fontSize: '1.1rem', fontWeight: '600', color: pendingQty > 0 ? 'var(--warning)' : 'var(--success)' }}>
@@ -177,16 +141,6 @@ const PurchaseOrders = () => {
                       <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
                         Pending ({pendingQty} units)
                       </div>
-                      {pvData && pvData.totalDiff !== 0 && pendingQty > 0 && (
-                        <div style={{ marginTop: '0.5rem', paddingTop: '0.5rem', borderTop: '1px dashed var(--border-color)' }}>
-                          <div style={{ fontSize: '1.05rem', fontWeight: 'bold', color: 'var(--warning)' }}>
-                            {formatCurrency(pvData.newTotal * pendingQty)}
-                          </div>
-                          <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
-                            w/ PV Updated Rate
-                          </div>
-                        </div>
-                      )}
                     </td>
                   </>
                 )}
@@ -219,11 +173,6 @@ const PurchaseOrders = () => {
               <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', fontWeight: '600', letterSpacing: '0.5px', marginBottom: '0.3rem' }}>TOTAL CONTRACT VALUE</div>
               <div style={{ fontSize: '1.6rem', fontWeight: 'bold', color: 'var(--text-primary)', display: 'flex', alignItems: 'baseline', gap: '0.5rem' }}>
                 {formatCurrency(globalSummary.totalContractValue)}
-                {Math.abs(globalSummary.totalPVUpdatedValue - globalSummary.totalContractValue) > 1 && (
-                  <span style={{ fontSize: '0.9rem', color: globalSummary.totalPVUpdatedValue > globalSummary.totalContractValue ? 'var(--success)' : 'var(--danger)', fontWeight: 'normal' }}>
-                    → {formatCurrency(globalSummary.totalPVUpdatedValue)} w/ PV
-                  </span>
-                )}
               </div>
               <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>{globalSummary.totalQuantity} total units ordered</div>
             </div>
@@ -231,11 +180,6 @@ const PurchaseOrders = () => {
               <div style={{ fontSize: '0.85rem', color: 'var(--warning)', fontWeight: '600', letterSpacing: '0.5px', marginBottom: '0.3rem' }}>PENDING ORDERS (IN HAND)</div>
               <div style={{ fontSize: '1.6rem', fontWeight: 'bold', color: 'var(--warning)', display: 'flex', alignItems: 'baseline', gap: '0.5rem' }}>
                 {formatCurrency(globalSummary.totalPendingValue)}
-                {Math.abs(globalSummary.totalPVPendingValue - globalSummary.totalPendingValue) > 1 && (
-                  <span style={{ fontSize: '0.9rem', color: globalSummary.totalPVPendingValue > globalSummary.totalPendingValue ? 'var(--success)' : 'var(--danger)', fontWeight: 'normal' }}>
-                    → {formatCurrency(globalSummary.totalPVPendingValue)} w/ PV
-                  </span>
-                )}
               </div>
               <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>{globalSummary.totalPendingQuantity} units pending dispatch</div>
             </div>
