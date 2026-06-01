@@ -36,13 +36,41 @@ const POForm = ({ onSubmit, onClose, initialData }) => {
 
   useEffect(() => {
     if (initialData) {
-      setFormData(initialData);
+      let cleanedData = { ...initialData };
+      // Clean up legacy conflicting weights from DB
+      if (cleanedData.conductorType === 'Copper') {
+        if (cleanedData.weightAl > 0 && cleanedData.weightCu === 0) {
+          cleanedData.weightCu = cleanedData.weightAl;
+        }
+        cleanedData.weightAl = 0;
+      } else if (cleanedData.conductorType === 'Aluminium') {
+        if (cleanedData.weightCu > 0 && cleanedData.weightAl === 0) {
+          cleanedData.weightAl = cleanedData.weightCu;
+        }
+        cleanedData.weightCu = 0;
+      }
+      setFormData(cleanedData);
     }
   }, [initialData]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    setFormData(prev => {
+      let updates = { [name]: value };
+      
+      // Auto-swap weights when conductor type changes
+      if (name === 'conductorType') {
+        if (value === 'Copper' && prev.weightCu === 0 && prev.weightAl > 0) {
+          updates.weightCu = prev.weightAl;
+          updates.weightAl = 0;
+        } else if (value === 'Aluminium' && prev.weightAl === 0 && prev.weightCu > 0) {
+          updates.weightAl = prev.weightCu;
+          updates.weightCu = 0;
+        }
+      }
+      
+      return { ...prev, ...updates };
+    });
     setError('');
   };
 
