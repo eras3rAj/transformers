@@ -163,6 +163,7 @@ const Dashboard = () => {
 
     inspections.forEach(i => {
       if (companyFilter !== 'All' && !validPONos.has(i.poNo)) return;
+      if (i.type !== 'Final') return;
       if (!i.startDate || !i.startDate.startsWith(inspectionYear)) return;
       
       const monthIdx = parseInt(i.startDate.substring(5, 7), 10) - 1;
