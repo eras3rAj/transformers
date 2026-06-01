@@ -106,7 +106,9 @@ const PurchaseOrders = () => {
                   </div>
                   <div style={{ fontWeight: '600', color: 'var(--accent-primary)', fontSize: '1.05rem', marginBottom: '0.2rem' }}>{po.poNo}</div>
                   <div style={{ fontWeight: '500' }}>{po.utilityBoard} - {po.capacity} {po.noOfPhases === '3-Phase' ? '(3-Phase)' : ''}</div>
-                  <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{po.conductorType} | Qty: {po.quantity}</div>
+                  <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                    Qty: {po.quantity} | Delivered: <span style={{ color: 'var(--success)' }}>{totalAccepted}</span> | Balance: <span style={{ color: pendingQty > 0 ? 'var(--warning)' : 'var(--success)' }}>{pendingQty}</span>
+                  </div>
                   {po.remarks && (
                     <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '0.3rem', fontStyle: 'italic', backgroundColor: 'var(--bg-tertiary)', padding: '0.3rem', borderRadius: '4px' }}>
                       Note: {po.remarks}
