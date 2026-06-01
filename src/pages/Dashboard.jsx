@@ -203,17 +203,17 @@ const Dashboard = () => {
       if (data.Offered === 0 && data.Accepted === 0) return null;
       
       return (
-        <div style={{ backgroundColor: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', borderRadius: '8px', color: 'var(--text-primary)', padding: '1rem', minWidth: '150px' }}>
+        <div style={{ backgroundColor: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', borderRadius: '8px', color: 'var(--text-primary)', padding: '1rem', minWidth: '220px' }}>
           <p style={{ margin: '0 0 0.8rem 0', fontWeight: 'bold', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.4rem' }}>{label}</p>
           
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: '1rem' }}>
             {Object.entries(data.breakdown).map(([label, counts]) => {
               const [cap, comp] = label.split(' | ');
               return (
-              <div key={label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
+              <div key={label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem', gap: '1.5rem' }}>
                 <div>
                   <span style={{ color: 'var(--text-primary)', fontWeight: '600', fontSize: '0.9rem' }}>{cap}</span>
-                  {comp && <span style={{ color: 'var(--text-muted)', fontSize: '0.7rem', marginLeft: '6px', fontWeight: 'normal', backgroundColor: 'var(--bg-secondary)', padding: '2px 6px', borderRadius: '4px' }}>{comp}</span>}
+                  {comp && <span style={{ color: 'var(--text-muted)', fontSize: '0.7rem', marginLeft: '8px', fontWeight: 'normal', backgroundColor: 'var(--bg-secondary)', padding: '2px 6px', borderRadius: '4px' }}>{comp}</span>}
                 </div>
                 <span style={{ fontSize: '0.9rem', fontWeight: 'bold', color: 'var(--success)' }}>
                   {counts.accepted}
