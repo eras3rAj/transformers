@@ -180,10 +180,10 @@ const Dashboard = () => {
           
           let comp = '';
           if (poObj.companyName === 'J.M. Electricals') comp = 'JM';
-          else if (poObj.companyName === 'J.R. Transformers') comp = 'JR';
+          else if (poObj.companyName === 'J.R. Transformers') comp = 'JRTPL';
           else comp = poObj.companyName;
           
-          const label = `${comp} ${cap}`;
+          const label = `${cap} | ${comp}`;
 
           if (!data[monthIdx].breakdown[label]) {
             data[monthIdx].breakdown[label] = { offered: 0, accepted: 0 };
@@ -207,14 +207,20 @@ const Dashboard = () => {
           <p style={{ margin: '0 0 0.8rem 0', fontWeight: 'bold', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.4rem' }}>{label}</p>
           
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: '1rem' }}>
-            {Object.entries(data.breakdown).map(([cap, counts]) => (
-              <div key={cap} style={{ fontSize: '0.85rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ color: 'var(--text-primary)', fontWeight: '600' }}>{cap}</span>
-                <span style={{ fontSize: '0.85rem', fontWeight: 'bold', color: 'var(--success)' }}>
+            {Object.entries(data.breakdown).map(([label, counts]) => {
+              const [cap, comp] = label.split(' | ');
+              return (
+              <div key={label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
+                <div>
+                  <span style={{ color: 'var(--text-primary)', fontWeight: '600', fontSize: '0.9rem' }}>{cap}</span>
+                  {comp && <span style={{ color: 'var(--text-muted)', fontSize: '0.7rem', marginLeft: '6px', fontWeight: 'normal', backgroundColor: 'var(--bg-secondary)', padding: '2px 6px', borderRadius: '4px' }}>{comp}</span>}
+                </div>
+                <span style={{ fontSize: '0.9rem', fontWeight: 'bold', color: 'var(--success)' }}>
                   {counts.accepted}
                 </span>
               </div>
-            ))}
+              );
+            })}
           </div>
           
           <div style={{ paddingTop: '0.5rem', borderTop: '1px solid var(--border-color)', fontSize: '0.9rem', fontWeight: 'bold' }}>
@@ -246,7 +252,7 @@ const Dashboard = () => {
             {companies?.map(c => {
               let display = c;
               if (c === 'J.M. Electricals') display = 'JM';
-              if (c === 'J.R. Transformers') display = 'JR';
+              if (c === 'J.R. Transformers') display = 'JRTPL';
               return <option key={c} value={c}>{display}</option>;
             })}
           </select>
