@@ -20,6 +20,7 @@ const Dashboard = () => {
   const { transactions: invTxns } = useInventory();
 
   const [companyFilter, setCompanyFilter] = React.useState('All');
+  const [inspectionYear, setInspectionYear] = React.useState(new Date().getFullYear().toString());
 
   // 1. Global KPIs
   const filteredPOs = useMemo(() => {
@@ -147,6 +148,32 @@ const Dashboard = () => {
       .sort((a, b) => b.Stock - a.Stock)
       .slice(0, 5);
   }, [invTxns]);
+
+  // 7. Inspection Trends (Monthly)
+  const availableYears = useMemo(() => {
+    const years = new Set(inspections.map(i => i.startDate ? i.startDate.substring(0, 4) : '').filter(Boolean));
+    const currentYear = new Date().getFullYear().toString();
+    years.add(currentYear);
+    return Array.from(years).sort().reverse();
+  }, [inspections]);
+
+  const inspectionChartData = useMemo(() => {
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const data = months.map(m => ({ name: m, Offered: 0, Accepted: 0 }));
+
+    inspections.forEach(i => {
+      if (companyFilter !== 'All' && !validPONos.has(i.poNo)) return;
+      if (!i.startDate || !i.startDate.startsWith(inspectionYear)) return;
+      
+      const monthIdx = parseInt(i.startDate.substring(5, 7), 10) - 1;
+      if (monthIdx >= 0 && monthIdx <= 11) {
+        data[monthIdx].Offered += Number(i.qtyOffered) || 0;
+        data[monthIdx].Accepted += Number(i.qtyAccepted) || 0;
+      }
+    });
+    
+    return data;
+  }, [inspections, inspectionYear, companyFilter, validPONos]);
 
   return (
     <div className="animate-fade-in" style={{ paddingBottom: '3rem' }}>
@@ -358,6 +385,44 @@ const Dashboard = () => {
                 <YAxis dataKey="name" type="category" stroke="var(--text-muted)" fontSize={12} tickLine={false} axisLine={false} />
                 <Tooltip contentStyle={{ backgroundColor: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', borderRadius: '8px' }} />
                 <Bar dataKey="Stock" fill="var(--success)" radius={[0, 4, 4, 0]} barSize={20} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+      </div>
+      
+      {/* THIRD ROW OF CHARTS */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '2rem', marginTop: '2rem' }}>
+        
+        {/* Inspection Trends */}
+        <div className="card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
+            <h2 style={{ margin: 0, fontSize: '1.2rem', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <CheckCircle size={20} color="var(--accent-primary)" />
+              Inspection Trends (Monthly)
+            </h2>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Year:</span>
+              <select value={inspectionYear} onChange={(e) => setInspectionYear(e.target.value)} className="input-field" style={{ marginBottom: 0, minWidth: '100px' }}>
+                {availableYears.map(y => <option key={y} value={y}>{y}</option>)}
+              </select>
+            </div>
+          </div>
+          <div style={{ flex: 1, minHeight: '350px', width: '100%' }}>
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={inspectionChartData} margin={{ top: 5, right: 30, left: 0, bottom: 5 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--border-color)" vertical={false} />
+                <XAxis dataKey="name" stroke="var(--text-muted)" fontSize={12} tickLine={false} axisLine={false} />
+                <YAxis stroke="var(--text-muted)" fontSize={12} tickLine={false} axisLine={false} />
+                <Tooltip 
+                  contentStyle={{ backgroundColor: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', borderRadius: '8px', color: 'var(--text-primary)' }}
+                  itemStyle={{ fontWeight: '600' }}
+                  cursor={{ fill: 'var(--bg-secondary)', opacity: 0.4 }}
+                />
+                <Legend iconType="circle" wrapperStyle={{ paddingTop: '20px' }} />
+                <Bar dataKey="Offered" fill="#94a3b8" radius={[4, 4, 0, 0]} barSize={30} />
+                <Bar dataKey="Accepted" fill="var(--success)" radius={[4, 4, 0, 0]} barSize={30} />
               </BarChart>
             </ResponsiveContainer>
           </div>
