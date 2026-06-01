@@ -271,12 +271,12 @@ const Dashboard = () => {
         <div className="card stat-card">
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
             <div>
-              <h3 style={{ margin: '0 0 0.5rem 0', color: 'var(--text-muted)', fontSize: '0.85rem', textTransform: 'uppercase' }}>Pending PV Claims</h3>
-              <p style={{ margin: 0, fontSize: '2rem', fontWeight: '700', color: 'var(--warning)' }}>{pendingPVs}</p>
-              <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginTop: '0.2rem' }}>Unsettled Bills</div>
+              <h3 style={{ margin: '0 0 0.5rem 0', color: 'var(--text-muted)', fontSize: '0.85rem', textTransform: 'uppercase' }}>Pending Dispatch</h3>
+              <p style={{ margin: 0, fontSize: '2rem', fontWeight: '700', color: 'var(--warning)' }}>{(totalOrdered - totalDispatched).toLocaleString()}</p>
+              <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginTop: '0.2rem' }}>Units Remaining</div>
             </div>
             <div style={{ backgroundColor: 'rgba(245, 158, 11, 0.1)', padding: '0.8rem', borderRadius: '8px', color: 'var(--warning)' }}>
-              <TrendingUp size={24} />
+              <Clock size={24} />
             </div>
           </div>
         </div>
