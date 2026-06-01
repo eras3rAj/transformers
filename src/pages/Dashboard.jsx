@@ -243,7 +243,12 @@ const Dashboard = () => {
           <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Master Filter:</span>
           <select value={companyFilter} onChange={(e) => setCompanyFilter(e.target.value)} className="input-field" style={{ marginBottom: 0, minWidth: '200px' }}>
             <option value="All">All Companies (Global)</option>
-            {companies?.map(c => <option key={c} value={c}>{c}</option>)}
+            {companies?.map(c => {
+              let display = c;
+              if (c === 'J.M. Electricals') display = 'JM';
+              if (c === 'J.R. Transformers') display = 'JR';
+              return <option key={c} value={c}>{display}</option>;
+            })}
           </select>
         </div>
       </div>
