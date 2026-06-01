@@ -175,12 +175,21 @@ const Dashboard = () => {
         
         const poObj = pos.find(p => p.poNo === i.poNo);
         if (poObj) {
-          const cap = poObj.capacity || 'Unknown';
-          if (!data[monthIdx].breakdown[cap]) {
-            data[monthIdx].breakdown[cap] = { offered: 0, accepted: 0 };
+          let cap = poObj.capacity || 'Unknown';
+          cap = cap.replace('(Single Phase)', '(SP)');
+          
+          let comp = '';
+          if (poObj.companyName === 'J.M. Electricals') comp = 'JM';
+          else if (poObj.companyName === 'J.R. Transformers') comp = 'JR';
+          else comp = poObj.companyName;
+          
+          const label = `${comp} ${cap}`;
+
+          if (!data[monthIdx].breakdown[label]) {
+            data[monthIdx].breakdown[label] = { offered: 0, accepted: 0 };
           }
-          data[monthIdx].breakdown[cap].offered += off;
-          data[monthIdx].breakdown[cap].accepted += acc;
+          data[monthIdx].breakdown[label].offered += off;
+          data[monthIdx].breakdown[label].accepted += acc;
         }
       }
     });
