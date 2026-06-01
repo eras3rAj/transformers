@@ -159,7 +159,7 @@ const Dashboard = () => {
 
   const inspectionChartData = useMemo(() => {
     const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    const data = months.map(m => ({ name: m, Offered: 0, Accepted: 0 }));
+    const data = months.map(m => ({ name: m, Offered: 0, Accepted: 0, breakdown: {} }));
 
     inspections.forEach(i => {
       if (companyFilter !== 'All' && !validPONos.has(i.poNo)) return;
@@ -168,13 +168,57 @@ const Dashboard = () => {
       
       const monthIdx = parseInt(i.startDate.substring(5, 7), 10) - 1;
       if (monthIdx >= 0 && monthIdx <= 11) {
-        data[monthIdx].Offered += Number(i.qtyOffered) || 0;
-        data[monthIdx].Accepted += Number(i.qtyAccepted) || 0;
+        const off = Number(i.qtyOffered) || 0;
+        const acc = Number(i.qtyAccepted) || 0;
+        data[monthIdx].Offered += off;
+        data[monthIdx].Accepted += acc;
+        
+        const poObj = pos.find(p => p.poNo === i.poNo);
+        if (poObj) {
+          const cap = poObj.capacity || 'Unknown';
+          if (!data[monthIdx].breakdown[cap]) {
+            data[monthIdx].breakdown[cap] = { offered: 0, accepted: 0 };
+          }
+          data[monthIdx].breakdown[cap].offered += off;
+          data[monthIdx].breakdown[cap].accepted += acc;
+        }
       }
     });
     
     return data;
-  }, [inspections, inspectionYear, companyFilter, validPONos]);
+  }, [inspections, inspectionYear, companyFilter, validPONos, pos]);
+
+  const CustomInspectionTooltip = ({ active, payload, label }) => {
+    if (active && payload && payload.length) {
+      const data = payload[0].payload;
+      if (data.Offered === 0 && data.Accepted === 0) return null;
+      
+      return (
+        <div style={{ backgroundColor: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', borderRadius: '8px', color: 'var(--text-primary)', padding: '1rem', minWidth: '150px' }}>
+          <p style={{ margin: '0 0 0.8rem 0', fontWeight: 'bold', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.4rem' }}>{label}</p>
+          
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: '1rem' }}>
+            {Object.entries(data.breakdown).map(([cap, counts]) => (
+              <div key={cap} style={{ fontSize: '0.85rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ color: 'var(--text-primary)', fontWeight: '600' }}>{cap}</span>
+                <span style={{ fontSize: '0.85rem', fontWeight: 'bold', color: 'var(--success)' }}>
+                  {counts.accepted}
+                </span>
+              </div>
+            ))}
+          </div>
+          
+          <div style={{ paddingTop: '0.5rem', borderTop: '1px solid var(--border-color)', fontSize: '0.9rem', fontWeight: 'bold' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+              <span style={{ color: 'var(--success)' }}>Total Accepted:</span>
+              <span>{data.Accepted}</span>
+            </div>
+          </div>
+        </div>
+      );
+    }
+    return null;
+  };
 
   return (
     <div className="animate-fade-in" style={{ paddingBottom: '3rem' }}>
@@ -417,12 +461,10 @@ const Dashboard = () => {
                 <XAxis dataKey="name" stroke="var(--text-muted)" fontSize={12} tickLine={false} axisLine={false} />
                 <YAxis stroke="var(--text-muted)" fontSize={12} tickLine={false} axisLine={false} />
                 <Tooltip 
-                  contentStyle={{ backgroundColor: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', borderRadius: '8px', color: 'var(--text-primary)' }}
-                  itemStyle={{ fontWeight: '600' }}
+                  content={<CustomInspectionTooltip />}
                   cursor={{ fill: 'var(--bg-secondary)', opacity: 0.4 }}
                 />
                 <Legend iconType="circle" wrapperStyle={{ paddingTop: '20px' }} />
-                <Bar dataKey="Offered" fill="#94a3b8" radius={[4, 4, 0, 0]} barSize={30} />
                 <Bar dataKey="Accepted" fill="var(--success)" radius={[4, 4, 0, 0]} barSize={30} />
               </BarChart>
             </ResponsiveContainer>
