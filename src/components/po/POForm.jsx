@@ -37,6 +37,16 @@ const POForm = ({ onSubmit, onClose, initialData }) => {
   useEffect(() => {
     if (initialData) {
       let cleanedData = { ...initialData };
+      
+      // Normalize legacy string values from DB to match the <select> options
+      if (cleanedData.conductorType) {
+        if (cleanedData.conductorType.toLowerCase().startsWith('al')) {
+          cleanedData.conductorType = 'Aluminium';
+        } else if (cleanedData.conductorType.toLowerCase().startsWith('cu') || cleanedData.conductorType.toLowerCase().startsWith('co')) {
+          cleanedData.conductorType = 'Copper';
+        }
+      }
+
       // Clean up legacy conflicting weights from DB
       if (cleanedData.conductorType === 'Copper') {
         if (cleanedData.weightAl > 0 && cleanedData.weightCu === 0) {
