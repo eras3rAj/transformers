@@ -116,6 +116,15 @@ export const POProvider = ({ children }) => {
     }
   };
 
+  const deletePO = async (id) => {
+    const { error } = await supabase.from('purchase_orders').delete().eq('id', id);
+    if (!error) {
+      setPos(prev => prev.filter(po => po.id !== id));
+      return true;
+    }
+    return false;
+  };
+
   const addBoard = (board) => {
     if (!boards.includes(board)) setBoards(prev => [...prev, board]);
   };
@@ -134,7 +143,7 @@ export const POProvider = ({ children }) => {
 
   return (
     <POContext.Provider value={{ 
-      pos, addPO, 
+      pos, addPO, deletePO,
       boards, addBoard, 
       capacities, addCapacity, 
       gstRates, addGstRate,

@@ -1,22 +1,23 @@
 import React, { useState } from 'react';
-import { Plus, Edit, FileText, Anchor } from 'lucide-react';
+import { Plus, Edit, FileText, Anchor, Trash2 } from 'lucide-react';
 import POForm from '../components/po/POForm';
+import ConfirmModal from '../components/common/ConfirmModal';
 import { usePO } from '../context/POContext';
 import { useInspection } from '../context/InspectionContext';
 import { useAuth } from '../context/AuthContext';
 import '../components/layout/Layout.css';
 
 const PurchaseOrders = () => {
-  const { pos, addPO } = usePO();
+  const { pos, addPO, deletePO, companies } = usePO();
   const { inspections } = useInspection();
   const { currentUser } = useAuth();
-  const { companies } = usePO();
   
   const canViewFinancials = currentUser?.role === 'superadmin' || currentUser?.role === 'admin';
   
   const [showForm, setShowForm] = useState(false);
   const [editingPO, setEditingPO] = useState(null);
   const [companyFilter, setCompanyFilter] = useState('All');
+  const [deleteModal, setDeleteModal] = useState({ isOpen: false, poId: null, poNo: '' });
 
   const formatCurrency = (val) => `₹${Number(val).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
@@ -143,9 +144,14 @@ const PurchaseOrders = () => {
                 )}
                 {currentUser?.role === 'superadmin' && (
                   <td style={{ padding: '1rem' }}>
-                    <button className="icon-btn" title="Edit PO" onClick={() => { setEditingPO(po); setShowForm(true); }}>
-                      <Edit size={18} />
-                    </button>
+                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                      <button className="icon-btn" title="Edit PO" onClick={() => { setEditingPO(po); setShowForm(true); }}>
+                        <Edit size={18} />
+                      </button>
+                      <button className="icon-btn" style={{ color: 'var(--danger)' }} title="Delete PO" onClick={() => setDeleteModal({ isOpen: true, poId: po.id, poNo: po.poNo })}>
+                        <Trash2 size={18} />
+                      </button>
+                    </div>
                   </td>
                 )}
               </tr>
@@ -182,6 +188,21 @@ const PurchaseOrders = () => {
           initialData={editingPO}
         />
       )}
+
+      <ConfirmModal 
+        isOpen={deleteModal.isOpen}
+        title="Delete Purchase Order"
+        message={`Are you sure you want to permanently delete PO "${deleteModal.poNo}"? This action cannot be undone.`}
+        confirmText="Delete PO"
+        confirmType="danger"
+        onConfirm={async () => {
+          if (deleteModal.poId) {
+            await deletePO(deleteModal.poId);
+          }
+          setDeleteModal({ isOpen: false, poId: null, poNo: '' });
+        }}
+        onCancel={() => setDeleteModal({ isOpen: false, poId: null, poNo: '' })}
+      />
     </div>
   );
 };
