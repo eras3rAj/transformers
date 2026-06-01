@@ -333,6 +333,7 @@ const Dashboard = () => {
                 <Tooltip 
                   contentStyle={{ backgroundColor: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', borderRadius: '8px', color: 'var(--text-primary)' }}
                   itemStyle={{ fontWeight: '600' }}
+                  wrapperStyle={{ zIndex: 1000 }}
                 />
                 <Legend iconType="circle" wrapperStyle={{ paddingTop: '20px' }} />
                 <Bar dataKey="Box Up" fill="#ef4444" radius={[4, 4, 0, 0]} />
@@ -404,7 +405,7 @@ const Dashboard = () => {
                 <CartesianGrid strokeDasharray="3 3" stroke="var(--border-color)" vertical={false} />
                 <XAxis dataKey="name" stroke="var(--text-muted)" fontSize={12} tickLine={false} axisLine={false} />
                 <YAxis stroke="var(--text-muted)" fontSize={12} tickLine={false} axisLine={false} />
-                <Tooltip contentStyle={{ backgroundColor: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', borderRadius: '8px' }} />
+                <Tooltip contentStyle={{ backgroundColor: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', borderRadius: '8px' }} wrapperStyle={{ zIndex: 1000 }} />
                 <Area type="monotone" dataKey="Amount" stroke="var(--danger)" fillOpacity={1} fill="url(#colorAmt)" />
               </AreaChart>
             </ResponsiveContainer>
@@ -428,7 +429,7 @@ const Dashboard = () => {
                       <Cell key={`cell-${index}`} fill={entry.color} />
                     ))}
                   </Pie>
-                  <Tooltip contentStyle={{ backgroundColor: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', borderRadius: '8px' }} />
+                  <Tooltip contentStyle={{ backgroundColor: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', borderRadius: '8px' }} wrapperStyle={{ zIndex: 1000 }} />
                   <Legend />
                 </PieChart>
               </ResponsiveContainer>
@@ -448,7 +449,7 @@ const Dashboard = () => {
                 <CartesianGrid strokeDasharray="3 3" stroke="var(--border-color)" horizontal={false} />
                 <XAxis type="number" stroke="var(--text-muted)" fontSize={12} tickLine={false} axisLine={false} />
                 <YAxis dataKey="name" type="category" stroke="var(--text-muted)" fontSize={12} tickLine={false} axisLine={false} />
-                <Tooltip contentStyle={{ backgroundColor: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', borderRadius: '8px' }} />
+                <Tooltip contentStyle={{ backgroundColor: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', borderRadius: '8px' }} wrapperStyle={{ zIndex: 1000 }} />
                 <Bar dataKey="Stock" fill="var(--success)" radius={[0, 4, 4, 0]} barSize={20} />
               </BarChart>
             </ResponsiveContainer>
@@ -483,6 +484,7 @@ const Dashboard = () => {
                 <Tooltip 
                   content={<CustomInspectionTooltip />}
                   cursor={{ fill: 'var(--bg-secondary)', opacity: 0.4 }}
+                  wrapperStyle={{ zIndex: 1000 }}
                 />
                 <Legend iconType="circle" wrapperStyle={{ paddingTop: '20px' }} />
                 <Bar dataKey="Accepted" fill="var(--success)" radius={[4, 4, 0, 0]} barSize={30} />
