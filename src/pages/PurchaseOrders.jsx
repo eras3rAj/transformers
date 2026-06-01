@@ -120,6 +120,10 @@ const PurchaseOrders = () => {
               const pendingQty = Math.max(0, (po.quantity || 1) - totalAccepted);
               const pendingValue = unitTotal * pendingQty;
               
+              const currData = indices?.[0];
+              const baseData = indices?.find(i => i.month === po.baseMonthStr);
+              const pvData = (baseData && currData) ? calculatePVFinancials(po, baseData, currData) : null;
+              
               return (
               <tr key={po.id} style={{ borderBottom: '1px solid var(--border-color)' }} className="table-row">
                 <td style={{ padding: '1rem' }}>
