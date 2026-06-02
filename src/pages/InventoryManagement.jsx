@@ -11,6 +11,16 @@ const InventoryManagement = () => {
   const isSuperAdmin = currentUser?.role === 'superadmin';
   
   const [activeTab, setActiveTab] = useState('Overview');
+  const [searchQuery, setSearchQuery] = useState('');
+
+  // Filter items based on search query
+  const filteredItems = useMemo(() => {
+    if (!searchQuery.trim()) return items;
+    return items.filter(item =>
+      item.name.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+  }, [items, searchQuery]);
+
   
   // Modal States
   const [showLocationModal, setShowLocationModal] = useState(false);
@@ -107,8 +117,37 @@ const InventoryManagement = () => {
 
   const renderGlobalOverview = () => (
     <div className="animate-fade-in">
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
+        <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <Database size={20} color="var(--accent-primary)" /> Global Stock Overview
+        </h3>
+        {/* Global Search Input Bar */}
+        <div style={{ position: 'relative', width: '300px', maxWidth: '100%' }}>
+          <input
+            type="text"
+            className="input-field"
+            placeholder="Search items..."
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+            style={{ paddingLeft: '2.5rem', margin: 0, paddingTop: '0.5rem', paddingBottom: '0.5rem', fontSize: '0.9rem' }}
+          />
+          <div style={{ position: 'absolute', left: '0.8rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)', display: 'flex', alignItems: 'center' }}>
+            <PackageSearch size={16} />
+          </div>
+          {searchQuery && (
+            <button 
+              type="button"
+              onClick={() => setSearchQuery('')}
+              style={{ position: 'absolute', right: '0.8rem', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '0.8rem' }}
+            >
+              Clear
+            </button>
+          )}
+        </div>
+      </div>
+
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1.5rem', marginBottom: '2rem' }}>
-        {items.map(item => {
+        {filteredItems.map(item => {
           const globalStock = getGlobalStock(item.name);
           return (
             <div key={item.id} className="card stat-card" style={{ borderLeft: `4px solid ${globalStock > 0 ? 'var(--success)' : 'var(--danger)'}` }}>
@@ -125,14 +164,14 @@ const InventoryManagement = () => {
             </div>
           );
         })}
-        {items.length === 0 && (
+        {filteredItems.length === 0 && (
           <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)', width: '100%', gridColumn: '1 / -1', border: '1px dashed var(--border-color)', borderRadius: '8px' }}>
-            No items tracked yet. Head to Settings to configure your inventory items.
+            {items.length === 0 ? "No items tracked yet. Head to Settings to configure your inventory items." : "No matching items found."}
           </div>
         )}
       </div>
 
-      {items.length > 0 && (
+      {filteredItems.length > 0 && (
         <div className="card">
           <h3 style={{ margin: '0 0 1.5rem 0', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <Archive size={18} color="var(--accent-primary)" /> Global Stock Distribution
@@ -149,7 +188,7 @@ const InventoryManagement = () => {
                 </tr>
               </thead>
               <tbody>
-                {items.map(item => (
+                {filteredItems.map(item => (
                   <tr key={item.id} style={{ borderBottom: '1px solid var(--border-color)' }}>
                     <td style={{ padding: '1rem', fontWeight: '600' }}>{item.name} <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>({item.unit})</span></td>
                     {locations.map(loc => {
@@ -176,41 +215,87 @@ const InventoryManagement = () => {
   const renderLocationView = (locName) => (
     <div className="animate-fade-in">
       <div className="card" style={{ marginBottom: '2rem' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
           <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <MapPin size={20} color="var(--success)" /> Stock at {locName}
           </h3>
+          
+          {/* Location-specific Search Input Bar */}
+          <div style={{ position: 'relative', width: '300px', maxWidth: '100%' }}>
+            <input
+              type="text"
+              className="input-field"
+              placeholder="Search items..."
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              style={{ paddingLeft: '2.5rem', margin: 0, paddingTop: '0.5rem', paddingBottom: '0.5rem', fontSize: '0.9rem' }}
+            />
+            <div style={{ position: 'absolute', left: '0.8rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)', display: 'flex', alignItems: 'center' }}>
+              <PackageSearch size={16} />
+            </div>
+            {searchQuery && (
+              <button 
+                type="button"
+                onClick={() => setSearchQuery('')}
+                style={{ position: 'absolute', right: '0.8rem', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '0.8rem' }}
+              >
+                Clear
+              </button>
+            )}
+          </div>
         </div>
         
-        {/* Mobile-friendly card layout for stock items */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-          {items.map(item => {
-            const stock = getStockAtLocation(item.name, locName);
-            return (
-              <div key={item.id} style={{ padding: '1rem', backgroundColor: 'var(--bg-tertiary)', borderRadius: '10px', border: '1px solid var(--border-color)' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.8rem' }}>
-                  <div style={{ fontWeight: '600', fontSize: '1rem' }}>{item.name}</div>
-                  <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.3rem' }}>
-                    <span style={{ fontSize: '1.4rem', fontWeight: '700', color: stock > 0 ? 'var(--success)' : 'var(--danger)' }}>
-                      {stock.toLocaleString()}
-                    </span>
-                    <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{item.unit}</span>
-                  </div>
-                </div>
-                <div style={{ display: 'flex', gap: '0.5rem' }}>
-                  <button className="btn" style={{ flex: 1, padding: '0.5rem', backgroundColor: 'rgba(16, 185, 129, 0.1)', color: 'var(--success)', border: '1px solid rgba(16, 185, 129, 0.2)', fontSize: '0.85rem', display: 'flex', gap: '0.4rem', justifyContent: 'center' }} onClick={() => setShowTxnModal({ isOpen: true, type: 'IN', item: item.name })}>
-                    <LogIn size={14} /> Stock In
-                  </button>
-                  <button className="btn" style={{ flex: 1, padding: '0.5rem', backgroundColor: 'rgba(239, 68, 68, 0.1)', color: 'var(--danger)', border: '1px solid rgba(239, 68, 68, 0.2)', fontSize: '0.85rem', display: 'flex', gap: '0.4rem', justifyContent: 'center' }} onClick={() => setShowTxnModal({ isOpen: true, type: 'OUT', item: item.name })}>
-                    <LogOut size={14} /> Stock Out
-                  </button>
-                </div>
-              </div>
-            );
-          })}
-          {items.length === 0 && (
-            <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)' }}>No items configured in the system.</div>
-          )}
+        {/* Modern compact responsive table layout */}
+        <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '600px' }}>
+            <thead>
+              <tr style={{ backgroundColor: 'var(--bg-tertiary)', borderBottom: '1px solid var(--border-color)' }}>
+                <th style={{ padding: '0.8rem 1rem', fontSize: '0.85rem', color: 'var(--text-muted)' }}>ITEM NAME</th>
+                <th style={{ padding: '0.8rem 1rem', fontSize: '0.85rem', color: 'var(--text-muted)' }}>STOCK LEVEL</th>
+                <th style={{ padding: '0.8rem 1rem', fontSize: '0.85rem', color: 'var(--text-muted)', textAlign: 'right' }}>ACTIONS</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredItems.map(item => {
+                const stock = getStockAtLocation(item.name, locName);
+                return (
+                  <tr key={item.id} style={{ borderBottom: '1px solid var(--border-color)', transition: 'background-color 0.15s' }}>
+                    <td style={{ padding: '0.8rem 1rem', fontWeight: '600' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                        <Database size={16} style={{ color: 'var(--accent-primary)', opacity: 0.8 }} />
+                        <span>{item.name}</span>
+                      </div>
+                    </td>
+                    <td style={{ padding: '0.8rem 1rem' }}>
+                      <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.3rem' }}>
+                        <span style={{ fontSize: '1.2rem', fontWeight: '700', color: stock > 0 ? 'var(--success)' : 'var(--text-muted)' }}>
+                          {stock.toLocaleString()}
+                        </span>
+                        <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{item.unit}</span>
+                      </div>
+                    </td>
+                    <td style={{ padding: '0.8rem 1rem', textAlign: 'right' }}>
+                      <div style={{ display: 'inline-flex', gap: '0.5rem' }}>
+                        <button className="btn" style={{ padding: '0.4rem 0.8rem', backgroundColor: 'rgba(16, 185, 129, 0.1)', color: 'var(--success)', border: '1px solid rgba(16, 185, 129, 0.2)', fontSize: '0.8rem', display: 'flex', gap: '0.4rem', alignItems: 'center' }} onClick={() => setShowTxnModal({ isOpen: true, type: 'IN', item: item.name })}>
+                          <LogIn size={13} /> Stock In
+                        </button>
+                        <button className="btn" style={{ padding: '0.4rem 0.8rem', backgroundColor: 'rgba(239, 68, 68, 0.1)', color: 'var(--danger)', border: '1px solid rgba(239, 68, 68, 0.2)', fontSize: '0.8rem', display: 'flex', gap: '0.4rem', alignItems: 'center' }} onClick={() => setShowTxnModal({ isOpen: true, type: 'OUT', item: item.name })}>
+                          <LogOut size={13} /> Stock Out
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+              {filteredItems.length === 0 && (
+                <tr>
+                  <td colSpan={3} style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)' }}>
+                    {items.length === 0 ? "No items configured in the system." : "No matching items found."}
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
         </div>
       </div>
 
@@ -348,15 +433,15 @@ const InventoryManagement = () => {
       </div>
 
       <div className="tabs-container" style={{ marginBottom: '2rem' }}>
-        <button className={`tab ${activeTab === 'Overview' ? 'active' : ''}`} onClick={() => setActiveTab('Overview')}>
+        <button className={`tab ${activeTab === 'Overview' ? 'active' : ''}`} onClick={() => { setActiveTab('Overview'); setSearchQuery(''); }}>
           Global Overview
         </button>
         {locations.map(loc => (
-          <button key={loc.id} className={`tab ${activeTab === loc.name ? 'active' : ''}`} onClick={() => setActiveTab(loc.name)}>
+          <button key={loc.id} className={`tab ${activeTab === loc.name ? 'active' : ''}`} onClick={() => { setActiveTab(loc.name); setSearchQuery(''); }}>
             {loc.name}
           </button>
         ))}
-        <button className={`tab ${activeTab === 'Settings' ? 'active' : ''}`} onClick={() => setActiveTab('Settings')}>
+        <button className={`tab ${activeTab === 'Settings' ? 'active' : ''}`} onClick={() => { setActiveTab('Settings'); setSearchQuery(''); }}>
           <Settings size={14} style={{ marginRight: '0.4rem', marginBottom: '-2px' }} /> Settings
         </button>
       </div>

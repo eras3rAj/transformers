@@ -225,7 +225,7 @@ const Inspections = () => {
           >
             <option value="">-- Select a PO --</option>
             {pos.filter(po => companyFilter === 'All' || po.companyName === companyFilter).map(po => (
-              <option key={po.id} value={po.poNo}>{po.poNo} ({po.utilityBoard}) - {po.capacity ? `${po.capacity} - ` : ''}{po.quantity} Units</option>
+              <option key={po.id} value={po.poNo}>{po.capacity ? `${po.capacity} - ` : ''}{po.poNo} ({po.utilityBoard}) - {po.quantity} Units</option>
             ))}
           </select>
         </div>
