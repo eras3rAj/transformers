@@ -30,6 +30,10 @@ import { VendorProvider } from './context/VendorContext';
 import PendingTasks from './pages/PendingTasks';
 import { TaskProvider } from './context/TaskContext';
 import { Navigate } from 'react-router-dom';
+import BankGuaranteeLC from './pages/BankGuaranteeLC';
+import { BgLcProvider } from './context/BgLcContext';
+import CustomDuty from './pages/CustomDuty';
+import { CustomDutyProvider } from './context/CustomDutyContext';
 
 // Protected Route Wrapper
 const ProtectedRoute = ({ children, requireSuperAdmin }) => {
@@ -57,6 +61,8 @@ function App() {
                         <EmployeeProvider>
                           <VendorProvider>
                             <TaskProvider>
+                              <BgLcProvider>
+                                <CustomDutyProvider>
       <Router>
         <Routes>
           <Route path="/login" element={<AdminLogin />} />
@@ -73,12 +79,16 @@ function App() {
             <Route path="warranty" element={<WarrantyManagement />} />
             <Route path="purchase-orders" element={<PurchaseOrders />} />
             <Route path="price-variation" element={<PriceVariation />} />
+            <Route path="bg-lc" element={<BankGuaranteeLC />} />
+            <Route path="custom-duty" element={<CustomDuty />} />
             <Route path="profile" element={<ProfileSettings />} />
             <Route path="users" element={<ProtectedRoute requireSuperAdmin={true}><UserManagement /></ProtectedRoute>} />
             <Route path="logs" element={<ProtectedRoute requireSuperAdmin={true}><SystemLogs /></ProtectedRoute>} />
           </Route>
         </Routes>
       </Router>
+                                </CustomDutyProvider>
+                              </BgLcProvider>
                             </TaskProvider>
                           </VendorProvider>
                         </EmployeeProvider>
