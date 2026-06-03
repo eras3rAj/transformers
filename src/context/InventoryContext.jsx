@@ -69,17 +69,6 @@ export const InventoryProvider = ({ children }) => {
 
   useEffect(() => {
     fetchInventoryData();
-
-    const channel = supabase
-      .channel('custom-all-channel-${Date.now()}-system_logs')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'system_logs' }, (payload) => {
-        fetchInventoryData();
-      })
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
   }, []);
 
   const addLocation = async (name) => {
