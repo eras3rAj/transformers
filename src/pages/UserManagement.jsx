@@ -16,6 +16,7 @@ export const AVAILABLE_MODULES = [
   { id: 'employees', name: 'Employees' },
   { id: 'vendor-purchasing', name: 'Vendor Purchasing' },
   { id: 'pending-tasks', name: 'Pending Tasks' },
+  { id: 'milestones', name: 'Milestones' },
   { id: 'expenses', name: 'Daily Expenses' }
 ];
 

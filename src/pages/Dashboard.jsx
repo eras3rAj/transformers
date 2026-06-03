@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { Factory, AlertCircle, CheckCircle, Clock, Truck, TrendingUp, Package, FileText } from 'lucide-react';
+import { Factory, AlertCircle, CheckCircle, Clock, Truck, TrendingUp, Package, FileText, Target, Building2 } from 'lucide-react';
 import { usePO } from '../context/POContext';
 import { usePV } from '../context/PVContext';
 import { useProduction } from '../context/ProductionContext';
@@ -7,6 +7,7 @@ import { useInspection } from '../context/InspectionContext';
 import { useExpenses } from '../context/ExpenseContext';
 import { useWarranty } from '../context/WarrantyContext';
 import { useInventory } from '../context/InventoryContext';
+import { useMilestones } from '../context/MilestoneContext';
 import { BarChart, Bar, AreaChart, Area, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import '../components/layout/Layout.css';
 
@@ -18,6 +19,7 @@ const Dashboard = () => {
   const { expenses } = useExpenses();
   const { claims: warrantyClaims } = useWarranty();
   const { transactions: invTxns } = useInventory();
+  const { milestones } = useMilestones();
 
   const [companyFilter, setCompanyFilter] = React.useState('All');
   const [inspectionYear, setInspectionYear] = React.useState(new Date().getFullYear().toString());
@@ -149,7 +151,15 @@ const Dashboard = () => {
       .slice(0, 5);
   }, [invTxns]);
 
-  // 7. Inspection Trends (Monthly)
+  // 7. Milestones
+  const upcomingMilestones = useMemo(() => {
+    return milestones
+      .filter(m => m.status === 'Pending')
+      .filter(m => companyFilter === 'All' || m.company === 'All' || m.company === companyFilter)
+      .slice(0, 5); // Limit to top 5
+  }, [milestones, companyFilter]);
+
+  // 8. Inspection Trends (Monthly)
   const availableYears = useMemo(() => {
     const years = new Set(inspections.map(i => i.startDate ? i.startDate.substring(0, 4) : '').filter(Boolean));
     const currentYear = new Date().getFullYear().toString();
@@ -380,6 +390,34 @@ const Dashboard = () => {
               })}
             </div>
           )}
+        </div>
+
+        {/* Milestones */}
+        <div className="card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column' }}>
+          <h2 style={{ margin: '0 0 1.5rem 0', fontSize: '1.2rem', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <Target size={20} color="var(--success)" />
+            Active Milestones
+          </h2>
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            {upcomingMilestones.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '3rem 1rem', color: 'var(--text-muted)', backgroundColor: 'var(--bg-tertiary)', borderRadius: '8px', flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                No active milestones.
+              </div>
+            ) : (
+              upcomingMilestones.map(m => (
+                <div key={m.id} style={{ display: 'flex', flexDirection: 'column', padding: '1rem', backgroundColor: 'var(--bg-tertiary)', borderRadius: '8px', borderLeft: `4px solid ${m.term_type === 'Long Term' ? 'var(--accent-primary)' : 'var(--warning)'}` }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.5rem' }}>
+                    <h4 style={{ margin: 0, fontSize: '0.95rem', color: 'var(--text-primary)' }}>{m.title}</h4>
+                    <span style={{ fontSize: '0.7rem', padding: '0.1rem 0.4rem', borderRadius: '4px', backgroundColor: 'var(--bg-secondary)', color: 'var(--text-muted)' }}>{m.term_type}</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><Building2 size={12} /> {m.company}</span>
+                    {m.target_date && <span>Target: {new Date(m.target_date).toLocaleDateString()}</span>}
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
         </div>
 
       </div>

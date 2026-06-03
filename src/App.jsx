@@ -29,6 +29,8 @@ import VendorPurchasing from './pages/VendorPurchasing';
 import { VendorProvider } from './context/VendorContext';
 import PendingTasks from './pages/PendingTasks';
 import { TaskProvider } from './context/TaskContext';
+import Milestones from './pages/Milestones';
+import { MilestoneProvider } from './context/MilestoneContext';
 import { Navigate } from 'react-router-dom';
 
 // Protected Route Wrapper
@@ -57,6 +59,7 @@ function App() {
                         <EmployeeProvider>
                           <VendorProvider>
                             <TaskProvider>
+                              <MilestoneProvider>
       <Router>
         <Routes>
           <Route path="/login" element={<AdminLogin />} />
@@ -70,6 +73,7 @@ function App() {
             <Route path="employees" element={<Employees />} />
             <Route path="vendor-purchasing" element={<VendorPurchasing />} />
             <Route path="pending-tasks" element={<PendingTasks />} />
+            <Route path="milestones" element={<Milestones />} />
             <Route path="warranty" element={<WarrantyManagement />} />
             <Route path="purchase-orders" element={<PurchaseOrders />} />
             <Route path="price-variation" element={<PriceVariation />} />
@@ -79,6 +83,7 @@ function App() {
           </Route>
         </Routes>
       </Router>
+                              </MilestoneProvider>
                             </TaskProvider>
                           </VendorProvider>
                         </EmployeeProvider>
