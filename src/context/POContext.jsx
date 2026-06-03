@@ -15,6 +15,9 @@ export const POProvider = ({ children }) => {
   const [companies, setCompanies] = useState([]);
 
   const fetchPOs = async () => {
+    const { data: delData } = await supabase.from('deleted_options').select('*');
+    const deletedBoards = delData ? delData.filter(d => d.option_type === 'board').map(d => d.option_value) : [];
+
     const { data, error } = await supabase.from('purchase_orders').select('*').order('created_at', { ascending: false });
     if (!error && data) {
       // Map database snake_case to frontend camelCase
@@ -45,11 +48,12 @@ export const POProvider = ({ children }) => {
       setPos(mappedPOs);
 
       // Dynamically extract any custom boards or capacities from the DB
-      const dbBoards = [...new Set(mappedPOs.map(p => p.utilityBoard).filter(Boolean))];
+      const dbBoards = [...new Set(mappedPOs.map(p => p.utilityBoard).filter(Boolean))].filter(b => !deletedBoards.includes(b));
       const dbCaps = [...new Set(mappedPOs.map(p => p.capacity).filter(Boolean))];
       const dbComps = [...new Set(mappedPOs.map(p => p.companyName).filter(Boolean))];
       
-      setBoards(prev => [...new Set([...prev, ...dbBoards])]);
+      const defaultBoards = ['UPCL', 'MSEDCL', 'BESCOM', 'KSEB', 'TNEB'].filter(b => !deletedBoards.includes(b));
+      setBoards([...new Set([...defaultBoards, ...dbBoards])]);
       setCapacities(prev => [...new Set([...prev, ...dbCaps])]);
       setCompanies(prev => [...new Set([...prev, ...dbComps])]);
     }
@@ -129,6 +133,11 @@ export const POProvider = ({ children }) => {
     if (!boards.includes(board)) setBoards(prev => [...prev, board]);
   };
 
+  const removeBoard = async (board) => {
+    await supabase.from('deleted_options').insert([{ option_type: 'board', option_value: board }]);
+    setBoards(prev => prev.filter(b => b !== board));
+  };
+
   const addCapacity = (cap) => {
     if (!capacities.includes(cap)) setCapacities(prev => [...prev, cap]);
   };
@@ -144,7 +153,7 @@ export const POProvider = ({ children }) => {
   return (
     <POContext.Provider value={{ 
       pos, addPO, deletePO,
-      boards, addBoard, 
+      boards, addBoard, removeBoard,
       capacities, addCapacity, 
       gstRates, addGstRate,
       companies, addCompany

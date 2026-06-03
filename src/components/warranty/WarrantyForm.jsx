@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { X, Save, Plus, Check } from 'lucide-react';
+import { X, Save, Plus, Check, Trash2 } from 'lucide-react';
 import { usePO } from '../../context/POContext';
 import { useWarranty } from '../../context/WarrantyContext';
+import { useAuth } from '../../context/AuthContext';
 import '../layout/Layout.css';
 
 const WarrantyForm = ({ onClose, onSubmit, initialData, availablePOs = [] }) => {
-  const { boards, addBoard, capacities, addCapacity } = usePO();
-  const { stores, addStore } = useWarranty();
+  const { currentUser } = useAuth();
+  const { boards, addBoard, removeBoard, capacities, addCapacity } = usePO();
+  const { stores, addStore, removeStore } = useWarranty();
 
   // Main form state
   const [formData, setFormData] = useState(initialData || {
@@ -90,6 +92,20 @@ const WarrantyForm = ({ onClose, onSubmit, initialData, availablePOs = [] }) => 
     }
   };
 
+  const handleDeleteBoard = () => {
+    if (window.confirm(`Are you sure you want to remove "${formData.utilityBoard}" from the dropdown?`)) {
+      removeBoard(formData.utilityBoard);
+      setFormData(prev => ({ ...prev, utilityBoard: '' }));
+    }
+  };
+
+  const handleDeleteStore = () => {
+    if (window.confirm(`Are you sure you want to remove "${formData.storeName}" from the dropdown?`)) {
+      removeStore(formData.storeName);
+      setFormData(prev => ({ ...prev, storeName: '' }));
+    }
+  };
+
 
 
   const renderAddHeader = (label, type) => (
@@ -143,10 +159,17 @@ const WarrantyForm = ({ onClose, onSubmit, initialData, availablePOs = [] }) => 
                     <button type="button" className="btn btn-secondary" onClick={() => setAdding({...adding, board: false})} style={{ padding: '0.5rem' }}><X size={16}/></button>
                   </div>
                 ) : (
-                  <select name="utilityBoard" value={formData.utilityBoard} onChange={handleChange} className="input-field" required>
-                    <option value="" disabled>Select Board</option>
-                    {boards.map(b => <option key={b} value={b}>{b}</option>)}
-                  </select>
+                  <div style={{ display: 'flex', gap: '0.5rem' }}>
+                    <select name="utilityBoard" value={formData.utilityBoard} onChange={handleChange} className="input-field" required>
+                      <option value="" disabled>Select Board</option>
+                      {boards.map(b => <option key={b} value={b}>{b}</option>)}
+                    </select>
+                    {currentUser?.role === 'superadmin' && formData.utilityBoard && (
+                      <button type="button" className="btn btn-secondary" onClick={handleDeleteBoard} style={{ padding: '0.5rem' }} title="Delete this Utility Board">
+                        <Trash2 size={16} color="var(--error)" />
+                      </button>
+                    )}
+                  </div>
                 )}
               </div>
 
@@ -159,10 +182,17 @@ const WarrantyForm = ({ onClose, onSubmit, initialData, availablePOs = [] }) => 
                     <button type="button" className="btn btn-secondary" onClick={() => setAdding({...adding, store: false})} style={{ padding: '0.5rem' }}><X size={16}/></button>
                   </div>
                 ) : (
-                  <select name="storeName" value={formData.storeName} onChange={handleChange} className="input-field" required>
-                    <option value="" disabled>Select Store</option>
-                    {stores.map(s => <option key={s} value={s}>{s}</option>)}
-                  </select>
+                  <div style={{ display: 'flex', gap: '0.5rem' }}>
+                    <select name="storeName" value={formData.storeName} onChange={handleChange} className="input-field" required>
+                      <option value="" disabled>Select Store</option>
+                      {stores.map(s => <option key={s} value={s}>{s}</option>)}
+                    </select>
+                    {currentUser?.role === 'superadmin' && formData.storeName && (
+                      <button type="button" className="btn btn-secondary" onClick={handleDeleteStore} style={{ padding: '0.5rem' }} title="Delete this Store Name">
+                        <Trash2 size={16} color="var(--error)" />
+                      </button>
+                    )}
+                  </div>
                 )}
               </div>
 

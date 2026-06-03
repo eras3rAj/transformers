@@ -28,8 +28,18 @@ const WarrantyManagement = () => {
     status: '',
     storeName: '',
     showHidden: false,
-    sortBy: 'newest'
+    sortBy: 'nearest_deadline'
   });
+
+  const formatDate = (dateStr) => {
+    if (!dateStr) return '';
+    const date = new Date(dateStr);
+    if (isNaN(date.getTime())) return dateStr;
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = date.toLocaleString('default', { month: 'short' });
+    const year = date.getFullYear();
+    return `${day}-${month}-${year}`;
+  };
 
 
 
@@ -242,9 +252,9 @@ const WarrantyManagement = () => {
                 </td>
                 <td style={{ padding: '1rem' }}>
                   <div style={{ fontWeight: '500', color: new Date(claim.returnDate) < new Date() ? 'var(--danger)' : 'inherit' }}>
-                    {claim.returnDate}
+                    {formatDate(claim.returnDate)}
                   </div>
-                  <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Intimated: {claim.intimationDate}</div>
+                  <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Intimated: {formatDate(claim.intimationDate)}</div>
                 </td>
                 <td style={{ padding: '1rem' }}>
                   <span style={{ 

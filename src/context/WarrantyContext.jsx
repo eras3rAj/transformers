@@ -13,7 +13,15 @@ export const WarrantyProvider = ({ children }) => {
     if (!stores.includes(store)) setStores(prev => [...prev, store]);
   };
 
+  const removeStore = async (store) => {
+    await supabase.from('deleted_options').insert([{ option_type: 'store', option_value: store }]);
+    setStores(prev => prev.filter(s => s !== store));
+  };
+
   const fetchClaims = async () => {
+    const { data: delData } = await supabase.from('deleted_options').select('*');
+    const deletedStores = delData ? delData.filter(d => d.option_type === 'store').map(d => d.option_value) : [];
+
     const { data, error } = await supabase.from('warranty_claims').select('*').order('created_at', { ascending: false });
     if (!error && data) {
       const mappedClaims = data.map(claim => ({
@@ -36,8 +44,9 @@ export const WarrantyProvider = ({ children }) => {
       }));
       setClaims(mappedClaims);
 
-      const dbStores = [...new Set(mappedClaims.map(c => c.storeName).filter(Boolean))];
-      setStores(prev => [...new Set([...prev, ...dbStores])]);
+      const dbStores = [...new Set(mappedClaims.map(c => c.storeName).filter(Boolean))].filter(s => !deletedStores.includes(s));
+      const defaultStores = ['Substation West', 'Depot Alpha', 'Central Hub', 'North Station'].filter(s => !deletedStores.includes(s));
+      setStores([...new Set([...defaultStores, ...dbStores])]);
     }
   };
 
@@ -98,7 +107,7 @@ export const WarrantyProvider = ({ children }) => {
   };
 
   return (
-    <WarrantyContext.Provider value={{ claims, addOrUpdateClaim, updateClaimStatus, stores, addStore }}>
+    <WarrantyContext.Provider value={{ claims, addOrUpdateClaim, updateClaimStatus, stores, addStore, removeStore }}>
       {children}
     </WarrantyContext.Provider>
   );

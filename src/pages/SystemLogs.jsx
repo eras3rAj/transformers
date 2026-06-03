@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React
+import { formatDate } from '../utils/dateUtils';, { useState } from 'react';
 import { Shield, Clock, Search, Filter, AlertTriangle } from 'lucide-react';
 import { useLogs } from '../context/LogContext';
 import '../components/layout/Layout.css';
