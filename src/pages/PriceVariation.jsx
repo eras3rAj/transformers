@@ -3,12 +3,14 @@ import { Calculator, Plus, TrendingUp, FileText, Check, X, Edit, Calendar, Trend
 import PVCalculatorModal from '../components/pv/PVCalculatorModal';
 import { usePV } from '../context/PVContext';
 import { usePO } from '../context/POContext';
+import { useAuth } from '../context/AuthContext';
 import { calculatePVFinancials } from '../utils/pvCalculator';
 import '../components/layout/Layout.css';
 
 const PriceVariation = () => {
   const { indices, addIndex, updateIndex, getIndexByMonth } = usePV();
   const { pos, addPO, boards, addBoard, capacities, addCapacity, gstRates, addGstRate } = usePO();
+  const { currentUser } = useAuth();
 
   const [activeTab, setActiveTab] = useState('contracts'); // 'rates' or 'contracts'
   const [selectedYear, setSelectedYear] = useState('2026');
@@ -247,9 +249,11 @@ const PriceVariation = () => {
               </div>
             </div>
             
-            <button className="btn btn-secondary" onClick={() => { setEditingIndexId(null); setShowAddForm(true); }} style={{ padding: '0.4rem 0.8rem', fontSize: '0.85rem' }}>
-              <Plus size={16} /> Add Monthly Rates
-            </button>
+            {currentUser?.role === 'superadmin' && (
+              <button className="btn btn-secondary" onClick={() => { setEditingIndexId(null); setShowAddForm(true); }} style={{ padding: '0.4rem 0.8rem', fontSize: '0.85rem' }}>
+                <Plus size={16} /> Add Monthly Rates
+              </button>
+            )}
           </div>
           
           <div className="card" style={{ padding: 0, overflow: 'hidden', marginBottom: '2rem', borderTop: '3px solid var(--accent-primary)' }}>
@@ -264,7 +268,9 @@ const PriceVariation = () => {
                     <th style={{ padding: '0.8rem 1rem', fontSize: '0.75rem', color: 'var(--text-muted)' }}>INSULATING</th>
                     <th style={{ padding: '0.8rem 1rem', fontSize: '0.75rem', color: 'var(--text-muted)' }}>OIL</th>
                     <th style={{ padding: '0.8rem 1rem', fontSize: '0.75rem', color: 'var(--text-muted)' }}>CPI</th>
-                    <th style={{ padding: '0.8rem 1.5rem', fontSize: '0.75rem', color: 'var(--text-muted)', textAlign: 'right' }}>ACTIONS</th>
+                    {currentUser?.role === 'superadmin' && (
+                      <th style={{ padding: '0.8rem 1.5rem', fontSize: '0.75rem', color: 'var(--text-muted)', textAlign: 'right' }}>ACTIONS</th>
+                    )}
                   </tr>
                 </thead>
                 <tbody>
@@ -282,11 +288,13 @@ const PriceVariation = () => {
                         <td style={{ padding: '0.8rem 1rem' }}>₹{Number(item.insulating3 || 0).toFixed(2)}</td>
                         <td style={{ padding: '0.8rem 1rem' }}>₹{Number(item.oil || 0).toFixed(2)}</td>
                         <td style={{ padding: '0.8rem 1rem' }}>{Number(item.cpi || 0).toFixed(2)}</td>
-                        <td style={{ padding: '0.8rem 1.5rem', textAlign: 'right' }}>
-                          <button onClick={() => openEditForm(item)} className="icon-btn" style={{ padding: '0.4rem', color: 'var(--text-muted)' }} title="Edit Rates">
-                            <Edit size={16} />
-                          </button>
-                        </td>
+                        {currentUser?.role === 'superadmin' && (
+                          <td style={{ padding: '0.8rem 1.5rem', textAlign: 'right' }}>
+                            <button onClick={() => openEditForm(item)} className="icon-btn" style={{ padding: '0.4rem', color: 'var(--text-muted)' }} title="Edit Rates">
+                              <Edit size={16} />
+                            </button>
+                          </td>
+                        )}
                       </tr>
                     ))
                   )}
