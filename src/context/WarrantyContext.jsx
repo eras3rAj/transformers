@@ -43,6 +43,17 @@ export const WarrantyProvider = ({ children }) => {
 
   useEffect(() => {
     fetchClaims();
+
+    const channel = supabase
+      .channel('custom-all-channel-${Date.now()}-warranty_claims')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'warranty_claims' }, (payload) => {
+        fetchClaims();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
 

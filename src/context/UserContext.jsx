@@ -17,6 +17,17 @@ export const UserProvider = ({ children }) => {
 
   useEffect(() => {
     fetchUsers();
+
+    const channel = supabase
+      .channel('custom-all-channel-${Date.now()}-users')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'users' }, (payload) => {
+        fetchUsers();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
 

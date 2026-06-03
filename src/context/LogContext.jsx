@@ -25,6 +25,17 @@ export const LogProvider = ({ children }) => {
 
   useEffect(() => {
     fetchLogs();
+
+    const channel = supabase
+      .channel('custom-all-channel-${Date.now()}-system_logs')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'system_logs' }, (payload) => {
+        fetchLogs();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
 

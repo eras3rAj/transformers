@@ -29,6 +29,17 @@ export const PVProvider = ({ children }) => {
 
   useEffect(() => {
     fetchIndices();
+
+    const channel = supabase
+      .channel('custom-all-channel-${Date.now()}-pv_indices')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'pv_indices' }, (payload) => {
+        fetchIndices();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
 

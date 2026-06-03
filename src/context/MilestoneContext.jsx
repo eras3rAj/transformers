@@ -22,6 +22,17 @@ export const MilestoneProvider = ({ children }) => {
 
   useEffect(() => {
     fetchMilestones();
+
+    const channel = supabase
+      .channel('custom-all-channel-milestones')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'milestones' }, (payload) => {
+        fetchMilestones();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   const addMilestone = async (newMilestone) => {

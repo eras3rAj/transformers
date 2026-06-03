@@ -55,6 +55,17 @@ export const InspectionProvider = ({ children }) => {
 
   useEffect(() => {
     fetchInspectionData();
+
+    const channel = supabase
+      .channel('custom-all-channel-${Date.now()}-system_logs')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'system_logs' }, (payload) => {
+        fetchInspectionData();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   const saveSchedule = async (poNo, scheduleArray) => {

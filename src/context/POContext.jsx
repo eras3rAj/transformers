@@ -57,6 +57,17 @@ export const POProvider = ({ children }) => {
 
   useEffect(() => {
     fetchPOs();
+
+    const channel = supabase
+      .channel('custom-all-channel-${Date.now()}-purchase_orders')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'purchase_orders' }, (payload) => {
+        fetchPOs();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
 
