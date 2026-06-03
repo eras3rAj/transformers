@@ -1,5 +1,5 @@
-import React
-import { formatDate } from '../utils/dateUtils';, { useState } from 'react';
+import React, { useState } from 'react';
+import { formatDate } from '../utils/dateUtils';
 import { Target, Plus, CheckCircle, Clock, Calendar, Building2, Trash2 } from 'lucide-react';
 import { useMilestones } from '../context/MilestoneContext';
 import { useAuth } from '../context/AuthContext';
