@@ -7,6 +7,11 @@ export const useWarranty = () => useContext(WarrantyContext);
 
 export const WarrantyProvider = ({ children }) => {
   const [claims, setClaims] = useState([]);
+  const [stores, setStores] = useState(['Substation West', 'Depot Alpha', 'Central Hub', 'North Station']);
+
+  const addStore = (store) => {
+    if (!stores.includes(store)) setStores(prev => [...prev, store]);
+  };
 
   const fetchClaims = async () => {
     const { data, error } = await supabase.from('warranty_claims').select('*').order('created_at', { ascending: false });
@@ -30,6 +35,9 @@ export const WarrantyProvider = ({ children }) => {
         isHidden: claim.is_hidden
       }));
       setClaims(mappedClaims);
+
+      const dbStores = [...new Set(mappedClaims.map(c => c.storeName).filter(Boolean))];
+      setStores(prev => [...new Set([...prev, ...dbStores])]);
     }
   };
 
@@ -90,7 +98,7 @@ export const WarrantyProvider = ({ children }) => {
   };
 
   return (
-    <WarrantyContext.Provider value={{ claims, addOrUpdateClaim, updateClaimStatus }}>
+    <WarrantyContext.Provider value={{ claims, addOrUpdateClaim, updateClaimStatus, stores, addStore }}>
       {children}
     </WarrantyContext.Provider>
   );

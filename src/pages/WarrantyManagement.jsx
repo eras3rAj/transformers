@@ -27,7 +27,8 @@ const WarrantyManagement = () => {
     utilityBoard: '',
     status: '',
     storeName: '',
-    showHidden: false
+    showHidden: false,
+    sortBy: 'newest'
   });
 
 
@@ -131,7 +132,7 @@ const WarrantyManagement = () => {
   };
 
   const filteredClaims = useMemo(() => {
-    return claims.filter(claim => {
+    let result = claims.filter(claim => {
       // Visibility Filter
       if (claim.isHidden && !filters.showHidden) return false;
       
@@ -140,6 +141,16 @@ const WarrantyManagement = () => {
       const matchStatus = filters.status === '' || claim.status === filters.status;
       return matchBoard && matchStore && matchStatus;
     });
+
+    if (filters.sortBy === 'nearest_deadline') {
+      result = result.sort((a, b) => {
+        if (!a.returnDate) return 1;
+        if (!b.returnDate) return -1;
+        return new Date(a.returnDate) - new Date(b.returnDate);
+      });
+    }
+
+    return result;
   }, [claims, filters]);
 
   const getStatusColor = (status) => {
@@ -186,6 +197,11 @@ const WarrantyManagement = () => {
           <option value="Under Repair">Under Repair</option>
           <option value="Resolved">Resolved</option>
           <option value="Deleted">Deleted</option>
+        </select>
+
+        <select name="sortBy" value={filters.sortBy} onChange={handleFilterChange} className="input-field" style={{ width: '180px', padding: '0.4rem 0.8rem', marginBottom: 0 }}>
+          <option value="newest">Sort: Newest First</option>
+          <option value="nearest_deadline">Sort: Nearest Deadline</option>
         </select>
 
         <div style={{ flex: 1 }} />
