@@ -121,19 +121,30 @@ const Dashboard = () => {
 
   // 5. Warranty Claims Status (Pie Chart)
   const warrantyPieData = useMemo(() => {
-    let pending = 0, resolved = 0, rejected = 0;
+    let pendingAction = 0, inProgress = 0, resolved = 0;
+    
     warrantyClaims.forEach(c => {
-      if (companyFilter !== 'All' && c.client !== companyFilter) return;
-      if (c.status === 'Pending') pending++;
-      else if (c.status === 'Resolved' || c.status === 'Replaced' || c.status === 'Repaired') resolved++;
-      else if (c.status === 'Rejected') rejected++;
+      if (c.isHidden || c.status === 'Deleted' || c.status === 'Pending Deletion') return;
+      
+      const poObj = pos.find(p => p.poNo === c.poNo);
+      const claimCompany = poObj ? poObj.companyName : 'Unknown';
+      if (companyFilter !== 'All' && claimCompany !== companyFilter) return;
+
+      if (['To be lifted from store', 'Pending Return', 'Inspected'].includes(c.status)) {
+        pendingAction++;
+      } else if (c.status === 'Under Repair') {
+        inProgress++;
+      } else if (c.status === 'Resolved') {
+        resolved++;
+      }
     });
+
     return [
-      { name: 'Pending', value: pending, color: 'var(--warning)' },
-      { name: 'Resolved', value: resolved, color: 'var(--success)' },
-      { name: 'Rejected', value: rejected, color: 'var(--danger)' }
+      { name: 'Pending Action', value: pendingAction, color: 'var(--danger)' },
+      { name: 'Under Repair', value: inProgress, color: 'var(--warning)' },
+      { name: 'Resolved', value: resolved, color: 'var(--success)' }
     ].filter(d => d.value > 0);
-  }, [warrantyClaims, companyFilter]);
+  }, [warrantyClaims, companyFilter, pos]);
 
   // 6. Inventory Health (Global Stock)
   const inventoryChartData = useMemo(() => {
