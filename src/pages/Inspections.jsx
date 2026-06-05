@@ -65,24 +65,31 @@ const Inspections = () => {
     return { totalStageInspected, totalStageWeight, totalFinalInspected, totalFinalAccepted };
   }, [inspections, selectedPoNo]);
 
-  const globalSummary = useMemo(() => {
-    // Only include POs matching companyFilter
-    const validPONos = pos.filter(po => companyFilter === 'All' || po.companyName === companyFilter).map(p => p.poNo);
-    const filteredInspections = inspections.filter(i => validPONos.includes(i.poNo));
+  const poSummaries = useMemo(() => {
+    const validPOs = pos.filter(po => companyFilter === 'All' || po.companyName === companyFilter);
     
-    const stageInsp = filteredInspections.filter(i => i.type === 'Stage');
-    const finalInsp = filteredInspections.filter(i => i.type === 'Final');
+    return validPOs.map(po => {
+      const poInsp = inspections.filter(i => i.poNo === po.poNo);
+      const stageInsp = poInsp.filter(i => i.type === 'Stage');
+      const finalInsp = poInsp.filter(i => i.type === 'Final');
 
-    const totalStageInspected = stageInsp.reduce((sum, i) => sum + Number(i.qtyInspected || 0), 0);
-    const totalStageWeight = stageInsp.reduce((sum, i) => {
-      const match = String(i.weight || '').match(/[\d.]+/);
-      return sum + (match ? Number(match[0]) : 0);
-    }, 0);
+      const totalStageInspected = stageInsp.reduce((sum, i) => sum + Number(i.qtyInspected || 0), 0);
+      const totalStageWeight = stageInsp.reduce((sum, i) => {
+        const match = String(i.weight || '').match(/[\d.]+/);
+        return sum + (match ? Number(match[0]) : 0);
+      }, 0);
 
-    const totalFinalInspected = finalInsp.reduce((sum, i) => sum + Number(i.qtyInspected || 0), 0);
-    const totalFinalAccepted = finalInsp.reduce((sum, i) => sum + Number(i.qtyAccepted || 0), 0);
+      const totalFinalInspected = finalInsp.reduce((sum, i) => sum + Number(i.qtyInspected || 0), 0);
+      const totalFinalAccepted = finalInsp.reduce((sum, i) => sum + Number(i.qtyAccepted || 0), 0);
 
-    return { totalStageInspected, totalStageWeight, totalFinalInspected, totalFinalAccepted };
+      return {
+        ...po,
+        totalStageInspected,
+        totalStageWeight,
+        totalFinalInspected,
+        totalFinalAccepted
+      };
+    });
   }, [inspections, pos, companyFilter]);
 
   // Handle Schedule Add
@@ -226,32 +233,52 @@ const Inspections = () => {
           >
             <option value="">-- Select a PO --</option>
             {pos.filter(po => companyFilter === 'All' || po.companyName === companyFilter).map(po => (
-              <option key={po.id} value={po.poNo}>{po.poNo} ({po.utilityBoard}) - {po.capacity ? `${po.capacity} - ` : ''}{po.quantity} Units</option>
+              <option key={po.id} value={po.poNo}>{po.capacity ? `${po.capacity} | ` : ''}{po.poNo} | {po.quantity} Units</option>
             ))}
           </select>
         </div>
       </div>
 
-      {!selectedPO && globalSummary && (
+      {!selectedPO && poSummaries && poSummaries.length > 0 && (
         <div className="animate-fade-in card" style={{ marginBottom: '2rem' }}>
           <h2 style={{ margin: '0 0 1.5rem 0', display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-primary)' }}>
             <ClipboardCheck size={24} color="var(--accent-primary)" />
             Global Inspection Summary {companyFilter !== 'All' ? `(${companyFilter})` : ''}
           </h2>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1rem' }}>
-            <div style={{ backgroundColor: 'var(--bg-tertiary)', padding: '1.5rem', borderRadius: '8px', borderLeft: '4px solid var(--accent-primary)' }}>
-              <h5 style={{ margin: '0 0 1rem 0', color: 'var(--accent-primary)', fontSize: '0.9rem' }}>TOTAL STAGE INSPECTIONS</h5>
-              <div style={{ display: 'flex', gap: '2rem', fontSize: '0.9rem' }}>
-                <div style={{ display: 'flex', flexDirection: 'column' }}><span style={{ color: 'var(--text-muted)', marginBottom: '0.3rem' }}>Units Inspected</span><strong style={{ fontSize: '1.5rem', color: 'var(--text-primary)' }}>{globalSummary.totalStageInspected}</strong></div>
-                <div style={{ display: 'flex', flexDirection: 'column' }}><span style={{ color: 'var(--text-muted)', marginBottom: '0.3rem' }}>Total Weight</span><strong style={{ fontSize: '1.5rem', color: 'var(--text-primary)' }}>{globalSummary.totalStageWeight.toLocaleString('en-IN', { maximumFractionDigits: 2 })} kg</strong></div>
-              </div>
-            </div>
-            <div style={{ backgroundColor: 'var(--bg-tertiary)', padding: '1.5rem', borderRadius: '8px', borderLeft: '4px solid var(--warning)' }}>
-              <h5 style={{ margin: '0 0 1rem 0', color: 'var(--warning)', fontSize: '0.9rem' }}>TOTAL FINAL INSPECTIONS</h5>
-              <div style={{ display: 'flex', gap: '2rem', fontSize: '0.9rem' }}>
-                <div style={{ display: 'flex', flexDirection: 'column' }}><span style={{ color: 'var(--text-muted)', marginBottom: '0.3rem' }}>Units Accepted</span><strong style={{ fontSize: '1.5rem', color: 'var(--success)' }}>{globalSummary.totalFinalAccepted}</strong></div>
-              </div>
-            </div>
+          <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '700px' }}>
+              <thead>
+                <tr style={{ backgroundColor: 'var(--bg-tertiary)', borderBottom: '1px solid var(--border-color)' }}>
+                  <th style={{ padding: '1rem', fontSize: '0.85rem', color: 'var(--text-muted)' }}>PO NO</th>
+                  <th style={{ padding: '1rem', fontSize: '0.85rem', color: 'var(--text-muted)' }}>COMPANY</th>
+                  <th style={{ padding: '1rem', fontSize: '0.85rem', color: 'var(--text-muted)', textAlign: 'right' }}>PO QTY</th>
+                  <th style={{ padding: '1rem', fontSize: '0.85rem', color: 'var(--text-muted)', textAlign: 'right' }}>STAGE INSPECTED</th>
+                  <th style={{ padding: '1rem', fontSize: '0.85rem', color: 'var(--text-muted)', textAlign: 'right' }}>FINAL ACCEPTED</th>
+                </tr>
+              </thead>
+              <tbody>
+                {poSummaries.map((summary, index) => (
+                  <tr key={index} style={{ borderBottom: '1px solid var(--border-color)' }}>
+                    <td style={{ padding: '1rem', fontWeight: '600' }}>{summary.poNo} <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>({summary.capacity})</span></td>
+                    <td style={{ padding: '1rem' }}>{summary.companyName}</td>
+                    <td style={{ padding: '1rem', textAlign: 'right', fontWeight: '600' }}>{summary.quantity}</td>
+                    <td style={{ padding: '1rem', textAlign: 'right', color: summary.totalStageInspected > 0 ? 'var(--accent-primary)' : 'inherit' }}>
+                      {summary.totalStageInspected > 0 ? <strong>{summary.totalStageInspected}</strong> : '-'}
+                      {summary.totalStageWeight > 0 && <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>{summary.totalStageWeight.toLocaleString('en-IN', { maximumFractionDigits: 2 })} kg</span>}
+                    </td>
+                    <td style={{ padding: '1rem', textAlign: 'right', color: summary.totalFinalAccepted > 0 ? 'var(--success)' : 'inherit' }}>
+                      {summary.totalFinalAccepted > 0 ? <strong>{summary.totalFinalAccepted}</strong> : '-'}
+                    </td>
+                  </tr>
+                ))}
+                <tr style={{ backgroundColor: 'var(--bg-tertiary)', borderTop: '2px solid var(--border-color)', fontWeight: '700' }}>
+                  <td colSpan={2} style={{ padding: '1rem', textAlign: 'right' }}>TOTALS:</td>
+                  <td style={{ padding: '1rem', textAlign: 'right' }}>{poSummaries.reduce((sum, s) => sum + Number(s.quantity), 0)}</td>
+                  <td style={{ padding: '1rem', textAlign: 'right', color: 'var(--accent-primary)' }}>{poSummaries.reduce((sum, s) => sum + s.totalStageInspected, 0)}</td>
+                  <td style={{ padding: '1rem', textAlign: 'right', color: 'var(--success)' }}>{poSummaries.reduce((sum, s) => sum + s.totalFinalAccepted, 0)}</td>
+                </tr>
+              </tbody>
+            </table>
           </div>
         </div>
       )}
