@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useMemo } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from './AuthContext';
 import { useLogs } from './LogContext';
@@ -40,7 +40,7 @@ export const InventoryProvider = ({ children }) => {
         else if (log.action === 'inv_loc') locsMap.set(payload.name, { id: log.id, name: payload.name });
         else if (log.action === 'inv_unit') unsMap.set(payload.name, { id: log.id, name: payload.name });
         else if (log.action === 'inv_item') {
-          itmsMap.set(payload.name, { 
+          itmsMap.set(log.id, { 
             id: log.id, 
             name: payload.name, 
             unit: payload.unit,
@@ -48,7 +48,7 @@ export const InventoryProvider = ({ children }) => {
             suppliers: payload.suppliers || []
           });
         }
-        else if (log.action === 'inv_company') compsMap.set(payload.name, { id: log.id, name: payload.name });
+        else if (log.action === 'inv_company') compsMap.set(payload.name, { id: log.id, name: payload.name, address: payload.address || '', mobile: payload.mobile || '', poc: payload.poc || '', gst: payload.gst || '' });
         else if (log.action === 'inv_txn') {
           txns.push({
             id: log.id,
@@ -107,18 +107,18 @@ export const InventoryProvider = ({ children }) => {
     return false;
   };
 
-  const addCompany = async (name) => {
+  const addCompany = async (name, address = '', mobile = '', poc = '', gst = '') => {
     if (companies.find(c => c.name.toLowerCase() === name.toLowerCase())) return false;
 
     const dbRecord = {
       action: 'inv_company',
       user_name: currentUser?.name || 'System',
       claim_id: 'SYSTEM',
-      changes: { name }
+      changes: { name, address, mobile, poc, gst }
     };
     const { data, error } = await supabase.from('system_logs').insert([dbRecord]).select();
     if (!error && data) {
-      setCompanies(prev => [...prev, { id: data[0].id, name }]);
+      setCompanies(prev => [...prev, { id: data[0].id, name, address, mobile, poc, gst }].sort((a, b) => a.name.localeCompare(b.name)));
       return true;
     }
     return false;
@@ -142,7 +142,7 @@ export const InventoryProvider = ({ children }) => {
   };
 
   const addItem = async (name, unit, category = 'Uncategorized', suppliers = []) => {
-    if (items.find(i => i.name.toLowerCase() === name.toLowerCase())) return false; // duplicate
+    if (items.find(i => i.name.toLowerCase() === name.toLowerCase() && (i.category || 'Uncategorized').toLowerCase() === category.toLowerCase())) return false; // duplicate
 
     const dbRecord = {
       action: 'inv_item',
@@ -229,6 +229,55 @@ export const InventoryProvider = ({ children }) => {
     return false;
   };
 
+  const logBatchTransactions = async (txnsData) => {
+    if (!txnsData || txnsData.length === 0) return true;
+
+    const dbRecords = txnsData.map(txnData => ({
+      action: 'inv_txn',
+      user_name: currentUser?.name || 'System',
+      claim_id: txnData.location,
+      changes: {
+        location: txnData.location,
+        item: txnData.item,
+        type: txnData.type,
+        qty: txnData.qty,
+        date: txnData.date,
+        remarks: txnData.remarks,
+        companyName: txnData.companyName || '',
+        billNo: txnData.billNo || '',
+        receivingDate: txnData.receivingDate || '',
+        billDate: txnData.billDate || '',
+        unitPrice: txnData.unitPrice || ''
+      }
+    }));
+
+    const { data, error } = await supabase.from('system_logs').insert(dbRecords).select();
+    
+    if (!error && data) {
+      const newTransactions = txnsData.map((txn, index) => ({
+        id: data[index].id,
+        ...txn,
+        user: dbRecords[index].user_name,
+        timestamp: data[index].timestamp
+      }));
+      
+      setTransactions(prev => [...prev, ...newTransactions]);
+      
+      addLog({
+        id: Date.now().toString(),
+        timestamp: new Date().toISOString(),
+        action: `Batch Inventory Stock Update`,
+        user: currentUser?.name,
+        changes: [
+          { field: 'Batch Size', oldValue: '', newValue: `${txnsData.length} items` },
+          { field: 'Location', oldValue: '', newValue: txnsData[0].location }
+        ]
+      });
+      return true;
+    }
+    return false;
+  };
+
   const deleteTransaction = async (txnId) => {
     const txn = transactions.find(t => t.id === txnId);
     if (!txn) return false;
@@ -287,10 +336,11 @@ export const InventoryProvider = ({ children }) => {
       if (type === 'inv_unit' && units.some(u => u.name.toLowerCase() === newName.toLowerCase() && u.id !== id)) return { success: false, message: 'Name already exists.' };
       if (type === 'inv_company' && companies.some(c => c.name.toLowerCase() === newName.toLowerCase() && c.id !== id)) return { success: false, message: 'Name already exists.' };
       if (type === 'inv_category' && categories.some(c => c.name.toLowerCase() === newName.toLowerCase() && c.id !== id)) return { success: false, message: 'Name already exists.' };
-      if (type === 'inv_item' && items.some(i => i.name.toLowerCase() === newName.toLowerCase() && i.id !== id)) return { success: false, message: 'Name already exists.' };
+      if (type === 'inv_item' && items.some(i => i.name.toLowerCase() === newName.toLowerCase() && (i.category || 'Uncategorized').toLowerCase() === (extraData.category || 'Uncategorized').toLowerCase() && i.id !== id)) return { success: false, message: 'Item already exists in this category.' };
     }
 
     let changes = { name: newName };
+    if (type === 'inv_company') changes = { name: newName, address: extraData.address, mobile: extraData.mobile, poc: extraData.poc, gst: extraData.gst };
     if (type === 'inv_item') changes = { name: newName, unit: extraData.unit, category: extraData.category, suppliers: extraData.suppliers };
     if (type === 'inv_category') changes = { name: newName, suppliers: extraData.suppliers };
 
@@ -299,7 +349,7 @@ export const InventoryProvider = ({ children }) => {
 
     if (type === 'inv_loc') setLocations(prev => prev.map(l => l.id === id ? { ...l, name: newName } : l));
     if (type === 'inv_unit') setUnits(prev => prev.map(u => u.id === id ? { ...u, name: newName } : u));
-    if (type === 'inv_company') setCompanies(prev => prev.map(c => c.id === id ? { ...c, name: newName } : c));
+    if (type === 'inv_company') setCompanies(prev => prev.map(c => c.id === id ? { ...c, name: newName, address: extraData.address, mobile: extraData.mobile, poc: extraData.poc, gst: extraData.gst } : c));
     if (type === 'inv_category') setCategories(prev => prev.map(c => c.id === id ? { ...c, name: newName, suppliers: extraData.suppliers } : c));
     if (type === 'inv_item') setItems(prev => prev.map(i => i.id === id ? { ...i, name: newName, unit: extraData.unit, category: extraData.category, suppliers: extraData.suppliers } : i));
 
@@ -363,26 +413,34 @@ export const InventoryProvider = ({ children }) => {
     return { success: true };
   };
 
+  const { globalStockMap, locationStockMap } = useMemo(() => {
+    const globalMap = {};
+    const locMap = {};
+    transactions.forEach(t => {
+      if (!globalMap[t.item]) globalMap[t.item] = 0;
+      globalMap[t.item] += (t.type === 'IN' ? Number(t.qty) : -Number(t.qty));
+
+      const locKey = `${t.location}_${t.item}`;
+      if (!locMap[locKey]) locMap[locKey] = 0;
+      locMap[locKey] += (t.type === 'IN' ? Number(t.qty) : -Number(t.qty));
+    });
+    return { globalStockMap: globalMap, locationStockMap: locMap };
+  }, [transactions]);
+
   // Helper to get total stock for an item at a specific location
   const getStockAtLocation = (itemName, locationName) => {
-    const txns = transactions.filter(t => t.item === itemName && t.location === locationName);
-    return txns.reduce((sum, t) => {
-      return t.type === 'IN' ? sum + t.qty : sum - t.qty;
-    }, 0);
+    return locationStockMap[`${locationName}_${itemName}`] || 0;
   };
 
   // Helper to get global stock for an item
   const getGlobalStock = (itemName) => {
-    const txns = transactions.filter(t => t.item === itemName);
-    return txns.reduce((sum, t) => {
-      return t.type === 'IN' ? sum + t.qty : sum - t.qty;
-    }, 0);
+    return globalStockMap[itemName] || 0;
   };
 
   return (
     <InventoryContext.Provider value={{
       locations, units, items, companies, transactions, categories, loading,
-      addLocation, addUnit, addItem, addCompany, logTransaction, deleteTransaction,
+      addLocation, addUnit, addItem, addCompany, logTransaction, logBatchTransactions, deleteTransaction,
       getStockAtLocation, getGlobalStock, saveCategory, deleteEntity, editEntity
     }}>
       {children}

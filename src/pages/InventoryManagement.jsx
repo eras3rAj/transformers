@@ -6,11 +6,12 @@ import ConfirmModal from '../components/common/ConfirmModal';
 import '../components/layout/Layout.css';
 
 const InventoryManagement = () => {
-  const { locations, units, items, companies, transactions, categories, loading, addLocation, addUnit, addItem, addCompany, logTransaction, deleteTransaction, getStockAtLocation, getGlobalStock, saveCategory } = useInventory();
+  const { locations, units, items, companies, transactions, categories, loading, addLocation, addUnit, addItem, addCompany, logTransaction, logBatchTransactions, deleteTransaction, getStockAtLocation, getGlobalStock, saveCategory, deleteEntity, editEntity } = useInventory();
   const { currentUser } = useAuth();
   const isSuperAdmin = currentUser?.role === 'superadmin';
   
   const [activeTab, setActiveTab] = useState('Overview');
+  const [activeCategoryTab, setActiveCategoryTab] = useState('');
   
   // Modal States
   const [showLocationModal, setShowLocationModal] = useState(false);
@@ -20,6 +21,7 @@ const InventoryManagement = () => {
   const [showCategoryModal, setShowCategoryModal] = useState(false);
   const [showTxnModal, setShowTxnModal] = useState({ isOpen: false, type: 'IN', item: null });
   const [editingMaster, setEditingMaster] = useState(null); // { type, id, oldName }
+  const [issueCart, setIssueCart] = useState([]);
 
   // Form States
   const [locName, setLocName] = useState('');
@@ -32,6 +34,8 @@ const InventoryManagement = () => {
   // Company search state
   const [companySearch, setCompanySearch] = useState('');
   const [companyDropdownOpen, setCompanyDropdownOpen] = useState(false);
+  const [supplierSearch, setSupplierSearch] = useState('');
+  const [activeSettingsTab, setActiveSettingsTab] = useState('Supplier Companies');
   
   // Item search state for location view
   const [itemSearch, setItemSearch] = useState('');
@@ -44,7 +48,14 @@ const InventoryManagement = () => {
   // Derived Categories
   const contextCategories = categories.map(c => c.name);
   const derivedCategories = items.map(i => i.category).filter(Boolean);
-  const existingCategories = [...new Set([...contextCategories, ...derivedCategories])];
+  const existingCategories = [...new Set([...contextCategories, ...derivedCategories])].sort((a, b) => a.localeCompare(b));
+
+  // Sorted Lists for UI
+  const sortedItems = [...items].sort((a, b) => a.name.localeCompare(b.name));
+  const sortedCompanies = [...companies].sort((a, b) => a.name.localeCompare(b.name));
+  const sortedLocations = [...locations].sort((a, b) => a.name.localeCompare(b.name));
+  const sortedUnits = [...units].sort((a, b) => a.name.localeCompare(b.name));
+  const sortedCategories = [...categories].sort((a, b) => a.name.localeCompare(b.name));
 
   // Add Settings Handlers
   const handleAddLocation = async (e) => {
@@ -87,18 +98,18 @@ const InventoryManagement = () => {
 
   const handleAddCompany = async (e) => {
     e.preventDefault();
-    if (!companyFormName.trim()) return;
+    if (!companyData.name.trim()) return;
     let success;
     if (editingMaster) {
-      const res = await editEntity(editingMaster.type, editingMaster.id, editingMaster.oldName, companyFormName.trim());
+      const res = await editEntity(editingMaster.type, editingMaster.id, editingMaster.oldName, companyData.name.trim(), { address: companyData.address, mobile: companyData.mobile, poc: companyData.poc, gst: companyData.gst });
       success = res.success;
       if (!success) setAlert({ isOpen: true, message: res.message });
     } else {
-      success = await addCompany(companyFormName.trim());
+      success = await addCompany(companyData.name.trim(), companyData.address, companyData.mobile, companyData.poc, companyData.gst);
       if (!success) setAlert({ isOpen: true, message: "Company name already exists!" });
     }
     if (success) {
-      setCompanyFormName('');
+      setCompanyData({ name: '', address: '', mobile: '', poc: '', gst: '' });
       setShowCompanyModal(false);
       setEditingMaster(null);
     }
@@ -187,6 +198,84 @@ const InventoryManagement = () => {
     setShowTxnModal({ isOpen: false, type: 'IN', item: null });
   };
 
+  const validateAndCalculateQuantity = (inputStr) => {
+    if (!inputStr) return { valid: false, message: '' };
+    const normalized = inputStr.replace(/,/g, '+');
+    const parts = normalized.split('+').map(p => p.trim()).filter(Boolean);
+    
+    if (parts.length === 0) return { valid: false, message: '' };
+
+    let total = 0;
+    for (const part of parts) {
+      if (isNaN(Number(part))) return { valid: false, message: `Invalid number: ${part}` };
+      if ((part.match(/\./g) || []).length > 1) return { valid: false, message: `Multiple decimals: ${part}` };
+      const num = Number(part);
+      if (num <= 0) return { valid: false, message: `Must be > 0: ${part}` };
+      total += num;
+    }
+    // Round to 3 decimal places to avoid floating point issues
+    return { valid: true, total: Math.round(total * 1000) / 1000 };
+  };
+
+  const handleBatchSubmit = async () => {
+    const txnsToLog = [];
+    
+    for (const cartItem of issueCart) {
+      const validation = validateAndCalculateQuantity(cartItem.qtyStr);
+      if (!validation.valid) {
+        setAlert({ isOpen: true, message: `Invalid quantity for ${cartItem.item.name}: ${validation.message}` });
+        return;
+      }
+      
+      const currentStock = getStockAtLocation(cartItem.item.name, activeTab);
+      if (validation.total > currentStock) {
+        setAlert({ isOpen: true, message: `Insufficient stock for ${cartItem.item.name}! Only ${currentStock} available.` });
+        return;
+      }
+
+      const remarksPrefix = cartItem.qtyStr.includes(',') || cartItem.qtyStr.includes('+') 
+        ? `Bobbins/Batch: ${cartItem.qtyStr} | ` : '';
+        
+      txnsToLog.push({
+        location: activeTab,
+        item: cartItem.item.name,
+        type: 'OUT',
+        qty: validation.total,
+        date: new Date().toISOString().split('T')[0],
+        remarks: remarksPrefix + (cartItem.remarks || ''),
+        companyName: '',
+        billNo: '',
+        receivingDate: '',
+        billDate: '',
+        unitPrice: ''
+      });
+    }
+
+    if (txnsToLog.length === 0) {
+      setAlert({ isOpen: true, message: 'Cart is empty or invalid.' });
+      return;
+    }
+
+    const success = await logBatchTransactions(txnsToLog);
+    if (success) {
+      setIssueCart([]);
+      setAlert({ isOpen: true, message: `Successfully issued ${txnsToLog.length} items.` });
+    } else {
+      setAlert({ isOpen: true, message: 'Failed to log batch transactions.' });
+    }
+  };
+
+  const addToCart = (item) => {
+    if (!issueCart.find(c => c.item.name === item.name)) {
+      setIssueCart([...issueCart, { item, qtyStr: '', remarks: '' }]);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
+
+  const removeFromCart = (itemName) => {
+    setIssueCart(issueCart.filter(c => c.item.name !== itemName));
+  };
+
   if (loading) return <div className="animate-fade-in" style={{ padding: '2rem' }}>Loading Inventory System...</div>;
 
   const renderGlobalOverview = () => (
@@ -262,6 +351,75 @@ const InventoryManagement = () => {
     
     return (
       <div className="animate-fade-in">
+        {issueCart.length > 0 && (
+          <div className="card" style={{ marginBottom: '2rem', border: '2px solid var(--accent-primary)' }}>
+            <h3 style={{ margin: '0 0 1rem 0', color: 'var(--accent-primary)' }}>Batch Issue Cart</h3>
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', marginBottom: '1rem', minWidth: '600px' }}>
+                <thead>
+                  <tr style={{ borderBottom: '1px solid var(--border-color)' }}>
+                    <th style={{ padding: '0.5rem', color: 'var(--text-muted)' }}>ITEM</th>
+                    <th style={{ padding: '0.5rem', color: 'var(--text-muted)', width: '30%' }}>QTY (use , or + for bobbins)</th>
+                    <th style={{ padding: '0.5rem', color: 'var(--text-muted)', width: '30%' }}>REMARKS</th>
+                    <th style={{ padding: '0.5rem', color: 'var(--text-muted)', textAlign: 'right' }}>ACTION</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {issueCart.map((cartItem, idx) => {
+                    const val = validateAndCalculateQuantity(cartItem.qtyStr);
+                    return (
+                      <tr key={idx} style={{ borderBottom: '1px solid var(--border-color)' }}>
+                        <td style={{ padding: '0.5rem', fontWeight: '600' }}>{cartItem.item.name} <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>({cartItem.item.unit})</span></td>
+                        <td style={{ padding: '0.5rem' }}>
+                          <div style={{ display: 'flex', flexDirection: 'column' }}>
+                            <input 
+                              type="text" 
+                              className="input-field" 
+                              style={{ marginBottom: 0, border: val.valid === false && cartItem.qtyStr ? '1px solid var(--danger)' : undefined }}
+                              value={cartItem.qtyStr}
+                              onChange={(e) => {
+                                const newCart = [...issueCart];
+                                newCart[idx].qtyStr = e.target.value;
+                                setIssueCart(newCart);
+                              }}
+                              placeholder="e.g. 20.1, 19.8"
+                            />
+                            {val.valid === false && cartItem.qtyStr && <span style={{ color: 'var(--danger)', fontSize: '0.75rem', marginTop: '4px' }}>{val.message}</span>}
+                            {val.valid && cartItem.qtyStr && <span style={{ color: 'var(--success)', fontSize: '0.75rem', marginTop: '4px', fontWeight: '600' }}>Total: {val.total}</span>}
+                          </div>
+                        </td>
+                        <td style={{ padding: '0.5rem' }}>
+                          <input 
+                            type="text" 
+                            className="input-field" 
+                            style={{ marginBottom: 0 }}
+                            value={cartItem.remarks}
+                            onChange={(e) => {
+                              const newCart = [...issueCart];
+                              newCart[idx].remarks = e.target.value;
+                              setIssueCart(newCart);
+                            }}
+                            placeholder="Optional remarks"
+                          />
+                        </td>
+                        <td style={{ padding: '0.5rem', textAlign: 'right' }}>
+                          <button className="icon-btn-small" onClick={() => removeFromCart(cartItem.item.name)} title="Remove from cart">
+                            <Trash2 size={16} color="var(--danger)" />
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem' }}>
+              <button className="btn btn-secondary" onClick={() => setIssueCart([])}>Clear Cart</button>
+              <button className="btn btn-primary" onClick={handleBatchSubmit}>Submit Batch</button>
+            </div>
+          </div>
+        )}
+
         <div className="card" style={{ marginBottom: '2rem' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
             <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
@@ -287,16 +445,16 @@ const InventoryManagement = () => {
               
               return (
                 <div key={cat} style={{ border: '1px solid var(--border-color)', borderRadius: '8px', overflow: 'hidden' }}>
-                  <div style={{ backgroundColor: 'var(--bg-secondary)', padding: '0.8rem 1rem', borderBottom: '1px solid var(--border-color)', fontWeight: '600', color: 'var(--text-primary)' }}>
+                  <div style={{ backgroundColor: 'var(--bg-primary)', padding: '1rem 1.2rem', borderBottom: '2px solid var(--accent-primary)', fontWeight: '700', fontSize: '1.1rem', color: 'var(--text-primary)', textTransform: 'uppercase', letterSpacing: '0.5px', borderTopLeftRadius: '8px', borderTopRightRadius: '8px' }}>
                     {cat}
                   </div>
                   <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
-                    <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '600px' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '600px', tableLayout: 'fixed' }}>
                       <thead>
                         <tr style={{ backgroundColor: 'var(--bg-tertiary)', borderBottom: '1px solid var(--border-color)' }}>
-                          <th style={{ padding: '0.8rem 1rem', fontSize: '0.85rem', color: 'var(--text-muted)' }}>ITEM/RATING</th>
-                          <th style={{ padding: '0.8rem 1rem', fontSize: '0.85rem', color: 'var(--text-muted)', textAlign: 'right' }}>CURRENT STOCK</th>
-                          <th style={{ padding: '0.8rem 1rem', fontSize: '0.85rem', color: 'var(--text-muted)', textAlign: 'center' }}>QUICK ACTIONS</th>
+                          <th style={{ width: '50%', padding: '0.8rem 1rem', fontSize: '0.85rem', color: 'var(--text-muted)' }}>ITEM/RATING</th>
+                          <th style={{ width: '20%', padding: '0.8rem 1rem', fontSize: '0.85rem', color: 'var(--text-muted)', textAlign: 'center' }}>CURRENT STOCK</th>
+                          <th style={{ width: '30%', padding: '0.8rem 1rem', fontSize: '0.85rem', color: 'var(--text-muted)', textAlign: 'right' }}>QUICK ACTIONS</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -307,18 +465,23 @@ const InventoryManagement = () => {
                               <td style={{ padding: '1rem', fontWeight: '600' }}>
                                 {item.name} <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>({item.unit})</span>
                               </td>
-                              <td style={{ padding: '1rem', textAlign: 'right' }}>
+                              <td style={{ padding: '1rem', textAlign: 'center' }}>
                                 <span style={{ fontSize: '1.1rem', fontWeight: '700', color: stock > 0 ? 'var(--success)' : 'var(--danger)' }}>
                                   {stock.toLocaleString()}
                                 </span>
                               </td>
-                              <td style={{ padding: '1rem', display: 'flex', gap: '0.5rem', justifyContent: 'center' }}>
-                                <button className="btn" style={{ padding: '0.4rem 0.8rem', backgroundColor: 'rgba(16, 185, 129, 0.1)', color: 'var(--success)', border: '1px solid rgba(16, 185, 129, 0.2)', fontSize: '0.85rem', display: 'flex', gap: '0.4rem', alignItems: 'center' }} onClick={() => setShowTxnModal({ isOpen: true, type: 'IN', item: item.name })}>
-                                  <LogIn size={14} /> Stock In
-                                </button>
-                                <button className="btn" style={{ padding: '0.4rem 0.8rem', backgroundColor: 'rgba(239, 68, 68, 0.1)', color: 'var(--danger)', border: '1px solid rgba(239, 68, 68, 0.2)', fontSize: '0.85rem', display: 'flex', gap: '0.4rem', alignItems: 'center' }} onClick={() => setShowTxnModal({ isOpen: true, type: 'OUT', item: item.name })}>
-                                  <LogOut size={14} /> Stock Out
-                                </button>
+                              <td style={{ padding: '1rem' }}>
+                                <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
+                                  <button className="btn" style={{ padding: '0.4rem 0.8rem', backgroundColor: 'rgba(16, 185, 129, 0.1)', color: 'var(--success)', border: '1px solid rgba(16, 185, 129, 0.2)', fontSize: '0.85rem', display: 'flex', gap: '0.4rem', alignItems: 'center' }} onClick={() => setShowTxnModal({ isOpen: true, type: 'IN', item: item.name })}>
+                                    <LogIn size={14} /> Stock In
+                                  </button>
+                                  <button className="btn" style={{ padding: '0.4rem 0.8rem', backgroundColor: 'rgba(239, 68, 68, 0.1)', color: 'var(--danger)', border: '1px solid rgba(239, 68, 68, 0.2)', fontSize: '0.85rem', display: 'flex', gap: '0.4rem', alignItems: 'center' }} onClick={() => setShowTxnModal({ isOpen: true, type: 'OUT', item: item.name })}>
+                                    <LogOut size={14} /> Stock Out
+                                  </button>
+                                  <button className="btn" style={{ padding: '0.4rem 0.8rem', backgroundColor: 'rgba(59, 130, 246, 0.1)', color: 'var(--accent-primary)', border: '1px solid rgba(59, 130, 246, 0.2)', fontSize: '0.85rem', display: 'flex', gap: '0.4rem', alignItems: 'center' }} onClick={() => addToCart(item)} title="Add to Batch Issue Cart">
+                                    <Plus size={14} /> Batch Out
+                                  </button>
+                                </div>
                               </td>
                             </tr>
                           );
@@ -388,22 +551,56 @@ const InventoryManagement = () => {
   );
 };
 
-  const renderSettings = () => (
-    <div className="animate-fade-in" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '2rem' }}>
+  const renderSettings = () => {
+    const tabs = ['Supplier Companies', 'Master Categories', 'Store Locations', 'Units of Measure'];
+    
+    return (
+    <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
       
-      {/* Categories Settings */}
-      <div className="card">
-        <h3 style={{ margin: '0 0 1.5rem 0', display: 'flex', alignItems: 'center', gap: '0.8rem' }}>
-          <Database size={18} color="var(--success)" />
-          <span>Master Categories</span>
-          <button className="icon-btn" onClick={() => {
-            setEditingMaster(null);
-            setCategoryData({ name: '', suppliers: [] });
-            setShowCategoryModal(true);
-          }}><Plus size={18} /></button>
-        </h3>
-        <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '0.8rem' }}>
-          {categories.map(c => (
+      <div className="card" style={{ padding: '0' }}>
+        <div style={{ display: 'flex', gap: '0.5rem', overflowX: 'auto', borderBottom: '1px solid var(--border-color)', backgroundColor: 'var(--bg-tertiary)', borderTopLeftRadius: '12px', borderTopRightRadius: '12px', padding: '0.5rem 1rem 0 1rem' }}>
+          {tabs.map(tab => (
+            <button 
+              key={tab}
+              onClick={() => setActiveSettingsTab(tab)}
+              style={{
+                padding: '0.8rem 1.5rem',
+                background: activeSettingsTab === tab ? 'var(--bg-primary)' : 'transparent',
+                color: activeSettingsTab === tab ? 'var(--accent-primary)' : 'var(--text-muted)',
+                border: 'none',
+                borderBottom: activeSettingsTab === tab ? '2px solid var(--accent-primary)' : '2px solid transparent',
+                cursor: 'pointer',
+                fontWeight: '600',
+                fontSize: '0.95rem',
+                whiteSpace: 'nowrap',
+                transition: 'all 0.2s ease',
+                borderTopLeftRadius: '8px',
+                borderTopRightRadius: '8px'
+              }}
+            >
+              {tab === 'Supplier Companies' ? <><Building2 size={16} style={{ marginRight: '0.5rem', verticalAlign: 'text-bottom' }}/>Supplier Companies</> : 
+               tab === 'Master Categories' ? <><Database size={16} style={{ marginRight: '0.5rem', verticalAlign: 'text-bottom' }}/>Master Categories</> :
+               tab === 'Store Locations' ? <><MapPin size={16} style={{ marginRight: '0.5rem', verticalAlign: 'text-bottom' }}/>Store Locations</> :
+               <><Settings size={16} style={{ marginRight: '0.5rem', verticalAlign: 'text-bottom' }}/>Units of Measure</>}
+            </button>
+          ))}
+        </div>
+        
+        <div style={{ padding: '2rem' }}>
+
+          {activeSettingsTab === 'Master Categories' && (
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                <h3 style={{ margin: 0, color: 'var(--text-primary)' }}>Manage Categories</h3>
+                <button className="btn btn-primary" style={{ padding: '0.5rem 1rem', fontSize: '0.85rem' }} onClick={() => {
+                  setEditingMaster(null);
+                  setCategoryData({ name: '', suppliers: [] });
+                  setSupplierSearch('');
+                  setShowCategoryModal(true);
+                }}><Plus size={16} style={{ marginRight: '0.4rem' }}/> Add Category</button>
+              </div>
+              <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '0.8rem' }}>
+          {sortedCategories.map(c => (
             <li key={c.id || c.name} style={{ padding: '0.8rem 1rem', backgroundColor: 'var(--bg-tertiary)', borderRadius: '8px', border: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div style={{ fontWeight: '600' }}>{c.name}</div>
@@ -412,6 +609,7 @@ const InventoryManagement = () => {
                     <button className="icon-btn-small" onClick={() => {
                       setEditingMaster({ type: 'inv_category', id: c.id, oldName: c.name });
                       setCategoryData({ name: c.name, suppliers: c.suppliers });
+                      setSupplierSearch('');
                       setShowCategoryModal(true);
                     }} title="Edit Category"><Edit size={14} color="var(--accent-primary)" /></button>
                     <button className="icon-btn-small" onClick={() => handleDeleteMaster('inv_category', c.id, c.name)} title="Delete Category"><Trash2 size={14} color="var(--danger)" /></button>
@@ -433,22 +631,22 @@ const InventoryManagement = () => {
             </li>
           ))}
           {categories.length === 0 && <li style={{ color: 'var(--text-muted)' }}>No categories configured.</li>}
-        </ul>
-      </div>
+              </ul>
+            </div>
+          )}
 
-      {/* Locations Settings */}
-      <div className="card">
-        <h3 style={{ margin: '0 0 1.5rem 0', display: 'flex', alignItems: 'center', gap: '0.8rem' }}>
-          <MapPin size={18} color="var(--accent-primary)" />
-          <span>Store Locations</span>
-          <button className="icon-btn" onClick={() => {
-            setEditingMaster(null);
-            setLocName('');
-            setShowLocationModal(true);
-          }}><Plus size={18} /></button>
-        </h3>
-        <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '0.8rem' }}>
-          {locations.map(l => (
+          {activeSettingsTab === 'Store Locations' && (
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                <h3 style={{ margin: 0, color: 'var(--text-primary)' }}>Manage Store Locations</h3>
+                <button className="btn btn-primary" style={{ padding: '0.5rem 1rem', fontSize: '0.85rem' }} onClick={() => {
+                  setEditingMaster(null);
+                  setLocName('');
+                  setShowLocationModal(true);
+                }}><Plus size={16} style={{ marginRight: '0.4rem' }}/> Add Location</button>
+              </div>
+              <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '0.8rem' }}>
+          {sortedLocations.map(l => (
             <li key={l.id} style={{ padding: '0.8rem 1rem', backgroundColor: 'var(--bg-tertiary)', borderRadius: '8px', border: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <span style={{ fontWeight: '500' }}>{l.name}</span>
               {isSuperAdmin && (
@@ -464,22 +662,22 @@ const InventoryManagement = () => {
             </li>
           ))}
           {locations.length === 0 && <li style={{ color: 'var(--text-muted)' }}>No locations configured.</li>}
-        </ul>
-      </div>
+              </ul>
+            </div>
+          )}
 
-      {/* Units Settings */}
-      <div className="card">
-        <h3 style={{ margin: '0 0 1.5rem 0', display: 'flex', alignItems: 'center', gap: '0.8rem' }}>
-          <Settings size={18} color="var(--warning)" />
-          <span>Units of Measure (UOM)</span>
-          <button className="icon-btn" onClick={() => {
-            setEditingMaster(null);
-            setUnitName('');
-            setShowUnitModal(true);
-          }}><Plus size={18} /></button>
-        </h3>
-        <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '0.8rem' }}>
-          {units.map(u => (
+          {activeSettingsTab === 'Units of Measure' && (
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                <h3 style={{ margin: 0, color: 'var(--text-primary)' }}>Manage Units of Measure (UOM)</h3>
+                <button className="btn btn-primary" style={{ padding: '0.5rem 1rem', fontSize: '0.85rem' }} onClick={() => {
+                  setEditingMaster(null);
+                  setUnitName('');
+                  setShowUnitModal(true);
+                }}><Plus size={16} style={{ marginRight: '0.4rem' }}/> Add Unit</button>
+              </div>
+              <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '0.8rem' }}>
+          {sortedUnits.map(u => (
             <li key={u.id} style={{ padding: '0.8rem 1rem', backgroundColor: 'var(--bg-tertiary)', borderRadius: '8px', border: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <span style={{ fontWeight: '500' }}>{u.name}</span>
               {isSuperAdmin && (
@@ -495,38 +693,65 @@ const InventoryManagement = () => {
             </li>
           ))}
           {units.length === 0 && <li style={{ color: 'var(--text-muted)' }}>No units configured.</li>}
-        </ul>
-      </div>
+              </ul>
+            </div>
+          )}
 
-      {/* Companies Settings */}
-      <div className="card">
-        <h3 style={{ margin: '0 0 1.5rem 0', display: 'flex', alignItems: 'center', gap: '0.8rem' }}>
-          <Building2 size={18} color="var(--success)" />
-          <span>Supplier Companies</span>
-          <button className="icon-btn" onClick={() => {
-            setEditingMaster(null);
-            setCompanyFormName('');
-            setShowCompanyModal(true);
-          }}><Plus size={18} /></button>
-        </h3>
-        <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '0.8rem' }}>
-          {companies.map(c => (
-            <li key={c.id} style={{ padding: '0.8rem 1rem', backgroundColor: 'var(--bg-tertiary)', borderRadius: '8px', border: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ fontWeight: '500' }}>{c.name}</span>
-              {isSuperAdmin && (
-                <div style={{ display: 'flex', gap: '0.5rem' }}>
-                  <button className="icon-btn-small" onClick={() => {
-                    setEditingMaster({ type: 'inv_company', id: c.id, oldName: c.name });
-                    setCompanyFormName(c.name);
+          {activeSettingsTab === 'Supplier Companies' && (
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
+                <h3 style={{ margin: 0, color: 'var(--text-primary)' }}>Manage Supplier Companies</h3>
+                <div style={{ display: 'flex', gap: '1rem', flex: 1, justifyContent: 'flex-end', minWidth: '300px' }}>
+                  <div className="search-bar" style={{ flex: 1, maxWidth: '300px' }}>
+                    <Search size={16} className="search-icon" />
+                    <input 
+                      type="text" 
+                      placeholder="Search companies..." 
+                      className="search-input"
+                      value={companySearch}
+                      onChange={(e) => setCompanySearch(e.target.value)}
+                    />
+                  </div>
+                  <button className="btn btn-primary" style={{ padding: '0.5rem 1rem', fontSize: '0.85rem', whiteSpace: 'nowrap' }} onClick={() => {
+                    setEditingMaster(null);
+                    setCompanyData({ name: '', address: '', mobile: '', poc: '', gst: '' });
                     setShowCompanyModal(true);
-                  }} title="Edit Company"><Edit size={14} color="var(--accent-primary)" /></button>
-                  <button className="icon-btn-small" onClick={() => handleDeleteMaster('inv_company', c.id, c.name)} title="Delete Company"><Trash2 size={14} color="var(--danger)" /></button>
+                  }}><Plus size={16} style={{ marginRight: '0.4rem' }}/> Add Company</button>
                 </div>
-              )}
+              </div>
+              <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '0.8rem' }}>
+          {sortedCompanies.filter(c => c.name.toLowerCase().includes(companySearch.toLowerCase())).map(c => (
+            <li key={c.id} style={{ padding: '1rem', backgroundColor: 'var(--bg-tertiary)', borderRadius: '8px', border: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                <div>
+                  <div style={{ fontWeight: '600', color: 'var(--text-primary)', fontSize: '1.05rem' }}>{c.name}</div>
+                  {(c.poc || c.mobile || c.gst) && (
+                    <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '0.4rem', display: 'flex', flexWrap: 'wrap', gap: '1rem' }}>
+                      {c.poc && <div><strong style={{ color: 'var(--text-secondary)' }}>POC:</strong> {c.poc}</div>}
+                      {c.mobile && <div><strong style={{ color: 'var(--text-secondary)' }}>Mobile:</strong> {c.mobile}</div>}
+                      {c.gst && <div><strong style={{ color: 'var(--text-secondary)' }}>GST:</strong> {c.gst}</div>}
+                    </div>
+                  )}
+                  {c.address && <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '0.4rem' }}>{c.address}</div>}
+                </div>
+                {isSuperAdmin && (
+                  <div style={{ display: 'flex', gap: '0.5rem' }}>
+                    <button className="icon-btn-small" onClick={() => {
+                      setEditingMaster({ type: 'inv_company', id: c.id, oldName: c.name });
+                      setCompanyData({ name: c.name, address: c.address || '', mobile: c.mobile || '', poc: c.poc || '', gst: c.gst || '' });
+                      setShowCompanyModal(true);
+                    }} title="Edit Company"><Edit size={14} color="var(--accent-primary)" /></button>
+                    <button className="icon-btn-small" onClick={() => handleDeleteMaster('inv_company', c.id, c.name)} title="Delete Company"><Trash2 size={14} color="var(--danger)" /></button>
+                  </div>
+                )}
+              </div>
             </li>
           ))}
-          {companies.length === 0 && <li style={{ color: 'var(--text-muted)' }}>No companies configured.</li>}
-        </ul>
+              </ul>
+            </div>
+          )}
+          
+        </div>
       </div>
 
       {/* Items Settings */}
@@ -537,15 +762,42 @@ const InventoryManagement = () => {
           <button className="icon-btn" onClick={() => {
             setEditingMaster(null);
             setItemData({ name: '', unit: '', category: '', isNewCategory: false, suppliers: [] });
+            setSupplierSearch('');
             setShowItemModal(true);
           }}><Plus size={18} /></button>
         </h3>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-          {existingCategories.length > 0 ? existingCategories.map(cat => (
-            <div key={cat}>
-              <h4 style={{ margin: '0 0 0.8rem 0', color: 'var(--text-secondary)', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem' }}>{cat}</h4>
+          {existingCategories.length > 0 ? (() => {
+            const currentCategoryTab = activeCategoryTab || existingCategories[0];
+            return (
+            <>
+              <div style={{ display: 'flex', gap: '0.5rem', overflowX: 'auto', paddingBottom: '0', borderBottom: '1px solid var(--border-color)', marginBottom: '0.5rem' }}>
+                {existingCategories.map(cat => (
+                  <button 
+                    key={cat}
+                    onClick={() => setActiveCategoryTab(cat)}
+                    style={{
+                      padding: '0.6rem 1.2rem',
+                      background: currentCategoryTab === cat ? 'var(--bg-tertiary)' : 'transparent',
+                      color: currentCategoryTab === cat ? 'var(--accent-primary)' : 'var(--text-muted)',
+                      border: 'none',
+                      borderBottom: currentCategoryTab === cat ? '2px solid var(--accent-primary)' : '2px solid transparent',
+                      cursor: 'pointer',
+                      fontWeight: '600',
+                      fontSize: '0.9rem',
+                      whiteSpace: 'nowrap',
+                      transition: 'all 0.2s ease',
+                      borderTopLeftRadius: '8px',
+                      borderTopRightRadius: '8px'
+                    }}
+                  >
+                    {cat}
+                  </button>
+                ))}
+              </div>
+              
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem' }}>
-                {items.filter(i => i.category === cat).map(item => (
+                {sortedItems.filter(i => i.category === currentCategoryTab).map(item => (
                     <div key={item.id} style={{ padding: '1rem', backgroundColor: 'var(--bg-tertiary)', borderRadius: '8px', border: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', gap: '0.5rem', minWidth: '200px' }}>
                       <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.8rem', justifyContent: 'space-between' }}>
                         <div>
@@ -557,6 +809,7 @@ const InventoryManagement = () => {
                             <button className="icon-btn-small" onClick={() => {
                               setEditingMaster({ type: 'inv_item', id: item.id, oldName: item.name });
                               setItemData({ name: item.name, unit: item.unit, category: item.category, isNewCategory: false, suppliers: item.suppliers || [] });
+                              setSupplierSearch('');
                               setShowItemModal(true);
                             }} title="Edit Item"><Edit size={14} color="var(--accent-primary)" /></button>
                             <button className="icon-btn-small" onClick={() => handleDeleteMaster('inv_item', item.id, item.name)} title="Delete Item"><Trash2 size={14} color="var(--danger)" /></button>
@@ -570,9 +823,13 @@ const InventoryManagement = () => {
                       )}
                     </div>
                 ))}
+                {items.filter(i => i.category === currentCategoryTab).length === 0 && (
+                  <div style={{ color: 'var(--text-muted)', padding: '1rem 0' }}>No items found in this category.</div>
+                )}
               </div>
-            </div>
-          )) : (
+            </>
+            );
+          })() : (
             <div style={{ color: 'var(--text-muted)' }}>No items configured.</div>
           )}
         </div>
@@ -580,6 +837,7 @@ const InventoryManagement = () => {
 
     </div>
   );
+};
 
   return (
     <div className="animate-fade-in" style={{ paddingBottom: '3rem' }}>
@@ -705,29 +963,41 @@ const InventoryManagement = () => {
                 <label className="input-label">Unit of Measure</label>
                 <select className="input-field" value={itemData.unit} onChange={e => setItemData({ ...itemData, unit: e.target.value })} required>
                   <option value="">Select a Unit...</option>
-                  {units.map(u => <option key={u.id} value={u.name}>{u.name}</option>)}
+                  {sortedUnits.map(u => <option key={u.id} value={u.name}>{u.name}</option>)}
                 </select>
               </div>
 
               <div style={{ marginBottom: '2rem' }}>
                 <label className="input-label">Map Authorized Suppliers (Optional)</label>
-                <div style={{ maxHeight: '120px', overflowY: 'auto', border: '1px solid var(--border-color)', borderRadius: '8px', padding: '0.5rem', backgroundColor: 'var(--bg-secondary)' }}>
-                  {companies.map(c => (
-                    <label key={c.id} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.3rem', cursor: 'pointer' }}>
-                      <input 
-                        type="checkbox" 
-                        checked={itemData.suppliers.includes(c.name)}
-                        onChange={(e) => {
-                          const newSuppliers = e.target.checked 
-                            ? [...itemData.suppliers, c.name]
-                            : itemData.suppliers.filter(s => s !== c.name);
-                          setItemData({ ...itemData, suppliers: newSuppliers });
-                        }}
-                      />
-                      <span style={{ fontSize: '0.9rem' }}>{c.name}</span>
-                    </label>
-                  ))}
-                  {companies.length === 0 && <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>No companies available.</div>}
+                <div style={{ border: '1px solid var(--border-color)', borderRadius: '8px', backgroundColor: 'var(--bg-secondary)', overflow: 'hidden' }}>
+                  <div style={{ padding: '0.5rem', borderBottom: '1px solid var(--border-color)', backgroundColor: 'var(--bg-tertiary)' }}>
+                    <input 
+                      type="text" 
+                      className="input-field" 
+                      placeholder="Search suppliers..." 
+                      value={supplierSearch}
+                      onChange={e => setSupplierSearch(e.target.value)}
+                      style={{ marginBottom: 0, padding: '0.4rem 0.8rem', fontSize: '0.85rem' }}
+                    />
+                  </div>
+                  <div style={{ maxHeight: '250px', overflowY: 'auto', padding: '0.5rem' }}>
+                    {sortedCompanies.filter(c => c.name.toLowerCase().includes(supplierSearch.toLowerCase())).map(c => (
+                      <label key={c.id} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.4rem', cursor: 'pointer', borderRadius: '4px' }} className="supplier-row">
+                        <input 
+                          type="checkbox" 
+                          checked={itemData.suppliers.includes(c.name)}
+                          onChange={(e) => {
+                            const newSuppliers = e.target.checked 
+                              ? [...itemData.suppliers, c.name]
+                              : itemData.suppliers.filter(s => s !== c.name);
+                            setItemData({ ...itemData, suppliers: newSuppliers });
+                          }}
+                        />
+                        <span style={{ fontSize: '0.9rem' }}>{c.name}</span>
+                      </label>
+                    ))}
+                    {sortedCompanies.filter(c => c.name.toLowerCase().includes(supplierSearch.toLowerCase())).length === 0 && <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', padding: '0.5rem' }}>No companies found.</div>}
+                  </div>
                 </div>
               </div>
 
@@ -742,12 +1012,30 @@ const InventoryManagement = () => {
 
       {showCompanyModal && (
         <div className="modal-backdrop">
-          <div className="card animate-fade-in" style={{ width: '400px', padding: '2rem' }}>
-            <h3>Add Supplier Company</h3>
+          <div className="card animate-fade-in" style={{ width: '500px', padding: '2rem', maxHeight: '90vh', overflowY: 'auto' }}>
+            <h3>{editingMaster ? 'Edit' : 'Add'} Supplier Company</h3>
             <form onSubmit={handleAddCompany}>
               <div style={{ marginBottom: '1.5rem' }}>
-                <label className="input-label">Company Name</label>
-                <input type="text" className="input-field" value={companyFormName} onChange={e => setCompanyFormName(e.target.value)} placeholder="e.g. ABC Metals Pvt Ltd" autoFocus required />
+                <label className="input-label">Company Name *</label>
+                <input type="text" className="input-field" value={companyData.name} onChange={e => setCompanyData({ ...companyData, name: e.target.value })} placeholder="e.g. ABC Metals Pvt Ltd" autoFocus required />
+              </div>
+              <div style={{ marginBottom: '1.5rem', display: 'flex', gap: '1rem' }}>
+                <div style={{ flex: 1 }}>
+                  <label className="input-label">Point of Contact (Optional)</label>
+                  <input type="text" className="input-field" value={companyData.poc} onChange={e => setCompanyData({ ...companyData, poc: e.target.value })} placeholder="Person Name" />
+                </div>
+                <div style={{ flex: 1 }}>
+                  <label className="input-label">Mobile Number (Optional)</label>
+                  <input type="text" className="input-field" value={companyData.mobile} onChange={e => setCompanyData({ ...companyData, mobile: e.target.value })} placeholder="+91..." />
+                </div>
+              </div>
+              <div style={{ marginBottom: '1.5rem' }}>
+                <label className="input-label">Address (Optional)</label>
+                <textarea className="input-field" value={companyData.address} onChange={e => setCompanyData({ ...companyData, address: e.target.value })} placeholder="Full Address" rows={2} style={{ resize: 'vertical' }} />
+              </div>
+              <div style={{ marginBottom: '2rem' }}>
+                <label className="input-label">GST Number (Optional)</label>
+                <input type="text" className="input-field" value={companyData.gst} onChange={e => setCompanyData({ ...companyData, gst: e.target.value })} placeholder="e.g. 22AAAAA0000A1Z5" style={{ textTransform: 'uppercase' }} />
               </div>
               <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end' }}>
                 <button type="button" className="btn btn-secondary" onClick={() => setShowCompanyModal(false)}>Cancel</button>
@@ -769,23 +1057,35 @@ const InventoryManagement = () => {
               </div>
               <div style={{ marginBottom: '2rem' }}>
                 <label className="input-label">Map Authorized Suppliers (Optional)</label>
-                <div style={{ maxHeight: '120px', overflowY: 'auto', border: '1px solid var(--border-color)', borderRadius: '8px', padding: '0.5rem', backgroundColor: 'var(--bg-secondary)' }}>
-                  {companies.map(c => (
-                    <label key={c.id} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.3rem', cursor: 'pointer' }}>
-                      <input 
-                        type="checkbox" 
-                        checked={categoryData.suppliers.includes(c.name)}
-                        onChange={(e) => {
-                          const newSuppliers = e.target.checked 
-                            ? [...categoryData.suppliers, c.name]
-                            : categoryData.suppliers.filter(s => s !== c.name);
-                          setCategoryData({ ...categoryData, suppliers: newSuppliers });
-                        }}
-                      />
-                      <span style={{ fontSize: '0.9rem' }}>{c.name}</span>
-                    </label>
-                  ))}
-                  {companies.length === 0 && <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>No companies available.</div>}
+                <div style={{ border: '1px solid var(--border-color)', borderRadius: '8px', backgroundColor: 'var(--bg-secondary)', overflow: 'hidden' }}>
+                  <div style={{ padding: '0.5rem', borderBottom: '1px solid var(--border-color)', backgroundColor: 'var(--bg-tertiary)' }}>
+                    <input 
+                      type="text" 
+                      className="input-field" 
+                      placeholder="Search suppliers..." 
+                      value={supplierSearch}
+                      onChange={e => setSupplierSearch(e.target.value)}
+                      style={{ marginBottom: 0, padding: '0.4rem 0.8rem', fontSize: '0.85rem' }}
+                    />
+                  </div>
+                  <div style={{ maxHeight: '250px', overflowY: 'auto', padding: '0.5rem' }}>
+                    {sortedCompanies.filter(c => c.name.toLowerCase().includes(supplierSearch.toLowerCase())).map(c => (
+                      <label key={c.id} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.4rem', cursor: 'pointer', borderRadius: '4px' }} className="supplier-row">
+                        <input 
+                          type="checkbox" 
+                          checked={categoryData.suppliers.includes(c.name)}
+                          onChange={(e) => {
+                            const newSuppliers = e.target.checked 
+                              ? [...categoryData.suppliers, c.name]
+                              : categoryData.suppliers.filter(s => s !== c.name);
+                            setCategoryData({ ...categoryData, suppliers: newSuppliers });
+                          }}
+                        />
+                        <span style={{ fontSize: '0.9rem' }}>{c.name}</span>
+                      </label>
+                    ))}
+                    {sortedCompanies.filter(c => c.name.toLowerCase().includes(supplierSearch.toLowerCase())).length === 0 && <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', padding: '0.5rem' }}>No companies found.</div>}
+                  </div>
                 </div>
               </div>
               <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end' }}>
@@ -834,8 +1134,8 @@ const InventoryManagement = () => {
                           const mappedSuppliers = targetItem?.suppliers || [];
                           
                           // Filter mapped vs unmapped, then apply search
-                          const mappedList = companies.filter(c => mappedSuppliers.includes(c.name) && c.name.toLowerCase().includes(companySearch.toLowerCase()));
-                          const otherList = companies.filter(c => !mappedSuppliers.includes(c.name) && c.name.toLowerCase().includes(companySearch.toLowerCase()));
+                          const mappedList = sortedCompanies.filter(c => mappedSuppliers.includes(c.name) && c.name.toLowerCase().includes(companySearch.toLowerCase()));
+                          const otherList = sortedCompanies.filter(c => !mappedSuppliers.includes(c.name) && c.name.toLowerCase().includes(companySearch.toLowerCase()));
 
                           return (
                             <>
@@ -900,8 +1200,8 @@ const InventoryManagement = () => {
                 </div>
               </div>
               <div style={{ marginBottom: '1.5rem' }}>
-                <label className="input-label">Bill / Invoice No.</label>
-                <input type="text" className="input-field" value={txnData.billNo} onChange={e => setTxnData({ ...txnData, billNo: e.target.value })} placeholder="E.g. INV-2026-0451" required />
+                <label className="input-label">Bill / Invoice No. (Optional)</label>
+                <input type="text" className="input-field" value={txnData.billNo} onChange={e => setTxnData({ ...txnData, billNo: e.target.value })} placeholder="E.g. INV-2026-0451" />
               </div>
               <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem' }}>
                 <div style={{ flex: 1 }}>
