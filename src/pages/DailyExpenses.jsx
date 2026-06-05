@@ -3,6 +3,7 @@ import { formatDate } from '../utils/dateUtils';
 import { useExpenses } from '../context/ExpenseContext';
 import { useAuth } from '../context/AuthContext';
 import { useLogs } from '../context/LogContext';
+import { useUsers } from '../context/UserContext';
 import { FileText, Plus, CheckCircle, XCircle, Clock } from 'lucide-react';
 import ConfirmModal from '../components/common/ConfirmModal';
 
@@ -10,6 +11,7 @@ const DailyExpenses = () => {
   const { expenses, addExpense, updateExpenseStatus, loading } = useExpenses();
   const { currentUser } = useAuth();
   const { addLog } = useLogs();
+  const { users } = useUsers();
   
   const [showAddForm, setShowAddForm] = useState(false);
   const [formData, setFormData] = useState({
@@ -21,6 +23,21 @@ const DailyExpenses = () => {
   const [actionModal, setActionModal] = useState({ isOpen: false, type: '', expenseId: null });
 
   const isApprover = currentUser?.role === 'superadmin' || currentUser?.role === 'admin';
+
+  const getSubmitterRole = (submitterName) => {
+    const user = users.find(u => u.name === submitterName);
+    return user ? user.role : 'employee'; // default to employee if not found
+  };
+
+  const canApproveExpense = (exp) => {
+    if (!currentUser) return false;
+    if (currentUser.role === 'superadmin') return true; // Superadmins can approve anything
+    if (currentUser.role === 'admin') {
+      const submitterRole = getSubmitterRole(exp.submitted_by);
+      return submitterRole === 'employee'; // Admins can only approve employee expenses
+    }
+    return false;
+  };
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -140,14 +157,18 @@ const DailyExpenses = () => {
                     {isApprover && (
                       <td style={{ padding: '1rem', textAlign: 'right', whiteSpace: 'nowrap' }}>
                         {exp.status === 'Pending' ? (
-                          <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
-                            <button className="icon-btn" style={{ color: 'var(--success)', border: '1px solid var(--success)', borderRadius: '4px', width: '28px', height: '28px' }} onClick={() => setActionModal({ isOpen: true, type: 'approve', expenseId: exp.id })} title="Approve">
-                              <CheckCircle size={14} />
-                            </button>
-                            <button className="icon-btn" style={{ color: 'var(--danger)', border: '1px solid var(--danger)', borderRadius: '4px', width: '28px', height: '28px' }} onClick={() => setActionModal({ isOpen: true, type: 'reject', expenseId: exp.id })} title="Reject">
-                              <XCircle size={14} />
-                            </button>
-                          </div>
+                          canApproveExpense(exp) ? (
+                            <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
+                              <button className="icon-btn" style={{ color: 'var(--success)', border: '1px solid var(--success)', borderRadius: '4px', width: '28px', height: '28px' }} onClick={() => setActionModal({ isOpen: true, type: 'approve', expenseId: exp.id })} title="Approve">
+                                <CheckCircle size={14} />
+                              </button>
+                              <button className="icon-btn" style={{ color: 'var(--danger)', border: '1px solid var(--danger)', borderRadius: '4px', width: '28px', height: '28px' }} onClick={() => setActionModal({ isOpen: true, type: 'reject', expenseId: exp.id })} title="Reject">
+                                <XCircle size={14} />
+                              </button>
+                            </div>
+                          ) : (
+                            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Awaiting Superadmin</span>
+                          )
                         ) : (
                           <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Actioned</span>
                         )}

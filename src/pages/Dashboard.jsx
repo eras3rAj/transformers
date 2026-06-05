@@ -9,9 +9,26 @@ import { useWarranty } from '../context/WarrantyContext';
 import { useInventory } from '../context/InventoryContext';
 import { useMilestones } from '../context/MilestoneContext';
 import { BarChart, Bar, AreaChart, Area, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
+import { useAuth } from '../context/AuthContext';
 import '../components/layout/Layout.css';
 
 const Dashboard = () => {
+  const { currentUser } = useAuth();
+  
+  const hasModule = (moduleId) => {
+    if (!currentUser) return false;
+    if (currentUser.role === 'superadmin') return true;
+    return currentUser.modules && currentUser.modules.includes(moduleId);
+  };
+  
+  const hasAnyDashboardModule = 
+    hasModule('purchase-orders') || 
+    hasModule('inspections') || 
+    hasModule('price-variation') || 
+    hasModule('production') || 
+    hasModule('inventory') || 
+    hasModule('expenses') || 
+    hasModule('milestones');
   const { pos, companies } = usePO();
   const { claims = [] } = usePV();
   const { productionLogs } = useProduction();
@@ -280,10 +297,20 @@ const Dashboard = () => {
         </div>
       </div>
 
+      {/* Empty State */}
+      {!hasAnyDashboardModule && (
+        <div style={{ padding: '4rem 2rem', textAlign: 'center', backgroundColor: 'var(--bg-tertiary)', borderRadius: '12px', border: '1px dashed var(--border-color)', marginTop: '2rem' }}>
+          <AlertCircle size={48} color="var(--text-muted)" style={{ margin: '0 auto 1rem auto' }} />
+          <h2 style={{ margin: '0 0 0.5rem 0', color: 'var(--text-primary)' }}>Welcome to VoltForge</h2>
+          <p style={{ margin: 0, color: 'var(--text-secondary)' }}>You do not have access to any dashboard widgets. Please navigate using the sidebar menu or contact your administrator to request additional module access.</p>
+        </div>
+      )}
+
       {/* KPI Cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1.5rem', marginBottom: '2rem' }}>
         
-        <div className="card stat-card">
+        {(hasModule('purchase-orders') || hasModule('inspections')) && (
+          <div className="card stat-card">
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
             <div>
               <h3 style={{ margin: '0 0 0.5rem 0', color: 'var(--text-muted)', fontSize: '0.85rem', textTransform: 'uppercase' }}>Total Active POs</h3>
@@ -295,52 +322,60 @@ const Dashboard = () => {
             </div>
           </div>
         </div>
+        )}
 
-        <div className="card stat-card">
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-            <div>
-              <h3 style={{ margin: '0 0 0.5rem 0', color: 'var(--text-muted)', fontSize: '0.85rem', textTransform: 'uppercase' }}>Global Delivery Progress</h3>
-              <p style={{ margin: 0, fontSize: '2rem', fontWeight: '700', color: 'var(--success)' }}>{totalDispatched.toLocaleString()}</p>
-              <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginTop: '0.2rem' }}>Units Dispatched</div>
-            </div>
-            <div style={{ backgroundColor: 'rgba(16, 185, 129, 0.1)', padding: '0.8rem', borderRadius: '8px', color: 'var(--success)' }}>
-              <Truck size={24} />
+        {hasModule('inspections') && (
+          <div className="card stat-card">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+              <div>
+                <h3 style={{ margin: '0 0 0.5rem 0', color: 'var(--text-muted)', fontSize: '0.85rem', textTransform: 'uppercase' }}>Global Delivery Progress</h3>
+                <p style={{ margin: 0, fontSize: '2rem', fontWeight: '700', color: 'var(--success)' }}>{totalDispatched.toLocaleString()}</p>
+                <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginTop: '0.2rem' }}>Units Dispatched</div>
+              </div>
+              <div style={{ backgroundColor: 'rgba(16, 185, 129, 0.1)', padding: '0.8rem', borderRadius: '8px', color: 'var(--success)' }}>
+                <Truck size={24} />
+              </div>
             </div>
           </div>
-        </div>
+        )}
 
-        <div className="card stat-card">
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-            <div>
-              <h3 style={{ margin: '0 0 0.5rem 0', color: 'var(--text-muted)', fontSize: '0.85rem', textTransform: 'uppercase' }}>Pending Dispatch</h3>
-              <p style={{ margin: 0, fontSize: '2rem', fontWeight: '700', color: 'var(--warning)' }}>{(totalOrdered - totalDispatched).toLocaleString()}</p>
-              <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginTop: '0.2rem' }}>Units Remaining</div>
-            </div>
-            <div style={{ backgroundColor: 'rgba(245, 158, 11, 0.1)', padding: '0.8rem', borderRadius: '8px', color: 'var(--warning)' }}>
-              <Clock size={24} />
+        {(hasModule('purchase-orders') || hasModule('inspections')) && (
+          <div className="card stat-card">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+              <div>
+                <h3 style={{ margin: '0 0 0.5rem 0', color: 'var(--text-muted)', fontSize: '0.85rem', textTransform: 'uppercase' }}>Pending Dispatch</h3>
+                <p style={{ margin: 0, fontSize: '2rem', fontWeight: '700', color: 'var(--warning)' }}>{(totalOrdered - totalDispatched).toLocaleString()}</p>
+                <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginTop: '0.2rem' }}>Units Remaining</div>
+              </div>
+              <div style={{ backgroundColor: 'rgba(245, 158, 11, 0.1)', padding: '0.8rem', borderRadius: '8px', color: 'var(--warning)' }}>
+                <Clock size={24} />
+              </div>
             </div>
           </div>
-        </div>
+        )}
 
-        <div className="card stat-card">
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-            <div>
-              <h3 style={{ margin: '0 0 0.5rem 0', color: 'var(--text-muted)', fontSize: '0.85rem', textTransform: 'uppercase' }}>Today's Output</h3>
-              <p style={{ margin: 0, fontSize: '2rem', fontWeight: '700', color: 'var(--danger)' }}>{todaysBoxUps}</p>
-              <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginTop: '0.2rem' }}>Transformers Boxed Up</div>
-            </div>
-            <div style={{ backgroundColor: 'rgba(239, 68, 68, 0.1)', padding: '0.8rem', borderRadius: '8px', color: 'var(--danger)' }}>
-              <Package size={24} />
+        {hasModule('production') && (
+          <div className="card stat-card">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+              <div>
+                <h3 style={{ margin: '0 0 0.5rem 0', color: 'var(--text-muted)', fontSize: '0.85rem', textTransform: 'uppercase' }}>Today's Output</h3>
+                <p style={{ margin: 0, fontSize: '2rem', fontWeight: '700', color: 'var(--danger)' }}>{todaysBoxUps}</p>
+                <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginTop: '0.2rem' }}>Transformers Boxed Up</div>
+              </div>
+              <div style={{ backgroundColor: 'rgba(239, 68, 68, 0.1)', padding: '0.8rem', borderRadius: '8px', color: 'var(--danger)' }}>
+                <Package size={24} />
+              </div>
             </div>
           </div>
-        </div>
+        )}
 
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: '2rem' }}>
         
         {/* Production Velocity Chart */}
-        <div className="card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column' }}>
+        {hasModule('production') && (
+          <div className="card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column' }}>
           <h2 style={{ margin: '0 0 1.5rem 0', fontSize: '1.2rem', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <TrendingUp size={20} color="var(--accent-primary)" />
             7-Day Production Velocity
@@ -365,8 +400,10 @@ const Dashboard = () => {
             </ResponsiveContainer>
           </div>
         </div>
+        )}
 
         {/* Upcoming Schedules */}
+        {(hasModule('purchase-orders') || hasModule('inspections')) && (
         <div className="card" style={{ padding: '1.5rem' }}>
           <h2 style={{ margin: '0 0 1.5rem 0', fontSize: '1.2rem', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <Clock size={20} color="var(--warning)" />
@@ -402,8 +439,10 @@ const Dashboard = () => {
             </div>
           )}
         </div>
+        )}
 
         {/* Milestones */}
+        {hasModule('milestones') && (
         <div className="card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column' }}>
           <h2 style={{ margin: '0 0 1.5rem 0', fontSize: '1.2rem', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <Target size={20} color="var(--success)" />
@@ -430,6 +469,7 @@ const Dashboard = () => {
             )}
           </div>
         </div>
+        )}
 
       </div>
       
@@ -437,6 +477,7 @@ const Dashboard = () => {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '2rem', marginTop: '2rem' }}>
         
         {/* Expense Burn Rate */}
+        {hasModule('expenses') && (
         <div className="card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column' }}>
           <h2 style={{ margin: '0 0 1.5rem 0', fontSize: '1.2rem', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <FileText size={20} color="var(--danger)" />
@@ -460,8 +501,10 @@ const Dashboard = () => {
             </ResponsiveContainer>
           </div>
         </div>
+        )}
 
         {/* Warranty Claims Pie */}
+        {hasModule('warranty') && (
         <div className="card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column' }}>
           <h2 style={{ margin: '0 0 1.5rem 0', fontSize: '1.2rem', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <AlertCircle size={20} color="var(--warning)" />
@@ -485,8 +528,10 @@ const Dashboard = () => {
             )}
           </div>
         </div>
+        )}
 
         {/* Top Inventory */}
+        {hasModule('inventory') && (
         <div className="card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column' }}>
           <h2 style={{ margin: '0 0 1.5rem 0', fontSize: '1.2rem', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <Package size={20} color="var(--success)" />
@@ -504,6 +549,7 @@ const Dashboard = () => {
             </ResponsiveContainer>
           </div>
         </div>
+        )}
 
       </div>
       
@@ -511,6 +557,7 @@ const Dashboard = () => {
       <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '2rem', marginTop: '2rem' }}>
         
         {/* Inspection Trends */}
+        {hasModule('inspections') && (
         <div className="card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
             <h2 style={{ margin: 0, fontSize: '1.2rem', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
@@ -541,6 +588,7 @@ const Dashboard = () => {
             </ResponsiveContainer>
           </div>
         </div>
+        )}
 
       </div>
     </div>

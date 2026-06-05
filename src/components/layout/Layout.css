@@ -170,7 +170,25 @@ input[type=number] {
 }
 
 .icon-btn:hover {
-  background-color: var(--bg-tertiary);
+  background-color: var(--bg-secondary);
+  color: var(--text-primary);
+}
+
+.icon-btn-small {
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 0.3rem;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.icon-btn-small:hover {
+  background-color: var(--bg-primary);
   color: var(--text-primary);
 }
 
