@@ -15,6 +15,8 @@ import { EmployeeProvider } from './context/EmployeeContext';
 import { VendorProvider } from './context/VendorContext';
 import { TaskProvider } from './context/TaskContext';
 import { MilestoneProvider } from './context/MilestoneContext';
+import { BgLcProvider } from './context/BgLcContext';
+import { CustomDutyProvider } from './context/CustomDutyContext';
 
 // Lazy loaded page components for Code Splitting
 const Dashboard = React.lazy(() => import('./pages/Dashboard'));
@@ -33,6 +35,9 @@ const Employees = React.lazy(() => import('./pages/Employees'));
 const VendorPurchasing = React.lazy(() => import('./pages/VendorPurchasing'));
 const PendingTasks = React.lazy(() => import('./pages/PendingTasks'));
 const Milestones = React.lazy(() => import('./pages/Milestones'));
+const EodSummary = React.lazy(() => import('./pages/EodSummary'));
+const BankGuaranteeLC = React.lazy(() => import('./pages/BankGuaranteeLC'));
+const CustomDuty = React.lazy(() => import('./pages/CustomDuty'));
 
 // Protected Route Wrapper
 const ProtectedRoute = ({ children, requireSuperAdmin }) => {
@@ -61,6 +66,8 @@ function App() {
                           <VendorProvider>
                             <TaskProvider>
                               <MilestoneProvider>
+                                <BgLcProvider>
+                                  <CustomDutyProvider>
       <Router>
         <Suspense fallback={<div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>Loading application...</div>}>
           <Routes>
@@ -79,6 +86,9 @@ function App() {
               <Route path="warranty" element={<WarrantyManagement />} />
               <Route path="purchase-orders" element={<PurchaseOrders />} />
               <Route path="price-variation" element={<PriceVariation />} />
+              <Route path="eod-summary" element={<EodSummary />} />
+              <Route path="bg-lc" element={<BankGuaranteeLC />} />
+              <Route path="custom-duty" element={<CustomDuty />} />
               <Route path="profile" element={<ProfileSettings />} />
               <Route path="users" element={<ProtectedRoute requireSuperAdmin={true}><UserManagement /></ProtectedRoute>} />
               <Route path="logs" element={<ProtectedRoute requireSuperAdmin={true}><SystemLogs /></ProtectedRoute>} />
@@ -86,6 +96,8 @@ function App() {
           </Routes>
         </Suspense>
       </Router>
+                                  </CustomDutyProvider>
+                                </BgLcProvider>
                               </MilestoneProvider>
                             </TaskProvider>
                           </VendorProvider>

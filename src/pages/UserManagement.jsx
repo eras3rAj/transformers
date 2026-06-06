@@ -17,7 +17,10 @@ export const AVAILABLE_MODULES = [
   { id: 'vendor-purchasing', name: 'Vendor Purchasing' },
   { id: 'pending-tasks', name: 'Pending Tasks' },
   { id: 'milestones', name: 'Milestones' },
-  { id: 'expenses', name: 'Daily Expenses' }
+  { id: 'expenses', name: 'Daily Expenses' },
+  { id: 'eod-summary', name: 'Daily Summary' },
+  { id: 'bg-lc', name: 'Bank Guarantee & LC' },
+  { id: 'custom-duty', name: 'Custom Duty' }
 ];
 
 const UserManagement = () => {
