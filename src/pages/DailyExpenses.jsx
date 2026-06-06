@@ -6,6 +6,8 @@ import { useUsers } from '../context/UserContext';
 import { FileText, Plus, CheckCircle, XCircle, Clock } from 'lucide-react';
 import ConfirmModal from '../components/common/ConfirmModal';
 
+import { exportToPDF, exportToExcel } from '../utils/exportUtils';
+
 const DailyExpenses = () => {
   const { expenses, addExpense, updateExpenseStatus, loading } = useExpenses();
   const { currentUser } = useAuth();
@@ -105,6 +107,33 @@ const DailyExpenses = () => {
   // Filter expenses: normal users see only their own, admins see all
   const visibleExpenses = isApprover ? expenses : expenses.filter(exp => exp.submitted_by === currentUser.name);
 
+
+
+  const handleExportPDF = () => {
+    const headers = ['Date', 'Amount (INR)', 'Reason', 'Payable To', 'Submitted By', 'Status'];
+    const rows = visibleExpenses.map(exp => [
+      new Date(exp.date).toLocaleDateString('en-GB'),
+      Number(exp.amount).toFixed(2),
+      exp.reason,
+      exp.payable_to,
+      exp.submitted_by,
+      exp.status
+    ]);
+    exportToPDF('Daily Expenses Report', headers, rows, 'daily_expenses_report');
+  };
+
+  const handleExportExcel = () => {
+    const data = visibleExpenses.map(exp => ({
+      Date: new Date(exp.date).toLocaleDateString('en-GB'),
+      Amount: Number(exp.amount),
+      Reason: exp.reason,
+      'Payable To': exp.payable_to,
+      'Submitted By': exp.submitted_by,
+      Status: exp.status
+    }));
+    exportToExcel(data, 'Expenses', 'daily_expenses_report');
+  };
+
   return (
     <div className="animate-fade-in">
       <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
@@ -115,9 +144,17 @@ const DailyExpenses = () => {
           </h1>
           <p>Submit and track daily operational expenses.</p>
         </div>
-        <button className="btn btn-primary" onClick={() => setShowAddForm(true)}>
-          <Plus size={18} /> Log Expense
-        </button>
+        <div style={{ display: 'flex', gap: '0.5rem' }}>
+          <button className="btn btn-secondary" onClick={handleExportPDF}>
+            Export PDF
+          </button>
+          <button className="btn btn-secondary" onClick={handleExportExcel}>
+            Export Excel
+          </button>
+          <button className="btn btn-primary" onClick={() => setShowAddForm(true)}>
+            <Plus size={18} /> Log Expense
+          </button>
+        </div>
       </div>
 
       <div className="card" style={{ padding: 0, overflow: 'hidden' }}>

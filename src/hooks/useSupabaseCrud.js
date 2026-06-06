@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 
 export const useSupabaseCrud = (tableName) => {
@@ -25,6 +25,30 @@ export const useSupabaseCrud = (tableName) => {
     } finally {
       setLoading(false);
     }
+  }, [tableName]);
+
+  // Real-time WebSocket Subscription
+  useEffect(() => {
+    const channel = supabase
+      .channel(`public:${tableName}`)
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: tableName }, (payload) => {
+        setData((prev) => {
+          // Avoid duplicating items if they were inserted locally
+          if (prev.find((item) => item.id === payload.new.id)) return prev;
+          return [payload.new, ...prev];
+        });
+      })
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: tableName }, (payload) => {
+        setData((prev) => prev.map((item) => (item.id === payload.new.id ? payload.new : item)));
+      })
+      .on('postgres_changes', { event: 'DELETE', schema: 'public', table: tableName }, (payload) => {
+        setData((prev) => prev.filter((item) => item.id !== payload.old.id));
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [tableName]);
 
   const insert = useCallback(async (payload) => {

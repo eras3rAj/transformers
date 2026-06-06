@@ -1,11 +1,14 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, PackageSearch, Factory, Users, LogOut, Zap, Shield, ClipboardList, TrendingUp, UserCog, FileText, ClipboardCheck, ShoppingCart, ListTodo, Briefcase, Percent, Target } from 'lucide-react';
+import { LayoutDashboard, PackageSearch, Factory, Users, LogOut, Zap, Shield, ClipboardList, TrendingUp, UserCog, FileText, ClipboardCheck, ShoppingCart, ListTodo, Briefcase, Percent, Target, Bell } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { useNotifications } from '../../context/NotificationContext';
 import './Layout.css';
 
 const Sidebar = ({ isMobileMenuOpen, setIsMobileMenuOpen }) => {
   const { currentUser, logout } = useAuth();
+  const { unreadCount, notifications, markAllAsRead, markAsRead } = useNotifications();
+  const [showNotifPopup, setShowNotifPopup] = useState(false);
 
   const navItems = [
     { name: 'Dashboard', icon: <LayoutDashboard size={20} />, path: '/', adminOk: true, normalOk: true, section: 'Overview' },
@@ -115,21 +118,56 @@ const Sidebar = ({ isMobileMenuOpen, setIsMobileMenuOpen }) => {
         ))}
       </nav>
 
-      <div className="sidebar-footer" style={{ borderTop: '1px solid var(--border-color)', paddingTop: '1rem', marginTop: 'auto' }}>
-        {currentUser && (
-          <NavLink 
-            to="/profile" 
-            style={{ display: 'flex', alignItems: 'center', gap: '0.8rem', padding: '0.5rem 1rem', marginBottom: '1rem', textDecoration: 'none', color: 'inherit', borderRadius: '8px' }} 
-            className={({ isActive }) => isActive ? 'active-profile-link' : 'profile-link'}
-            onClick={() => setIsMobileMenuOpen && setIsMobileMenuOpen(false)}
-          >
-            <div style={{ width: '36px', height: '36px', borderRadius: '50%', backgroundColor: 'var(--accent-glow)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--accent-primary)', fontWeight: 'bold' }}>
-              {currentUser.name?.charAt(0) || 'U'}
+      <div className="sidebar-footer" style={{ borderTop: '1px solid var(--border-color)', paddingTop: '1rem', marginTop: 'auto', position: 'relative' }}>
+        
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 1rem', marginBottom: '1rem' }}>
+          {currentUser && (
+            <NavLink 
+              to="/profile" 
+              style={{ display: 'flex', alignItems: 'center', gap: '0.8rem', textDecoration: 'none', color: 'inherit', borderRadius: '8px', flex: 1 }} 
+              className={({ isActive }) => isActive ? 'active-profile-link' : 'profile-link'}
+              onClick={() => setIsMobileMenuOpen && setIsMobileMenuOpen(false)}
+            >
+              <div style={{ width: '36px', height: '36px', borderRadius: '50%', backgroundColor: 'var(--accent-glow)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--accent-primary)', fontWeight: 'bold' }}>
+                {currentUser.name?.charAt(0) || 'U'}
+              </div>
+              <div style={{ overflow: 'hidden' }}>
+                <div style={{ fontWeight: '600', fontSize: '0.9rem', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>{currentUser.name || 'User'}</div>
+              </div>
+            </NavLink>
+          )}
+
+          <button onClick={() => setShowNotifPopup(!showNotifPopup)} style={{ background: 'none', border: 'none', cursor: 'pointer', position: 'relative', color: 'var(--text-muted)' }}>
+            <Bell size={20} />
+            {unreadCount > 0 && (
+              <span style={{ position: 'absolute', top: -5, right: -5, backgroundColor: 'var(--danger)', color: 'white', fontSize: '0.6rem', padding: '2px 4px', borderRadius: '10px', fontWeight: 'bold' }}>
+                {unreadCount}
+              </span>
+            )}
+          </button>
+        </div>
+
+        {showNotifPopup && (
+          <div style={{ position: 'absolute', bottom: '100%', left: '1rem', right: '1rem', backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)', borderRadius: '8px', boxShadow: 'var(--shadow-lg)', zIndex: 1000, overflow: 'hidden', display: 'flex', flexDirection: 'column', maxHeight: '400px' }}>
+            <div style={{ padding: '1rem', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: 'var(--bg-tertiary)' }}>
+              <h4 style={{ margin: 0 }}>Notifications</h4>
+              {unreadCount > 0 && (
+                <button onClick={markAllAsRead} style={{ background: 'none', border: 'none', color: 'var(--accent-primary)', fontSize: '0.8rem', cursor: 'pointer' }}>Mark all as read</button>
+              )}
             </div>
-            <div style={{ overflow: 'hidden' }}>
-              <div style={{ fontWeight: '600', fontSize: '0.9rem', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>{currentUser.name || 'User'}</div>
+            <div style={{ overflowY: 'auto', flex: 1 }}>
+              {notifications.length === 0 ? (
+                <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.9rem' }}>No notifications</div>
+              ) : (
+                notifications.map(n => (
+                  <div key={n.id} onClick={() => { markAsRead(n.id); if(n.link_url) window.location.href = n.link_url; }} style={{ padding: '1rem', borderBottom: '1px solid var(--border-color)', cursor: 'pointer', backgroundColor: n.is_read ? 'transparent' : 'rgba(59, 130, 246, 0.05)', transition: 'background 0.2s' }}>
+                    <div style={{ fontWeight: '600', fontSize: '0.9rem', color: 'var(--text-primary)', marginBottom: '0.2rem' }}>{n.title}</div>
+                    <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{n.message}</div>
+                  </div>
+                ))
+              )}
             </div>
-          </NavLink>
+          </div>
         )}
         
         <button onClick={logout} className="nav-item text-danger" style={{ width: '100%', background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left', padding: '1rem' }}>

@@ -17,6 +17,7 @@ import { TaskProvider } from './context/TaskContext';
 import { MilestoneProvider } from './context/MilestoneContext';
 import { BgLcProvider } from './context/BgLcContext';
 import { CustomDutyProvider } from './context/CustomDutyContext';
+import { NotificationProvider } from './context/NotificationContext';
 
 // Lazy loaded page components for Code Splitting
 const Dashboard = React.lazy(() => import('./pages/Dashboard'));
@@ -54,7 +55,8 @@ function App() {
   return (
     <UserProvider>
       <AuthProvider>
-        <LogProvider>
+        <NotificationProvider>
+          <LogProvider>
           <POProvider>
             <PVProvider>
               <WarrantyProvider>
@@ -110,6 +112,7 @@ function App() {
             </PVProvider>
           </POProvider>
         </LogProvider>
+        </NotificationProvider>
       </AuthProvider>
     </UserProvider>
   );

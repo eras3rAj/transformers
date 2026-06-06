@@ -1,6 +1,8 @@
-import { createContext, useContext, useState, useEffect } from 'react';
-import { supabase } from '../lib/supabase';
+import { createContext, useContext, useEffect } from 'react';
+import { useSupabaseCrud } from '../hooks/useSupabaseCrud';
 import { useAuth } from './AuthContext';
+import { useUsers } from './UserContext';
+import { useNotifications } from './NotificationContext';
 
 const TaskContext = createContext();
 
@@ -8,90 +10,70 @@ export const useTasks = () => useContext(TaskContext);
 
 export const TaskProvider = ({ children }) => {
   const { currentUser } = useAuth();
-  const [tasks, setTasks] = useState([]);
-  const [loading, setLoading] = useState(true);
-
-  const fetchTasks = async () => {
-    setLoading(true);
-    const { data, error } = await supabase
-      .from('pending_tasks')
-      .select('*')
-      .order('created_at', { ascending: false });
-      
-    if (!error && data) setTasks(data);
-    setLoading(false);
-  };
+  const { users } = useUsers();
+  const { createNotification } = useNotifications();
+  const { data: tasks, loading, fetchAll, insert, update, remove } = useSupabaseCrud('pending_tasks');
 
   useEffect(() => {
-    fetchTasks();
-  }, []);
+    fetchAll('created_at', false);
+  }, [fetchAll]);
 
   const addTask = async (taskData) => {
-    const { data, error } = await supabase
-      .from('pending_tasks')
-      .insert([{
-        ...taskData,
-        raised_by: currentUser?.name || 'Unknown User'
-      }])
-      .select();
-      
-    if (!error && data) {
-      setTasks(prev => [data[0], ...prev]);
-      return { success: true, data: data[0] };
+    const res = await insert({
+      ...taskData,
+      raised_by: currentUser?.name || 'Unknown User'
+    });
+    
+    if (res.success && res.data) {
+      const assignedUser = users.find(u => u.name === taskData.assigned_to);
+      if (assignedUser) {
+        await createNotification({
+          userId: assignedUser.id,
+          title: 'New Task Assigned',
+          message: `You have been assigned a new task: "${taskData.task_title}" by ${currentUser?.name || 'Admin'}`,
+          linkUrl: '/pending-tasks'
+        });
+      }
     }
-    return { success: false, error };
+    return res;
   };
 
   const updateTaskStatus = async (id, newStatus, latestUpdate) => {
-    const updates = { status: newStatus };
+    const updates = { 
+      status: newStatus,
+      updated_at: new Date().toISOString()
+    };
     if (latestUpdate !== undefined) {
       updates.latest_update = latestUpdate;
     }
-    
-    // Automatically set updated_at
-    updates.updated_at = new Date().toISOString();
-
-    const { data, error } = await supabase
-      .from('pending_tasks')
-      .update(updates)
-      .eq('id', id)
-      .select();
-      
-    if (!error && data) {
-      setTasks(prev => prev.map(t => t.id === id ? data[0] : t));
-      return { success: true, data: data[0] };
+    const res = await update(id, updates);
+    if (res.success) {
+      const task = tasks.find(t => t.id === id);
+      if (task) {
+        // notify the person who raised it (if possible, but we don't store raised_by_id, only string name)
+        const raiser = users.find(u => u.name === task.raised_by);
+        if (raiser && raiser.id !== currentUser?.id) {
+          await createNotification({
+            userId: raiser.id,
+            title: 'Task Status Updated',
+            message: `Task "${task.task_title}" status was changed to ${newStatus}.`,
+            linkUrl: '/pending-tasks'
+          });
+        }
+      }
     }
-    return { success: false, error };
+    return res;
   };
 
   const addLatestUpdate = async (id, latestUpdate) => {
-    const { data, error } = await supabase
-      .from('pending_tasks')
-      .update({ 
-        latest_update: latestUpdate,
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', id)
-      .select();
-      
-    if (!error && data) {
-      setTasks(prev => prev.map(t => t.id === id ? data[0] : t));
-      return { success: true, data: data[0] };
-    }
-    return { success: false, error };
+    return await update(id, {
+      latest_update: latestUpdate,
+      updated_at: new Date().toISOString()
+    });
   };
 
   const deleteTask = async (id) => {
-    const { error } = await supabase
-      .from('pending_tasks')
-      .delete()
-      .eq('id', id);
-      
-    if (!error) {
-      setTasks(prev => prev.filter(t => t.id !== id));
-      return { success: true };
-    }
-    return { success: false, error };
+    return await remove(id);
   };
 
   return (
@@ -102,9 +84,10 @@ export const TaskProvider = ({ children }) => {
       updateTaskStatus,
       addLatestUpdate,
       deleteTask,
-      refreshTasks: fetchTasks
+      refreshTasks: () => fetchAll('created_at', false)
     }}>
       {children}
     </TaskContext.Provider>
   );
 };
+

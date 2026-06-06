@@ -3,6 +3,8 @@ import { PackageSearch, Search, Plus, MapPin, Database, Archive, Settings, FileP
 import { useInventory } from '../context/InventoryContext';
 import { useAuth } from '../context/AuthContext';
 import ConfirmModal from '../components/common/ConfirmModal';
+import { calculateInventoryInsights } from '../utils/predictiveAnalytics';
+import { LineChart, AlertCircle } from 'lucide-react';
 import '../components/layout/Layout.css';
 
 const InventoryManagement = () => {
@@ -1046,6 +1048,57 @@ const InventoryManagement = () => {
   );
 };
 
+  const renderAIInsights = () => {
+    const insights = calculateInventoryInsights(transactions, items, getGlobalStock);
+    
+    return (
+      <div className="animate-fade-in">
+        <h3 style={{ margin: '0 0 1.5rem 0', display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-primary)' }}>
+          <LineChart size={24} color="var(--accent-primary)" />
+          Predictive Inventory Forecasting
+        </h3>
+        <p style={{ color: 'var(--text-muted)', marginBottom: '2rem' }}>Calculated using the last 30 days of consumption (Burn Rate) and current Global Stock.</p>
+        
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.5rem' }}>
+          {insights.length === 0 ? (
+            <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)', gridColumn: '1 / -1', border: '1px dashed var(--border-color)', borderRadius: '8px' }}>
+              Not enough data. Perform some inventory outgoing transactions to see AI forecasts.
+            </div>
+          ) : (
+            insights.map((insight, idx) => (
+              <div key={idx} className="card" style={{ borderLeft: `4px solid ${insight.urgency === 'high' ? 'var(--danger)' : insight.urgency === 'medium' ? 'var(--warning)' : 'var(--success)'}` }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
+                  <h4 style={{ margin: 0, fontSize: '1.1rem', color: 'var(--text-primary)' }}>{insight.itemName}</h4>
+                  <span style={{ fontSize: '0.75rem', fontWeight: '600', padding: '0.2rem 0.6rem', borderRadius: '4px', backgroundColor: insight.urgency === 'high' ? 'rgba(239,68,68,0.1)' : insight.urgency === 'medium' ? 'rgba(234,179,8,0.1)' : 'rgba(16,185,129,0.1)', color: insight.urgency === 'high' ? 'var(--danger)' : insight.urgency === 'medium' ? 'var(--warning)' : 'var(--success)' }}>
+                    {insight.status}
+                  </span>
+                </div>
+                
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span style={{ color: 'var(--text-muted)' }}>Current Global Stock:</span>
+                    <span style={{ fontWeight: '600', color: 'var(--text-primary)' }}>{insight.currentStock} {insight.unit}</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span style={{ color: 'var(--text-muted)' }}>30-Day Burn Rate:</span>
+                    <span style={{ fontWeight: '600', color: 'var(--text-primary)' }}>{insight.dailyBurnRate} {insight.unit}/day</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.5rem', backgroundColor: 'var(--bg-tertiary)', borderRadius: '4px', marginTop: '0.5rem' }}>
+                    <span style={{ color: 'var(--text-secondary)', fontWeight: '500' }}>Estimated Runway:</span>
+                    <span style={{ fontWeight: '700', color: insight.urgency === 'high' ? 'var(--danger)' : 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                      {insight.urgency === 'high' && <AlertCircle size={14} />}
+                      {insight.runwayDays} {insight.runwayDays === 'Infinite' ? '' : 'Days'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="animate-fade-in" style={{ paddingBottom: '3rem' }}>
       <div className="page-header">
@@ -1070,11 +1123,15 @@ const InventoryManagement = () => {
         <button className={`tab ${activeTab === 'Settings' ? 'active' : ''}`} onClick={() => { setActiveTab('Settings'); setSearchQuery(''); }}>
           <Settings size={14} style={{ marginRight: '0.4rem', marginBottom: '-2px' }} /> Settings
         </button>
+        <button className={`tab ${activeTab === 'AI Insights' ? 'active' : ''}`} onClick={() => { setActiveTab('AI Insights'); setSearchQuery(''); }} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+          <LineChart size={14} /> AI Insights
+        </button>
       </div>
 
       {activeTab === 'Overview' && renderGlobalOverview()}
       {activeTab === 'Settings' && renderSettings()}
-      {activeTab !== 'Overview' && activeTab !== 'Settings' && renderLocationView(activeTab)}
+      {activeTab === 'AI Insights' && renderAIInsights()}
+      {activeTab !== 'Overview' && activeTab !== 'Settings' && activeTab !== 'AI Insights' && renderLocationView(activeTab)}
 
       {/* Modals */}
       {showLocationModal && (
