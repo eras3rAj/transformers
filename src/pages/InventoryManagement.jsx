@@ -1332,7 +1332,7 @@ const InventoryManagement = () => {
                 <input type="text" className="input-field" value={companyData.gst} onChange={e => setCompanyData({ ...companyData, gst: e.target.value })} placeholder="e.g. 22AAAAA0000A1Z5" style={{ textTransform: 'uppercase' }} />
               </div>
               <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end' }}>
-                <button type="button" className="btn btn-secondary" onClick={() => setShowCompanyModal(false)}>Cancel</button>
+                <button type="button" className="btn btn-secondary" onClick={() => { setShowCompanyModal(false); setEditingMaster(null); setCompanyData({ name: '', address: '', mobile: '', poc: '', gst: '' }); }}>Cancel</button>
                 <button type="submit" className="btn btn-primary">Save Company</button>
               </div>
             </form>
@@ -1591,7 +1591,7 @@ const InventoryManagement = () => {
                     className="icon-btn" 
                     title="Add New Company"
                     style={{ border: '1px solid var(--border-color)', borderRadius: '8px', width: '42px', height: '42px', flexShrink: 0 }}
-                    onClick={() => { setCompanyDropdownOpen(false); setShowCompanyModal(true); }}
+                    onClick={() => { setCompanyDropdownOpen(false); setEditingMaster(null); setCompanyData({ name: '', address: '', mobile: '', poc: '', gst: '' }); setShowCompanyModal(true); }}
                   >
                     <Plus size={18} />
                   </button>

@@ -5,8 +5,8 @@ import { useLogs } from '../context/LogContext';
 import { useUsers } from '../context/UserContext';
 import { FileText, Plus, CheckCircle, XCircle, Clock } from 'lucide-react';
 import ConfirmModal from '../components/common/ConfirmModal';
-
 import { exportToPDF, exportToExcel } from '../utils/exportUtils';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 
 const DailyExpenses = () => {
   const { expenses, addExpense, updateExpenseStatus, loading } = useExpenses();
@@ -109,6 +109,17 @@ const DailyExpenses = () => {
 
 
 
+  // Compute Chart Data (Last 7 Days)
+  const chartData = [...Array(7)].map((_, i) => {
+    const d = new Date();
+    d.setDate(d.getDate() - (6 - i));
+    const dateStr = d.toISOString().split('T')[0];
+    const dayTotal = visibleExpenses
+      .filter(exp => exp.date === dateStr && exp.status !== 'Rejected')
+      .reduce((sum, exp) => sum + Number(exp.amount), 0);
+    return { name: d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }), total: dayTotal };
+  });
+
   const handleExportPDF = () => {
     const headers = ['Date', 'Amount (INR)', 'Reason', 'Payable To', 'Submitted By', 'Status'];
     const rows = visibleExpenses.map(exp => [
@@ -156,6 +167,24 @@ const DailyExpenses = () => {
           </button>
         </div>
       </div>
+
+      {visibleExpenses.length > 0 && (
+        <div className="card animate-fade-in" style={{ marginBottom: '2rem', padding: '1.5rem', height: '220px' }}>
+          <h3 style={{ margin: '0 0 1rem 0', color: 'var(--text-secondary)', fontSize: '0.9rem' }}>LAST 7 DAYS TREND (APPROVED & PENDING)</h3>
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={chartData} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
+              <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: 'var(--text-muted)' }} />
+              <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: 'var(--text-muted)' }} tickFormatter={val => '₹' + val} />
+              <Tooltip 
+                cursor={{ fill: 'var(--bg-tertiary)' }}
+                contentStyle={{ borderRadius: '8px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-primary)' }}
+                formatter={(value) => [`₹${value}`, 'Total']}
+              />
+              <Bar dataKey="total" fill="var(--accent-primary)" radius={[4, 4, 0, 0]} barSize={40} />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      )}
 
       <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
         <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>

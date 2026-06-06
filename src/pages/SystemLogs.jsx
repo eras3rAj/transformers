@@ -108,7 +108,23 @@ const SystemLogs = () => {
                   </span>
                 </td>
                 <td style={{ padding: '1rem', fontWeight: '500' }}>
-                  {log.action}
+                  <span style={{ 
+                    padding: '0.3rem 0.6rem', 
+                    borderRadius: '20px', 
+                    fontSize: '0.75rem', 
+                    fontWeight: '700',
+                    textTransform: 'uppercase',
+                    backgroundColor: log.action.toLowerCase().includes('delete') || log.action.toLowerCase().includes('remove') ? 'rgba(239, 68, 68, 0.15)' : 
+                                     log.action.toLowerCase().includes('add') || log.action.toLowerCase().includes('create') ? 'rgba(34, 197, 94, 0.15)' : 
+                                     log.action.toLowerCase().includes('edit') || log.action.toLowerCase().includes('update') ? 'rgba(59, 130, 246, 0.15)' : 
+                                     'rgba(107, 114, 128, 0.15)',
+                    color: log.action.toLowerCase().includes('delete') || log.action.toLowerCase().includes('remove') ? 'var(--danger)' : 
+                           log.action.toLowerCase().includes('add') || log.action.toLowerCase().includes('create') ? 'var(--success)' : 
+                           log.action.toLowerCase().includes('edit') || log.action.toLowerCase().includes('update') ? 'var(--accent-primary)' : 
+                           'var(--text-muted)'
+                  }}>
+                    {log.action}
+                  </span>
                 </td>
                 <td style={{ padding: '1rem', fontFamily: 'monospace', color: 'var(--accent-primary)' }}>
                   {log.claimId || 'System'}

@@ -204,23 +204,57 @@ const Dashboard = () => {
     ].filter(d => d.value > 0);
   }, [warrantyClaims, companyFilter, pos]);
 
-  // 6. Inventory Health (Global Stock)
+  // 6. Critical Inventory Burn (Top 5 Shortages)
+  const { items: invItems = [] } = useInventory();
+  
   const inventoryChartData = useMemo(() => {
-    // Group by item name
     const stockMap = {};
     invTxns.forEach(t => {
       if (!stockMap[t.item]) stockMap[t.item] = 0;
       if (t.type === 'IN') stockMap[t.item] += t.qty;
       else stockMap[t.item] -= t.qty;
     });
-    // Convert to array and sort by stock descending (take top 5)
-    return Object.entries(stockMap)
-      .map(([name, stock]) => ({ name, Stock: stock }))
-      .sort((a, b) => b.Stock - a.Stock)
-      .slice(0, 5);
-  }, [invTxns]);
+    
+    // Calculate shortage against minStockLevels (assuming category 'Raw Material' as default or taking max minStock)
+    const shortageData = invItems.map(item => {
+      const currentStock = stockMap[item.name] || 0;
+      let minStock = 0;
+      if (item.minStockLevels) {
+        minStock = Math.max(...Object.values(item.minStockLevels).map(Number));
+      }
+      return {
+        name: item.name,
+        Stock: currentStock,
+        Shortage: Math.max(0, minStock - currentStock)
+      };
+    });
+    
+    return shortageData
+      .filter(d => d.Shortage > 0 || d.Stock < 50) // Items with shortage or very low stock
+      .sort((a, b) => b.Shortage - a.Shortage || a.Stock - b.Stock) // Prioritize highest shortage
+      .slice(0, 5)
+      .map(d => ({ name: d.name, Stock: d.Stock })); // Return format expected by chart
+  }, [invTxns, invItems]);
 
-  // 7. Milestones
+  // 7. Production Yield (Pass vs Fail)
+  const productionYieldData = useMemo(() => {
+    let accepted = 0, rejectedOrPending = 0;
+    inspections.forEach(i => {
+      if (companyFilter !== 'All' && !validPONos.has(i.poNo)) return;
+      if (i.type === 'Final') {
+        const acc = Number(i.qtyAccepted) || 0;
+        const off = Number(i.qtyOffered) || 0;
+        accepted += acc;
+        if (off > acc) rejectedOrPending += (off - acc);
+      }
+    });
+    return [
+      { name: 'Accepted', value: accepted, color: 'var(--success)' },
+      { name: 'Rejected/Rework', value: rejectedOrPending, color: 'var(--danger)' }
+    ].filter(d => d.value > 0);
+  }, [inspections, companyFilter, validPONos]);
+
+  // 8. Milestones
   const upcomingMilestones = useMemo(() => {
     return milestones
       .filter(m => m.status === 'Pending')
@@ -228,7 +262,7 @@ const Dashboard = () => {
       .slice(0, 5); // Limit to top 5
   }, [milestones, companyFilter]);
 
-  // 8. Inspection Trends (Monthly)
+  // 9. Inspection Trends (Monthly)
   const availableYears = useMemo(() => {
     const years = new Set(inspections.map(i => i.startDate ? i.startDate.substring(0, 4) : '').filter(Boolean));
     const currentYear = new Date().getFullYear().toString();
@@ -550,23 +584,54 @@ const Dashboard = () => {
         </div>
         )}
 
+        {/* Production Yield Pie */}
+        {hasModule('inspections') && (
+        <div className="card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column' }}>
+          <h2 style={{ margin: '0 0 1.5rem 0', fontSize: '1.2rem', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <Target size={20} color="var(--accent-primary)" />
+            Production Yield (Final)
+          </h2>
+          <div style={{ flex: 1, minHeight: '250px', width: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+            {productionYieldData.length === 0 ? (
+              <div style={{ color: 'var(--text-muted)' }}>No inspection data found.</div>
+            ) : (
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie data={productionYieldData} cx="50%" cy="50%" innerRadius={60} outerRadius={80} paddingAngle={5} dataKey="value">
+                    {productionYieldData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <Tooltip contentStyle={{ backgroundColor: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', borderRadius: '8px' }} wrapperStyle={{ zIndex: 1000 }} />
+                  <Legend />
+                </PieChart>
+              </ResponsiveContainer>
+            )}
+          </div>
+        </div>
+        )}
+
         {/* Top Inventory */}
         {hasModule('inventory') && (
         <div className="card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column' }}>
           <h2 style={{ margin: '0 0 1.5rem 0', fontSize: '1.2rem', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <Package size={20} color="var(--success)" />
-            Top Inventory Stock
+            <Package size={20} color="var(--danger)" />
+            Critical Inventory Shortages
           </h2>
           <div style={{ flex: 1, minHeight: '250px', width: '100%' }}>
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={inventoryChartData} layout="vertical" margin={{ top: 5, right: 30, left: 40, bottom: 5 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="var(--border-color)" horizontal={false} />
-                <XAxis type="number" stroke="var(--text-muted)" fontSize={12} tickLine={false} axisLine={false} />
-                <YAxis dataKey="name" type="category" stroke="var(--text-muted)" fontSize={12} tickLine={false} axisLine={false} />
-                <Tooltip contentStyle={{ backgroundColor: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', borderRadius: '8px' }} wrapperStyle={{ zIndex: 1000 }} />
-                <Bar dataKey="Stock" fill="var(--success)" radius={[0, 4, 4, 0]} barSize={20} />
-              </BarChart>
-            </ResponsiveContainer>
+            {inventoryChartData.length === 0 ? (
+              <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%', color: 'var(--text-muted)' }}>No inventory shortages detected.</div>
+            ) : (
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={inventoryChartData} layout="vertical" margin={{ top: 5, right: 30, left: 40, bottom: 5 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border-color)" horizontal={false} />
+                  <XAxis type="number" stroke="var(--text-muted)" fontSize={12} tickLine={false} axisLine={false} />
+                  <YAxis dataKey="name" type="category" stroke="var(--text-muted)" fontSize={12} tickLine={false} axisLine={false} />
+                  <Tooltip contentStyle={{ backgroundColor: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', borderRadius: '8px' }} wrapperStyle={{ zIndex: 1000 }} />
+                  <Bar dataKey="Stock" fill="var(--warning)" radius={[0, 4, 4, 0]} barSize={20} />
+                </BarChart>
+              </ResponsiveContainer>
+            )}
           </div>
         </div>
         )}

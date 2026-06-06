@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, PackageSearch, Factory, Users, LogOut, Zap, Shield, ClipboardList, TrendingUp, UserCog, FileText, ClipboardCheck, ShoppingCart, ListTodo, Briefcase, Percent, Target, Bell } from 'lucide-react';
+import { LayoutDashboard, PackageSearch, Factory, Users, LogOut, Zap, Shield, ClipboardList, TrendingUp, UserCog, FileText, ClipboardCheck, ShoppingCart, ListTodo, Briefcase, Percent, Target, Bell, Moon, Sun } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useNotifications } from '../../context/NotificationContext';
 import './Layout.css';
@@ -9,6 +9,33 @@ const Sidebar = ({ isMobileMenuOpen, setIsMobileMenuOpen }) => {
   const { currentUser, logout } = useAuth();
   const { unreadCount, notifications, markAllAsRead, markAsRead } = useNotifications();
   const [showNotifPopup, setShowNotifPopup] = useState(false);
+  const [isDarkMode, setIsDarkMode] = useState(true);
+
+  useEffect(() => {
+    // Check local storage for theme preference
+    const savedTheme = localStorage.getItem('theme');
+    if (savedTheme === 'light') {
+      setIsDarkMode(false);
+      document.documentElement.setAttribute('data-theme', 'light');
+    } else {
+      setIsDarkMode(true);
+      document.documentElement.removeAttribute('data-theme');
+    }
+  }, []);
+
+  const toggleTheme = () => {
+    setIsDarkMode((prev) => {
+      const newMode = !prev;
+      if (newMode) {
+        document.documentElement.removeAttribute('data-theme');
+        localStorage.setItem('theme', 'dark');
+      } else {
+        document.documentElement.setAttribute('data-theme', 'light');
+        localStorage.setItem('theme', 'light');
+      }
+      return newMode;
+    });
+  };
 
   const navItems = [
     { name: 'Dashboard', icon: <LayoutDashboard size={20} />, path: '/', adminOk: true, normalOk: true, section: 'Overview' },
@@ -144,6 +171,13 @@ const Sidebar = ({ isMobileMenuOpen, setIsMobileMenuOpen }) => {
                 {unreadCount}
               </span>
             )}
+          </button>
+        </div>
+
+        <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem', padding: '0 1rem' }}>
+          <button onClick={toggleTheme} className="nav-item" style={{ flex: 1, background: 'none', border: '1px solid var(--border-color)', cursor: 'pointer', textAlign: 'center', padding: '0.6rem', display: 'flex', justifyContent: 'center', gap: '0.5rem' }}>
+            {isDarkMode ? <Sun size={18} /> : <Moon size={18} />}
+            <span style={{ fontSize: '0.85rem' }}>{isDarkMode ? 'Light Mode' : 'Dark Mode'}</span>
           </button>
         </div>
 

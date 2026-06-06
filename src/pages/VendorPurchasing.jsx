@@ -18,11 +18,26 @@ const VendorPurchasing = () => {
     po_number: '', vendor_id: '', item: '', quantity: '', unit: 'kg', unit_price: '', expected_delivery: ''
   });
 
+  const [editingVendor, setEditingVendor] = useState(null);
+  const [alertMsg, setAlertMsg] = useState('');
+
   const handleVendorSubmit = async (e) => {
     e.preventDefault();
-    await addVendor(vendorData);
-    setVendorData({ name: '', contact_person: '', phone: '', email: '', gst_number: '', address: '' });
-    setShowVendorForm(false);
+    setAlertMsg('');
+    let res;
+    if (editingVendor) {
+      res = await updateVendor(editingVendor.id, vendorData);
+    } else {
+      res = await addVendor(vendorData);
+    }
+    
+    if (res && res.success) {
+      setVendorData({ name: '', contact_person: '', phone: '', email: '', gst_number: '', address: '' });
+      setShowVendorForm(false);
+      setEditingVendor(null);
+    } else {
+      setAlertMsg(res?.error?.message || 'Failed to save vendor. Please try again.');
+    }
   };
 
   const handlePOSubmit = async (e) => {
@@ -139,11 +154,12 @@ const VendorPurchasing = () => {
                     <th style={{ padding: '1rem', fontSize: '0.85rem', color: 'var(--text-muted)' }}>CONTACT PERSON</th>
                     <th style={{ padding: '1rem', fontSize: '0.85rem', color: 'var(--text-muted)' }}>CONTACT DETAILS</th>
                     <th style={{ padding: '1rem', fontSize: '0.85rem', color: 'var(--text-muted)' }}>GST NUMBER</th>
+                    <th style={{ padding: '1rem', fontSize: '0.85rem', color: 'var(--text-muted)' }}>ACTIONS</th>
                   </tr>
                 </thead>
                 <tbody>
                   {vendors.length === 0 ? (
-                    <tr><td colSpan="4" style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-muted)' }}>No vendors added yet.</td></tr>
+                    <tr><td colSpan="5" style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-muted)' }}>No vendors added yet.</td></tr>
                   ) : (
                     vendors.map(v => (
                       <tr key={v.id} style={{ borderBottom: '1px solid var(--border-color)' }} className="table-row">
@@ -158,6 +174,13 @@ const VendorPurchasing = () => {
                           <div style={{ color: 'var(--text-muted)' }}>{v.email || ''}</div>
                         </td>
                         <td style={{ padding: '1rem', fontFamily: 'monospace' }}>{v.gst_number || '-'}</td>
+                        <td style={{ padding: '1rem' }}>
+                          <button className="icon-btn-small" onClick={() => {
+                            setEditingVendor(v);
+                            setVendorData({ name: v.name, contact_person: v.contact_person || '', phone: v.phone || '', email: v.email || '', gst_number: v.gst_number || '', address: v.address || '' });
+                            setShowVendorForm(true);
+                          }} style={{ color: 'var(--accent-primary)', background: 'none', border: 'none', cursor: 'pointer' }}>Edit</button>
+                        </td>
                       </tr>
                     ))
                   )}
@@ -172,7 +195,8 @@ const VendorPurchasing = () => {
       {showVendorForm && (
         <div className="modal-backdrop">
           <div className="card animate-fade-in" style={{ width: '100%', maxWidth: '500px' }}>
-            <h3>Add Vendor</h3>
+            <h3>{editingVendor ? 'Edit' : 'Add'} Vendor</h3>
+            {alertMsg && <div style={{ padding: '0.8rem', backgroundColor: 'rgba(239, 68, 68, 0.1)', color: 'var(--danger)', borderRadius: '4px', marginBottom: '1rem', fontSize: '0.9rem' }}>{alertMsg}</div>}
             <form onSubmit={handleVendorSubmit}>
               <label className="input-label">Company Name *</label>
               <input type="text" className="input-field" required value={vendorData.name} onChange={e => setVendorData({...vendorData, name: e.target.value})} />
