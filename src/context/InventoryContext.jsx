@@ -45,7 +45,8 @@ export const InventoryProvider = ({ children }) => {
             name: payload.name, 
             unit: payload.unit,
             category: payload.category || 'Uncategorized',
-            suppliers: payload.suppliers || []
+            suppliers: payload.suppliers || [],
+            minStockLevels: payload.minStockLevels || {}
           });
         }
         else if (log.action === 'inv_company') compsMap.set(payload.name, { id: log.id, name: payload.name, address: payload.address || '', mobile: payload.mobile || '', poc: payload.poc || '', gst: payload.gst || '' });
@@ -63,6 +64,8 @@ export const InventoryProvider = ({ children }) => {
             receivingDate: payload.receivingDate || '',
             billDate: payload.billDate || '',
             unitPrice: payload.unitPrice || '',
+            usageType: payload.usageType || '',
+            department: payload.department || '',
             user: log.user_name,
             timestamp: log.timestamp
           });
@@ -141,18 +144,18 @@ export const InventoryProvider = ({ children }) => {
     return false;
   };
 
-  const addItem = async (name, unit, category = 'Uncategorized', suppliers = []) => {
+  const addItem = async (name, unit, category = 'Uncategorized', suppliers = [], minStockLevels = {}) => {
     if (items.find(i => i.name.toLowerCase() === name.toLowerCase() && (i.category || 'Uncategorized').toLowerCase() === category.toLowerCase())) return false; // duplicate
 
     const dbRecord = {
       action: 'inv_item',
       user_name: currentUser?.name || 'System',
       claim_id: 'SYSTEM',
-      changes: { name, unit, category, suppliers }
+      changes: { name, unit, category, suppliers, minStockLevels }
     };
     const { data, error } = await supabase.from('system_logs').insert([dbRecord]).select();
     if (!error && data) {
-      setItems(prev => [...prev, { id: data[0].id, name, unit, category, suppliers }]);
+      setItems(prev => [...prev, { id: data[0].id, name, unit, category, suppliers, minStockLevels }]);
       addLog({
         id: Date.now().toString(),
         timestamp: new Date().toISOString(),
@@ -202,7 +205,9 @@ export const InventoryProvider = ({ children }) => {
         billNo: txnData.billNo,
         receivingDate: txnData.receivingDate,
         billDate: txnData.billDate,
-        unitPrice: txnData.unitPrice
+        unitPrice: txnData.unitPrice,
+        usageType: txnData.usageType,
+        department: txnData.department
       }
     };
     const { data, error } = await supabase.from('system_logs').insert([dbRecord]).select();
@@ -247,7 +252,9 @@ export const InventoryProvider = ({ children }) => {
         billNo: txnData.billNo || '',
         receivingDate: txnData.receivingDate || '',
         billDate: txnData.billDate || '',
-        unitPrice: txnData.unitPrice || ''
+        unitPrice: txnData.unitPrice || '',
+        usageType: txnData.usageType || '',
+        department: txnData.department || ''
       }
     }));
 
@@ -341,7 +348,7 @@ export const InventoryProvider = ({ children }) => {
 
     let changes = { name: newName };
     if (type === 'inv_company') changes = { name: newName, address: extraData.address, mobile: extraData.mobile, poc: extraData.poc, gst: extraData.gst };
-    if (type === 'inv_item') changes = { name: newName, unit: extraData.unit, category: extraData.category, suppliers: extraData.suppliers };
+    if (type === 'inv_item') changes = { name: newName, unit: extraData.unit, category: extraData.category, suppliers: extraData.suppliers, minStockLevels: extraData.minStockLevels };
     if (type === 'inv_category') changes = { name: newName, suppliers: extraData.suppliers };
 
     const { error } = await supabase.from('system_logs').update({ changes }).eq('id', id);
@@ -351,7 +358,7 @@ export const InventoryProvider = ({ children }) => {
     if (type === 'inv_unit') setUnits(prev => prev.map(u => u.id === id ? { ...u, name: newName } : u));
     if (type === 'inv_company') setCompanies(prev => prev.map(c => c.id === id ? { ...c, name: newName, address: extraData.address, mobile: extraData.mobile, poc: extraData.poc, gst: extraData.gst } : c));
     if (type === 'inv_category') setCategories(prev => prev.map(c => c.id === id ? { ...c, name: newName, suppliers: extraData.suppliers } : c));
-    if (type === 'inv_item') setItems(prev => prev.map(i => i.id === id ? { ...i, name: newName, unit: extraData.unit, category: extraData.category, suppliers: extraData.suppliers } : i));
+    if (type === 'inv_item') setItems(prev => prev.map(i => i.id === id ? { ...i, name: newName, unit: extraData.unit, category: extraData.category, suppliers: extraData.suppliers, minStockLevels: extraData.minStockLevels } : i));
 
     // Cascading updates for name changes
     if (oldName !== newName) {
@@ -381,14 +388,14 @@ export const InventoryProvider = ({ children }) => {
         const affectedItems = items.filter(i => i.suppliers.includes(oldName));
         for (const i of affectedItems) {
           const newSuppliers = i.suppliers.map(s => s === oldName ? newName : s);
-          await supabase.from('system_logs').update({ changes: { name: i.name, unit: i.unit, category: i.category, suppliers: newSuppliers } }).eq('id', i.id);
+          await supabase.from('system_logs').update({ changes: { name: i.name, unit: i.unit, category: i.category, suppliers: newSuppliers, minStockLevels: i.minStockLevels } }).eq('id', i.id);
         }
         setItems(prev => prev.map(i => i.suppliers.includes(oldName) ? { ...i, suppliers: i.suppliers.map(s => s === oldName ? newName : s) } : i));
       }
       if (type === 'inv_category') {
         const affected = items.filter(i => i.category === oldName);
         for (const i of affected) {
-          await supabase.from('system_logs').update({ changes: { name: i.name, unit: i.unit, category: newName, suppliers: i.suppliers } }).eq('id', i.id);
+          await supabase.from('system_logs').update({ changes: { name: i.name, unit: i.unit, category: newName, suppliers: i.suppliers, minStockLevels: i.minStockLevels } }).eq('id', i.id);
         }
         setItems(prev => prev.map(i => i.category === oldName ? { ...i, category: newName } : i));
       }
