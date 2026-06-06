@@ -15,6 +15,7 @@ export const InventoryProvider = ({ children }) => {
   const [units, setUnits] = useState([]);
   const [items, setItems] = useState([]);
   const [companies, setCompanies] = useState([]);
+  const [departments, setDepartments] = useState([]);
   const [transactions, setTransactions] = useState([]);
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -23,7 +24,7 @@ export const InventoryProvider = ({ children }) => {
     const { data, error } = await supabase
       .from('system_logs')
       .select('*')
-      .in('action', ['inv_loc', 'inv_unit', 'inv_item', 'inv_txn', 'inv_company', 'inv_category'])
+      .in('action', ['inv_loc', 'inv_unit', 'inv_item', 'inv_txn', 'inv_company', 'inv_category', 'inv_department'])
       .order('timestamp', { ascending: true });
 
     if (!error && data) {
@@ -31,6 +32,7 @@ export const InventoryProvider = ({ children }) => {
       const unsMap = new Map();
       const itmsMap = new Map();
       const compsMap = new Map();
+      const deptsMap = new Map();
       const txns = [];
       const catsMap = new Map();
 
@@ -39,6 +41,7 @@ export const InventoryProvider = ({ children }) => {
         if (log.action === 'inv_category') catsMap.set(payload.name, { id: log.id, name: payload.name, suppliers: payload.suppliers || [] });
         else if (log.action === 'inv_loc') locsMap.set(payload.name, { id: log.id, name: payload.name });
         else if (log.action === 'inv_unit') unsMap.set(payload.name, { id: log.id, name: payload.name });
+        else if (log.action === 'inv_department') deptsMap.set(payload.name, { id: log.id, name: payload.name });
         else if (log.action === 'inv_item') {
           itmsMap.set(log.id, { 
             id: log.id, 
@@ -76,6 +79,7 @@ export const InventoryProvider = ({ children }) => {
       setUnits(Array.from(unsMap.values()));
       setItems(Array.from(itmsMap.values()));
       setCompanies(Array.from(compsMap.values()));
+      setDepartments(Array.from(deptsMap.values()));
       setTransactions(txns);
       setCategories(Array.from(catsMap.values()));
     }
@@ -122,6 +126,23 @@ export const InventoryProvider = ({ children }) => {
     const { data, error } = await supabase.from('system_logs').insert([dbRecord]).select();
     if (!error && data) {
       setCompanies(prev => [...prev, { id: data[0].id, name, address, mobile, poc, gst }].sort((a, b) => a.name.localeCompare(b.name)));
+      return true;
+    }
+    return false;
+  };
+
+  const addDepartment = async (name) => {
+    if (departments.find(d => d.name.toLowerCase() === name.toLowerCase())) return false;
+
+    const dbRecord = {
+      action: 'inv_department',
+      user_name: currentUser?.name || 'System',
+      claim_id: 'SYSTEM',
+      changes: { name }
+    };
+    const { data, error } = await supabase.from('system_logs').insert([dbRecord]).select();
+    if (!error && data) {
+      setDepartments(prev => [...prev, { id: data[0].id, name }]);
       return true;
     }
     return false;
@@ -323,6 +344,7 @@ export const InventoryProvider = ({ children }) => {
       if (type === 'inv_company') setCompanies(prev => prev.filter(c => c.id !== id));
       if (type === 'inv_category') setCategories(prev => prev.filter(c => c.id !== id));
       if (type === 'inv_item') setItems(prev => prev.filter(i => i.id !== id));
+      if (type === 'inv_department') setDepartments(prev => prev.filter(d => d.id !== id));
       
       addLog({
         id: Date.now().toString(),
@@ -344,6 +366,7 @@ export const InventoryProvider = ({ children }) => {
       if (type === 'inv_company' && companies.some(c => c.name.toLowerCase() === newName.toLowerCase() && c.id !== id)) return { success: false, message: 'Name already exists.' };
       if (type === 'inv_category' && categories.some(c => c.name.toLowerCase() === newName.toLowerCase() && c.id !== id)) return { success: false, message: 'Name already exists.' };
       if (type === 'inv_item' && items.some(i => i.name.toLowerCase() === newName.toLowerCase() && (i.category || 'Uncategorized').toLowerCase() === (extraData.category || 'Uncategorized').toLowerCase() && i.id !== id)) return { success: false, message: 'Item already exists in this category.' };
+      if (type === 'inv_department' && departments.some(d => d.name.toLowerCase() === newName.toLowerCase() && d.id !== id)) return { success: false, message: 'Name already exists.' };
     }
 
     let changes = { name: newName };
@@ -359,13 +382,14 @@ export const InventoryProvider = ({ children }) => {
     if (type === 'inv_company') setCompanies(prev => prev.map(c => c.id === id ? { ...c, name: newName, address: extraData.address, mobile: extraData.mobile, poc: extraData.poc, gst: extraData.gst } : c));
     if (type === 'inv_category') setCategories(prev => prev.map(c => c.id === id ? { ...c, name: newName, suppliers: extraData.suppliers } : c));
     if (type === 'inv_item') setItems(prev => prev.map(i => i.id === id ? { ...i, name: newName, unit: extraData.unit, category: extraData.category, suppliers: extraData.suppliers, minStockLevels: extraData.minStockLevels } : i));
+    if (type === 'inv_department') setDepartments(prev => prev.map(d => d.id === id ? { ...d, name: newName } : d));
 
     // Cascading updates for name changes
     if (oldName !== newName) {
       if (type === 'inv_loc') {
         const affected = transactions.filter(t => t.location === oldName);
         for (const t of affected) {
-          const newTxnChanges = { location: newName, item: t.item, type: t.type, qty: t.qty, date: t.date, remarks: t.remarks, companyName: t.companyName, billNo: t.billNo, receivingDate: t.receivingDate, billDate: t.billDate, unitPrice: t.unitPrice };
+          const newTxnChanges = { location: newName, item: t.item, type: t.type, qty: t.qty, date: t.date, remarks: t.remarks, companyName: t.companyName, billNo: t.billNo, receivingDate: t.receivingDate, billDate: t.billDate, unitPrice: t.unitPrice, department: t.department, usageType: t.usageType };
           await supabase.from('system_logs').update({ changes: newTxnChanges, claim_id: newName }).eq('id', t.id);
         }
         setTransactions(prev => prev.map(t => t.location === oldName ? { ...t, location: newName } : t));
@@ -373,7 +397,7 @@ export const InventoryProvider = ({ children }) => {
       if (type === 'inv_company') {
         const affected = transactions.filter(t => t.companyName === oldName);
         for (const t of affected) {
-          const newTxnChanges = { location: t.location, item: t.item, type: t.type, qty: t.qty, date: t.date, remarks: t.remarks, companyName: newName, billNo: t.billNo, receivingDate: t.receivingDate, billDate: t.billDate, unitPrice: t.unitPrice };
+          const newTxnChanges = { location: t.location, item: t.item, type: t.type, qty: t.qty, date: t.date, remarks: t.remarks, companyName: newName, billNo: t.billNo, receivingDate: t.receivingDate, billDate: t.billDate, unitPrice: t.unitPrice, department: t.department, usageType: t.usageType };
           await supabase.from('system_logs').update({ changes: newTxnChanges }).eq('id', t.id);
         }
         setTransactions(prev => prev.map(t => t.companyName === oldName ? { ...t, companyName: newName } : t));
@@ -402,10 +426,18 @@ export const InventoryProvider = ({ children }) => {
       if (type === 'inv_item') {
         const affected = transactions.filter(t => t.item === oldName);
         for (const t of affected) {
-          const newTxnChanges = { location: t.location, item: newName, type: t.type, qty: t.qty, date: t.date, remarks: t.remarks, companyName: t.companyName, billNo: t.billNo, receivingDate: t.receivingDate, billDate: t.billDate, unitPrice: t.unitPrice };
+          const newTxnChanges = { location: t.location, item: newName, type: t.type, qty: t.qty, date: t.date, remarks: t.remarks, companyName: t.companyName, billNo: t.billNo, receivingDate: t.receivingDate, billDate: t.billDate, unitPrice: t.unitPrice, department: t.department, usageType: t.usageType };
           await supabase.from('system_logs').update({ changes: newTxnChanges }).eq('id', t.id);
         }
         setTransactions(prev => prev.map(t => t.item === oldName ? { ...t, item: newName } : t));
+      }
+      if (type === 'inv_department') {
+        const affected = transactions.filter(t => t.department === oldName);
+        for (const t of affected) {
+          const newTxnChanges = { location: t.location, item: t.item, type: t.type, qty: t.qty, date: t.date, remarks: t.remarks, companyName: t.companyName, billNo: t.billNo, receivingDate: t.receivingDate, billDate: t.billDate, unitPrice: t.unitPrice, department: newName, usageType: t.usageType };
+          await supabase.from('system_logs').update({ changes: newTxnChanges }).eq('id', t.id);
+        }
+        setTransactions(prev => prev.map(t => t.department === oldName ? { ...t, department: newName } : t));
       }
     }
 
@@ -446,8 +478,8 @@ export const InventoryProvider = ({ children }) => {
 
   return (
     <InventoryContext.Provider value={{
-      locations, units, items, companies, transactions, categories, loading,
-      addLocation, addUnit, addItem, addCompany, logTransaction, logBatchTransactions, deleteTransaction,
+      locations, units, items, companies, departments, transactions, categories, loading,
+      addLocation, addUnit, addItem, addCompany, addDepartment, logTransaction, logBatchTransactions, deleteTransaction,
       getStockAtLocation, getGlobalStock, saveCategory, deleteEntity, editEntity
     }}>
       {children}
