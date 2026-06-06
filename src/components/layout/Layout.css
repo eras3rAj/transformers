@@ -333,6 +333,57 @@ input[type=number] {
   box-shadow: 0 4px 10px rgba(59, 130, 246, 0.3);
 }
 
+/* Header Dropdown */
+.header-dropdown {
+  position: absolute;
+  top: calc(100% + 0.5rem);
+  right: 0;
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  box-shadow: var(--shadow-lg);
+  width: 280px;
+  z-index: 100;
+  overflow: hidden;
+}
+
+.dropdown-header {
+  padding: 1rem;
+  border-bottom: 1px solid var(--border-color);
+  background-color: var(--bg-tertiary);
+}
+
+.dropdown-body {
+  display: flex;
+  flex-direction: column;
+}
+
+.dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  padding: 0.8rem 1rem;
+  background: transparent;
+  border: none;
+  width: 100%;
+  text-align: left;
+  color: var(--text-primary);
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.dropdown-item:hover {
+  background-color: var(--bg-tertiary);
+}
+
+.dropdown-footer {
+  padding: 0.8rem;
+  border-top: 1px solid var(--border-color);
+  background-color: var(--bg-tertiary);
+  text-align: center;
+}
+
 /* Mobile Responsiveness */
 .mobile-menu-btn {
   display: none;
