@@ -1,6 +1,5 @@
-import React, { useState } from 'react';
-import { formatDate } from '../utils/dateUtils';
-import { Shield, Clock, Search, Filter, AlertTriangle } from 'lucide-react';
+import { useState } from 'react';
+import { Shield, Search, Filter, AlertTriangle } from 'lucide-react';
 import { useLogs } from '../context/LogContext';
 import '../components/layout/Layout.css';
 

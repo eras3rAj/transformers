@@ -1,5 +1,5 @@
-import React, { useState, useMemo } from 'react';
-import { Shield, Plus, MoreVertical, FileText, Filter, Edit, Trash, Clock, CheckCircle, EyeOff } from 'lucide-react';
+import { useState, useMemo } from 'react';
+import { Shield, Plus, Filter, Edit, Trash, Clock, EyeOff } from 'lucide-react';
 import WarrantyForm from '../components/warranty/WarrantyForm';
 import AuditHistoryModal from '../components/warranty/AuditHistoryModal';
 import ConfirmModal from '../components/common/ConfirmModal';

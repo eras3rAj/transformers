@@ -1,60 +1,27 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import { supabase } from '../lib/supabase';
+import { createContext, useContext, useEffect } from 'react';
+import { useSupabaseCrud } from '../hooks/useSupabaseCrud';
 
 const ExpenseContext = createContext();
 
 export const useExpenses = () => useContext(ExpenseContext);
 
 export const ExpenseProvider = ({ children }) => {
-  const [expenses, setExpenses] = useState([]);
-  const [loading, setLoading] = useState(true);
-
-  const fetchExpenses = async () => {
-    setLoading(true);
-    const { data, error } = await supabase
-      .from('daily_expenses')
-      .select('*')
-      .order('created_at', { ascending: false });
-      
-    if (!error && data) {
-      setExpenses(data);
-    }
-    setLoading(false);
-  };
+  const { data: expenses, loading, fetchAll, insert, update } = useSupabaseCrud('daily_expenses');
 
   useEffect(() => {
-    fetchExpenses();
-  }, []);
+    fetchAll('created_at', false);
+  }, [fetchAll]);
 
   const addExpense = async (expenseData) => {
-    const { data, error } = await supabase
-      .from('daily_expenses')
-      .insert([expenseData])
-      .select();
-      
-    if (!error && data) {
-      setExpenses(prev => [data[0], ...prev]);
-      return { success: true, data: data[0] };
-    }
-    return { success: false, error };
+    return await insert(expenseData);
   };
 
   const updateExpenseStatus = async (id, status, approvedBy) => {
-    const { data, error } = await supabase
-      .from('daily_expenses')
-      .update({ 
-        status, 
-        approved_by: approvedBy,
-        approved_at: new Date().toISOString()
-      })
-      .eq('id', id)
-      .select();
-      
-    if (!error && data) {
-      setExpenses(prev => prev.map(exp => exp.id === id ? data[0] : exp));
-      return { success: true, data: data[0] };
-    }
-    return { success: false, error };
+    return await update(id, {
+      status,
+      approved_by: approvedBy,
+      approved_at: new Date().toISOString()
+    });
   };
 
   return (
@@ -63,7 +30,7 @@ export const ExpenseProvider = ({ children }) => {
       loading,
       addExpense, 
       updateExpenseStatus,
-      refreshExpenses: fetchExpenses
+      refreshExpenses: () => fetchAll('created_at', false)
     }}>
       {children}
     </ExpenseContext.Provider>

@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { useProduction } from '../context/ProductionContext';
 import { usePO } from '../context/POContext';
 import { useInspection } from '../context/InspectionContext';
@@ -8,17 +8,13 @@ import { useInventory } from '../context/InventoryContext';
 import { formatDate } from '../utils/dateUtils';
 import { 
   FileText, 
-  Calendar, 
   Layers, 
   Truck, 
   ShieldAlert, 
   DollarSign, 
   PackageCheck, 
   AlertTriangle, 
-  Printer, 
-  ChevronRight,
-  TrendingDown,
-  TrendingUp,
+  Printer,
   Inbox
 } from 'lucide-react';
 import '../components/layout/Layout.css';

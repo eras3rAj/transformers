@@ -1,5 +1,5 @@
-import React, { useState, useMemo } from 'react';
-import { Plus, Edit, Trash2, FileText, Percent, Info, AlertTriangle, ArrowRight, DollarSign, Activity, CheckCircle } from 'lucide-react';
+import { useState, useMemo } from 'react';
+import { Plus, Edit, Trash2, Percent, Info, DollarSign, Activity } from 'lucide-react';
 import { useCustomDuty } from '../context/CustomDutyContext';
 import { useAuth } from '../context/AuthContext';
 import ConfirmModal from '../components/common/ConfirmModal';

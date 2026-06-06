@@ -1,6 +1,5 @@
-import React, { useState } from 'react';
-import { formatDate } from '../utils/dateUtils';
-import { ListTodo, Plus, CheckCircle, Clock, AlertCircle } from 'lucide-react';
+import { useState } from 'react';
+import { ListTodo, Plus } from 'lucide-react';
 import { useTasks } from '../context/TaskContext';
 import { useAuth } from '../context/AuthContext';
 import '../components/layout/Layout.css';

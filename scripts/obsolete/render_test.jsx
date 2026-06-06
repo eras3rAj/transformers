@@ -1,4 +1,3 @@
-import React from 'react';
 import { renderToString } from 'react-dom/server';
 import PriceVariation from './src/pages/PriceVariation';
 import { PVContext } from './src/context/PVContext';

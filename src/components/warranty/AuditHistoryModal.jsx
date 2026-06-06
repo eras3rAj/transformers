@@ -1,5 +1,3 @@
-import React from 'react';
-import { formatDate } from '../../utils/dateUtils';
 import { X, Clock, ArrowRight } from 'lucide-react';
 import '../layout/Layout.css';
 

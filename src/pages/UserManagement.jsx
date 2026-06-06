@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Users, Shield, Plus, Trash, UserPlus, Settings, Check, PauseCircle, PlayCircle, ShieldAlert } from 'lucide-react';
+import { useState } from 'react';
+import { Users, Shield, UserPlus, Settings, Check, PauseCircle, PlayCircle } from 'lucide-react';
 import { useUsers } from '../context/UserContext';
 import { useLogs } from '../context/LogContext';
 import { useAuth } from '../context/AuthContext';

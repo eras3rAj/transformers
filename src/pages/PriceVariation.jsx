@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Calculator, Plus, TrendingUp, FileText, Check, X, Edit, Calendar, TrendingDown, ChevronDown } from 'lucide-react';
 import PVCalculatorModal from '../components/pv/PVCalculatorModal';
@@ -59,17 +59,10 @@ const PriceVariation = () => {
     })[0];
   }, [indices]);
 
-  // Set default year if not in list
-  React.useEffect(() => {
-    if (availableYears.length > 0 && !availableYears.includes(selectedYear)) {
-      setSelectedYear(availableYears[0]);
-    }
-  }, [availableYears, selectedYear]);
-
-  // Sort year data chronologically
+  const effectiveYear = (availableYears.length > 0 && !availableYears.includes(selectedYear)) ? availableYears[0] : selectedYear;
   const yearDataSorted = useMemo(() => {
     if (!indices || !Array.isArray(indices)) return [];
-    const yearData = indices.filter(i => (i?.month || '').includes(selectedYear));
+    const yearData = indices.filter(i => (i?.month || '').includes(effectiveYear));
     const monthOrder = { 'January':1, 'February':2, 'March':3, 'April':4, 'May':5, 'June':6, 'July':7, 'August':8, 'September':9, 'October':10, 'November':11, 'December':12 };
 
     return yearData.sort((a, b) => {
@@ -77,7 +70,7 @@ const PriceVariation = () => {
       const m2 = (b?.month || '').split(' ')[0];
       return (monthOrder[m1] || 0) - (monthOrder[m2] || 0);
     });
-  }, [indices, selectedYear]);
+  }, [indices, effectiveYear]);
 
 
   const handleInputChange = (e) => {
@@ -228,7 +221,7 @@ const PriceVariation = () => {
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                     <Calendar size={16} color="var(--text-muted)" />
-                    <span style={{ color: 'var(--text-primary)', fontWeight: '600' }}>{selectedYear}</span>
+                    <span style={{ color: 'var(--text-primary)', fontWeight: '600' }}>{effectiveYear}</span>
                   </div>
                   <ChevronDown size={16} color="var(--text-muted)" style={{ transform: isYearDropdownOpen ? 'rotate(180deg)' : 'none', transition: 'var(--transition)' }} />
                 </div>
@@ -239,9 +232,9 @@ const PriceVariation = () => {
                       <div 
                         key={y} 
                         onClick={() => { setSelectedYear(y); setIsYearDropdownOpen(false); }}
-                        style={{ padding: '0.6rem 1rem', cursor: 'pointer', fontWeight: '500', color: selectedYear === y ? 'var(--accent-primary)' : 'var(--text-primary)', backgroundColor: selectedYear === y ? 'var(--bg-tertiary)' : 'transparent', borderBottom: '1px solid var(--border-color)' }}
-                        onMouseEnter={(e) => { if (selectedYear !== y) e.currentTarget.style.backgroundColor = 'var(--bg-tertiary)'; }}
-                        onMouseLeave={(e) => { if (selectedYear !== y) e.currentTarget.style.backgroundColor = 'transparent'; }}
+                        style={{ padding: '0.6rem 1rem', cursor: 'pointer', fontWeight: '500', color: effectiveYear === y ? 'var(--accent-primary)' : 'var(--text-primary)', backgroundColor: effectiveYear === y ? 'var(--bg-tertiary)' : 'transparent', borderBottom: '1px solid var(--border-color)' }}
+                        onMouseEnter={(e) => { if (effectiveYear !== y) e.currentTarget.style.backgroundColor = 'var(--bg-tertiary)'; }}
+                        onMouseLeave={(e) => { if (effectiveYear !== y) e.currentTarget.style.backgroundColor = 'transparent'; }}
                       >
                         {y}
                       </div>
@@ -278,11 +271,11 @@ const PriceVariation = () => {
                 <tbody>
                   {yearDataSorted.length === 0 ? (
                     <tr>
-                      <td colSpan="8" style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)' }}>No indices found for {selectedYear}.</td>
+                      <td colSpan="8" style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)' }}>No indices found for {effectiveYear}.</td>
                     </tr>
                   ) : (
-                    yearDataSorted.map((item) => (
-                      <tr key={item.id || Math.random()} style={{ borderBottom: '1px solid var(--border-color)' }} className="table-row">
+                    yearDataSorted.map((item, index) => (
+                      <tr key={item.id || `idx-${index}`} style={{ borderBottom: '1px solid var(--border-color)' }} className="table-row">
                         <td style={{ padding: '0.8rem 1.5rem', fontWeight: '600', color: 'var(--text-primary)' }}>{item.month || '—'}</td>
                         <td style={{ padding: '0.8rem 1rem' }}>₹{Number(item.al || 0).toFixed(2)}</td>
                         <td style={{ padding: '0.8rem 1rem' }}>₹{Number(item.crgo || 0).toFixed(2)}</td>

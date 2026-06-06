@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { PackageSearch, Search, Plus, MapPin, Database, Archive, Settings, FilePlus, LogIn, LogOut, Trash2, Building2, Edit } from 'lucide-react';
 import { useInventory } from '../context/InventoryContext';
 import { useAuth } from '../context/AuthContext';
@@ -39,6 +39,7 @@ const InventoryManagement = () => {
   const [locName, setLocName] = useState('');
   const [unitName, setUnitName] = useState('');
   const [companyFormName, setCompanyFormName] = useState('');
+  const [companyData, setCompanyData] = useState({ name: '', address: '', mobile: '', poc: '', gst: '' });
   const [departmentFormName, setDepartmentFormName] = useState('');
   const [categoryData, setCategoryData] = useState({ name: '', suppliers: [] });
   const [itemData, setItemData] = useState({ name: '', unit: '', category: '', isNewCategory: false, suppliers: [], minStockLevels: {} });

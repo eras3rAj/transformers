@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Bell, Search, User, Menu, Settings, LogOut, FileText } from 'lucide-react';
 import './Layout.css';
 

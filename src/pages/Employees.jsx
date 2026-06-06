@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Users, Plus, Edit, Briefcase, FileText, CheckCircle, XCircle } from 'lucide-react';
+import { useState } from 'react';
+import { Plus, Edit, Briefcase, CheckCircle, XCircle } from 'lucide-react';
 import { useEmployees } from '../context/EmployeeContext';
 import ConfirmModal from '../components/common/ConfirmModal';
 import '../components/layout/Layout.css';

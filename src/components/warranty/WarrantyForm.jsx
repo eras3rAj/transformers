@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { X, Save, Plus, Check, Trash2 } from 'lucide-react';
 import { usePO } from '../../context/POContext';
 import { useWarranty } from '../../context/WarrantyContext';

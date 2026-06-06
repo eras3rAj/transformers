@@ -1,6 +1,5 @@
-import React, { useState } from 'react';
-import { formatDate } from '../utils/dateUtils';
-import { ShoppingCart, Plus, Building, FileText, CheckCircle, Clock } from 'lucide-react';
+import { useState } from 'react';
+import { ShoppingCart, Plus, Building } from 'lucide-react';
 import { useVendors } from '../context/VendorContext';
 import '../components/layout/Layout.css';
 

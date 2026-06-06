@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { X, Calculator, ArrowRight, AlertCircle } from 'lucide-react';
 import { calculatePVFinancials } from '../../utils/pvCalculator';
 import '../layout/Layout.css';

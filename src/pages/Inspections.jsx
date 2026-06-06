@@ -1,9 +1,8 @@
-import React, { useState, useMemo, useRef, useEffect } from 'react';
-import { formatDate } from '../utils/dateUtils';
+import { useState, useMemo, useRef, useEffect } from 'react';
 import { usePO } from '../context/POContext';
 import { useInspection } from '../context/InspectionContext';
 import { useAuth } from '../context/AuthContext';
-import { ClipboardCheck, Calendar, Truck, Save, Check, Plus, AlertCircle, FileText, TrendingUp, Package, X, Edit, Clock, Trash2, ChevronDown } from 'lucide-react';
+import { ClipboardCheck, Calendar, Plus, X, Edit, Trash2, ChevronDown } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import ConfirmModal from '../components/common/ConfirmModal';
 import PromptModal from '../components/common/PromptModal';

@@ -1,5 +1,4 @@
-import React, { useState } from 'react';
-import { formatDate } from '../utils/dateUtils';
+import { useState } from 'react';
 import { useExpenses } from '../context/ExpenseContext';
 import { useAuth } from '../context/AuthContext';
 import { useLogs } from '../context/LogContext';

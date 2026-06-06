@@ -1,5 +1,4 @@
-import React, { useState } from 'react';
-import { formatDate } from '../utils/dateUtils';
+import { useState } from 'react';
 import { Target, Plus, CheckCircle, Clock, Calendar, Building2, Trash2 } from 'lucide-react';
 import { useMilestones } from '../context/MilestoneContext';
 import { useAuth } from '../context/AuthContext';
