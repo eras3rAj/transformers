@@ -7,9 +7,17 @@ export const useLogs = () => useContext(LogContext);
 
 export const LogProvider = ({ children }) => {
   const [globalLogs, setGlobalLogs] = useState([]);
+  const [hasMoreLogs, setHasMoreLogs] = useState(true);
+  const [loadingLogs, setLoadingLogs] = useState(false);
 
-  const fetchLogs = async () => {
-    const { data, error } = await supabase.from('system_logs').select('*').order('timestamp', { ascending: false });
+  const fetchLogs = async (offset = 0) => {
+    setLoadingLogs(true);
+    const { data, error } = await supabase
+      .from('system_logs')
+      .select('*')
+      .order('timestamp', { ascending: false })
+      .range(offset, offset + 49);
+      
     if (!error && data) {
       const mappedLogs = data.map(log => ({
         id: log.id,
@@ -19,12 +27,30 @@ export const LogProvider = ({ children }) => {
         user: log.user_name,
         changes: log.changes
       }));
-      setGlobalLogs(mappedLogs);
+      
+      if (offset === 0) {
+        setGlobalLogs(mappedLogs);
+      } else {
+        setGlobalLogs(prev => [...prev, ...mappedLogs]);
+      }
+      
+      if (data.length < 50) {
+        setHasMoreLogs(false);
+      } else {
+        setHasMoreLogs(true);
+      }
+    }
+    setLoadingLogs(false);
+  };
+
+  const loadMoreLogs = () => {
+    if (!loadingLogs && hasMoreLogs) {
+      fetchLogs(globalLogs.length);
     }
   };
 
   useEffect(() => {
-    fetchLogs();
+    fetchLogs(0);
   }, []);
 
 
@@ -59,7 +85,7 @@ export const LogProvider = ({ children }) => {
   };
 
   return (
-    <LogContext.Provider value={{ globalLogs, addLog }}>
+    <LogContext.Provider value={{ globalLogs, addLog, hasMoreLogs, loadingLogs, loadMoreLogs }}>
       {children}
     </LogContext.Provider>
   );

@@ -5,7 +5,7 @@ import { useLogs } from '../context/LogContext';
 import '../components/layout/Layout.css';
 
 const SystemLogs = () => {
-  const { globalLogs } = useLogs();
+  const { globalLogs, hasMoreLogs, loadingLogs, loadMoreLogs } = useLogs();
   const [searchTerm, setSearchTerm] = useState('');
   const [userFilter, setUserFilter] = useState('All');
   const [showEmptyLogs, setShowEmptyLogs] = useState(false);
@@ -144,11 +144,24 @@ const SystemLogs = () => {
           </tbody>
         </table>
 
-        {filteredLogs.length === 0 && (
+        {filteredLogs.length === 0 && !loadingLogs && (
           <div style={{ padding: '4rem', textAlign: 'center', color: 'var(--text-muted)' }}>
             <AlertTriangle size={48} style={{ opacity: 0.2, margin: '0 auto 1rem auto' }} />
             <h3>No Audit Logs Found</h3>
             <p>System activity will appear here across all modules.</p>
+          </div>
+        )}
+
+        {hasMoreLogs && (
+          <div style={{ padding: '1rem', textAlign: 'center', borderTop: '1px solid var(--border-color)' }}>
+            <button 
+              className="btn btn-secondary" 
+              onClick={loadMoreLogs}
+              disabled={loadingLogs}
+              style={{ minWidth: '150px' }}
+            >
+              {loadingLogs ? 'Loading...' : 'Load Next 50 Logs'}
+            </button>
           </div>
         )}
       </div>

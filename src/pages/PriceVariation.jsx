@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Calculator, Plus, TrendingUp, FileText, Check, X, Edit, Calendar, TrendingDown, ChevronDown } from 'lucide-react';
 import PVCalculatorModal from '../components/pv/PVCalculatorModal';
 import { usePV } from '../context/PVContext';
@@ -11,6 +12,7 @@ const PriceVariation = () => {
   const { indices, addIndex, updateIndex, getIndexByMonth } = usePV();
   const { pos, addPO, boards, addBoard, capacities, addCapacity, gstRates, addGstRate } = usePO();
   const { currentUser } = useAuth();
+  const navigate = useNavigate();
 
   const [activeTab, setActiveTab] = useState('contracts'); // 'rates' or 'contracts'
   const [selectedYear, setSelectedYear] = useState('2026');
@@ -310,7 +312,7 @@ const PriceVariation = () => {
         <div className="animate-fade-in">
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
             <h3 style={{ margin: 0, color: 'var(--accent-primary)' }}>Active Purchase Orders</h3>
-            <button className="btn btn-primary" onClick={() => setShowAddPOForm(true)} style={{ padding: '0.4rem 0.8rem', fontSize: '0.85rem' }}>
+            <button className="btn btn-primary" onClick={() => navigate('/purchase-orders?create=true')} style={{ padding: '0.4rem 0.8rem', fontSize: '0.85rem' }}>
               <Plus size={16} /> Add Purchase Order
             </button>
           </div>
@@ -348,11 +350,11 @@ const PriceVariation = () => {
                           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                             <span>₹{Number(calcResult.newTotal || 0).toLocaleString('en-IN', {minimumFractionDigits:2})}</span>
                             {Number(calcResult.totalDiff) > 0 ? (
-                              <span style={{ display: 'flex', alignItems: 'center', gap: '0.2rem', color: 'var(--danger)', fontSize: '0.85rem' }} title={`+${calcResult.percentageChange}% (Ex-Works)`}>
+                              <span style={{ display: 'flex', alignItems: 'center', gap: '0.2rem', color: 'var(--success)', fontSize: '0.85rem' }} title={`+${calcResult.percentageChange}% (Ex-Works)`}>
                                 <TrendingUp size={14} /> +{calcResult.percentageChange}%
                               </span>
                             ) : (
-                              <span style={{ display: 'flex', alignItems: 'center', gap: '0.2rem', color: 'var(--success)', fontSize: '0.85rem' }} title={`${calcResult.percentageChange}% (Ex-Works)`}>
+                              <span style={{ display: 'flex', alignItems: 'center', gap: '0.2rem', color: 'var(--danger)', fontSize: '0.85rem' }} title={`${calcResult.percentageChange}% (Ex-Works)`}>
                                 <TrendingDown size={14} /> {calcResult.percentageChange}%
                               </span>
                             )}

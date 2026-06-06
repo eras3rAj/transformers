@@ -1,9 +1,9 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { formatDate } from '../utils/dateUtils';
 import { usePO } from '../context/POContext';
 import { useInspection } from '../context/InspectionContext';
 import { useAuth } from '../context/AuthContext';
-import { ClipboardCheck, Calendar, Truck, Save, Check, Plus, AlertCircle, FileText, TrendingUp, Package, X, Edit, Clock, Trash2 } from 'lucide-react';
+import { ClipboardCheck, Calendar, Truck, Save, Check, Plus, AlertCircle, FileText, TrendingUp, Package, X, Edit, Clock, Trash2, ChevronDown } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import ConfirmModal from '../components/common/ConfirmModal';
 import PromptModal from '../components/common/PromptModal';
@@ -17,6 +17,20 @@ const Inspections = () => {
   const [companyFilter, setCompanyFilter] = useState('All');
   const [selectedPoNo, setSelectedPoNo] = useState('');
   const [inspectionFilter, setInspectionFilter] = useState('All');
+  
+  // Custom dropdown state
+  const [poDropdownOpen, setPoDropdownOpen] = useState(false);
+  const dropdownRef = useRef(null);
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
+        setPoDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
   
   // Forms state
   const [scheduleForm, setScheduleForm] = useState({ date: '', quantity: '' });
@@ -82,15 +96,20 @@ const Inspections = () => {
       const totalFinalInspected = finalInsp.reduce((sum, i) => sum + Number(i.qtyInspected || 0), 0);
       const totalFinalAccepted = finalInsp.reduce((sum, i) => sum + Number(i.qtyAccepted || 0), 0);
 
+      const stats = getStatsForPO(po.poNo, po.quantity);
+
       return {
         ...po,
         totalStageInspected,
         totalStageWeight,
         totalFinalInspected,
-        totalFinalAccepted
+        totalFinalAccepted,
+        balanceStageQty: stats.balanceStageQty,
+        balanceQty: stats.balanceQty,
+        nextSchedule: stats.nextSchedule
       };
     });
-  }, [inspections, pos, companyFilter]);
+  }, [inspections, pos, companyFilter, getStatsForPO]);
 
   // Handle Schedule Add
   const handleAddSchedule = async () => {
@@ -206,7 +225,7 @@ const Inspections = () => {
       </div>
 
       {/* PO Selector & Filters */}
-      <div className="card" style={{ marginBottom: '2rem', display: 'flex', gap: '2rem', flexWrap: 'wrap' }}>
+      <div className="card" style={{ marginBottom: '2rem', display: 'flex', gap: '2rem', flexWrap: 'wrap', position: 'relative', zIndex: 10 }}>
         <div style={{ flex: '1', minWidth: '250px' }}>
           <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '0.5rem', fontWeight: '500' }}>FILTER BY COMPANY</label>
           <select 
@@ -223,19 +242,65 @@ const Inspections = () => {
           </select>
         </div>
         
-        <div style={{ flex: '2', minWidth: '300px' }}>
+        <div style={{ flex: '2', minWidth: '300px', position: 'relative' }} ref={dropdownRef}>
           <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '0.5rem', fontWeight: '500' }}>SELECT PURCHASE ORDER</label>
-          <select 
+          <div 
             className="input-field" 
-            value={selectedPoNo} 
-            onChange={(e) => setSelectedPoNo(e.target.value)}
-            style={{ width: '100%', padding: '0.8rem' }}
+            onClick={() => setPoDropdownOpen(!poDropdownOpen)}
+            style={{ width: '100%', padding: '0.8rem', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: 'var(--bg-primary)', userSelect: 'none' }}
           >
-            <option value="">-- Select a PO --</option>
-            {pos.filter(po => companyFilter === 'All' || po.companyName === companyFilter).map(po => (
-              <option key={po.id} value={po.poNo}>{po.capacity ? `${po.capacity} | ` : ''}{po.poNo} | {po.quantity} Units</option>
-            ))}
-          </select>
+            <span>{selectedPO ? `${selectedPO.capacity ? `${selectedPO.capacity} | ` : ''}${selectedPO.poNo} | ${selectedPO.quantity} Units` : '-- Select a PO --'}</span>
+            <ChevronDown size={16} style={{ color: 'var(--text-muted)' }} />
+          </div>
+
+          {poDropdownOpen && (
+            <div style={{
+              position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 50,
+              backgroundColor: 'var(--bg-primary)', border: '1px solid var(--border-color)',
+              borderRadius: '8px', marginTop: '0.3rem', boxShadow: '0 10px 25px rgba(0,0,0,0.2)',
+              maxHeight: '350px', overflowY: 'auto'
+            }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.9rem' }}>
+                <thead style={{ position: 'sticky', top: 0, backgroundColor: 'var(--bg-tertiary)', borderBottom: '1px solid var(--border-color)', zIndex: 2 }}>
+                  <tr>
+                    <th style={{ padding: '0.8rem 1rem', color: 'var(--text-muted)', fontWeight: '600' }}>Rating</th>
+                    <th style={{ padding: '0.8rem 1rem', color: 'var(--text-muted)', fontWeight: '600' }}>PO Number</th>
+                    <th style={{ padding: '0.8rem 1rem', color: 'var(--text-muted)', fontWeight: '600', textAlign: 'right' }}>Total Units</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr 
+                    onClick={() => { setSelectedPoNo(''); setPoDropdownOpen(false); }}
+                    style={{ cursor: 'pointer', borderBottom: '1px solid var(--border-color)', backgroundColor: !selectedPoNo ? 'var(--bg-secondary)' : 'transparent' }}
+                  >
+                    <td colSpan={3} style={{ padding: '0.8rem 1rem', fontStyle: 'italic', color: 'var(--text-muted)' }}>-- Clear Selection --</td>
+                  </tr>
+                  {pos.filter(po => companyFilter === 'All' || po.companyName === companyFilter).map(po => (
+                    <tr 
+                      key={po.id} 
+                      onClick={() => { setSelectedPoNo(po.poNo); setPoDropdownOpen(false); }}
+                      style={{ 
+                        cursor: 'pointer', borderBottom: '1px solid var(--border-color)',
+                        backgroundColor: selectedPoNo === po.poNo ? 'var(--bg-secondary)' : 'transparent',
+                        transition: 'background-color 0.15s ease'
+                      }}
+                      onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--bg-tertiary)'}
+                      onMouseLeave={(e) => e.currentTarget.style.backgroundColor = selectedPoNo === po.poNo ? 'var(--bg-secondary)' : 'transparent'}
+                    >
+                      <td style={{ padding: '0.8rem 1rem', fontWeight: '500' }}>{po.capacity || '-'}</td>
+                      <td style={{ padding: '0.8rem 1rem', color: 'var(--accent-primary)', fontWeight: '600' }}>{po.poNo}</td>
+                      <td style={{ padding: '0.8rem 1rem', textAlign: 'right', fontWeight: '500' }}>{po.quantity}</td>
+                    </tr>
+                  ))}
+                  {pos.filter(po => companyFilter === 'All' || po.companyName === companyFilter).length === 0 && (
+                    <tr>
+                      <td colSpan={3} style={{ padding: '1rem', textAlign: 'center', color: 'var(--text-muted)' }}>No POs found for this company.</td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
       </div>
 
@@ -254,6 +319,9 @@ const Inspections = () => {
                   <th style={{ padding: '1rem', fontSize: '0.85rem', color: 'var(--text-muted)', textAlign: 'right' }}>PO QTY</th>
                   <th style={{ padding: '1rem', fontSize: '0.85rem', color: 'var(--text-muted)', textAlign: 'right' }}>STAGE INSPECTED</th>
                   <th style={{ padding: '1rem', fontSize: '0.85rem', color: 'var(--text-muted)', textAlign: 'right' }}>FINAL ACCEPTED</th>
+                  <th style={{ padding: '1rem', fontSize: '0.85rem', color: 'var(--text-muted)', textAlign: 'right' }}>BALANCE STAGE</th>
+                  <th style={{ padding: '1rem', fontSize: '0.85rem', color: 'var(--text-muted)', textAlign: 'right' }}>BALANCE PO QTY</th>
+                  <th style={{ padding: '1rem', fontSize: '0.85rem', color: 'var(--text-muted)', textAlign: 'right' }}>NEXT SCHEDULE</th>
                 </tr>
               </thead>
               <tbody>
@@ -269,6 +337,20 @@ const Inspections = () => {
                     <td style={{ padding: '1rem', textAlign: 'right', color: summary.totalFinalAccepted > 0 ? 'var(--success)' : 'inherit' }}>
                       {summary.totalFinalAccepted > 0 ? <strong>{summary.totalFinalAccepted}</strong> : '-'}
                     </td>
+                    <td style={{ padding: '1rem', textAlign: 'right', color: summary.balanceStageQty > 0 ? 'var(--accent-primary)' : 'inherit' }}>
+                      {summary.balanceStageQty > 0 ? <strong>{summary.balanceStageQty}</strong> : '-'}
+                    </td>
+                    <td style={{ padding: '1rem', textAlign: 'right', color: summary.balanceQty > 0 ? 'var(--danger)' : 'inherit' }}>
+                      {summary.balanceQty > 0 ? <strong>{summary.balanceQty}</strong> : '-'}
+                    </td>
+                    <td style={{ padding: '1rem', textAlign: 'right' }}>
+                      {summary.nextSchedule ? (
+                        <div>
+                          <div style={{ fontWeight: '600', color: 'var(--warning)' }}>{new Date(summary.nextSchedule.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}</div>
+                          <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{summary.nextSchedule.balanceQty} units</div>
+                        </div>
+                      ) : '-'}
+                    </td>
                   </tr>
                 ))}
                 <tr style={{ backgroundColor: 'var(--bg-tertiary)', borderTop: '2px solid var(--border-color)', fontWeight: '700' }}>
@@ -276,6 +358,9 @@ const Inspections = () => {
                   <td style={{ padding: '1rem', textAlign: 'right' }}>{poSummaries.reduce((sum, s) => sum + Number(s.quantity), 0)}</td>
                   <td style={{ padding: '1rem', textAlign: 'right', color: 'var(--accent-primary)' }}>{poSummaries.reduce((sum, s) => sum + s.totalStageInspected, 0)}</td>
                   <td style={{ padding: '1rem', textAlign: 'right', color: 'var(--success)' }}>{poSummaries.reduce((sum, s) => sum + s.totalFinalAccepted, 0)}</td>
+                  <td style={{ padding: '1rem', textAlign: 'right', color: 'var(--accent-primary)' }}>{poSummaries.reduce((sum, s) => sum + s.balanceStageQty, 0)}</td>
+                  <td style={{ padding: '1rem', textAlign: 'right', color: 'var(--danger)' }}>{poSummaries.reduce((sum, s) => sum + s.balanceQty, 0)}</td>
+                  <td style={{ padding: '1rem', textAlign: 'right' }}>-</td>
                 </tr>
               </tbody>
             </table>

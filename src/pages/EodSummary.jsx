@@ -555,24 +555,13 @@ const EodSummary = () => {
       <div className="eod-controls no-print">
         <div className="eod-controls-group">
           <label className="input-label" style={{ fontWeight: '600' }}>SELECT SUMMARY DATE</label>
-          <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: '0.5rem', backgroundColor: 'var(--bg-tertiary)', padding: '0.5rem 1rem', borderRadius: '8px', border: '1px solid var(--border-color)', height: '42px', minWidth: '180px', overflow: 'hidden' }}>
-            <Calendar size={18} color="var(--text-secondary)" />
-            <span style={{ color: 'var(--text-primary)', fontWeight: '600' }}>{displayFormattedDate}</span>
-            <input 
-              type="date" 
-              value={selectedDate}
-              onChange={(e) => setSelectedDate(e.target.value)}
-              style={{ 
-                position: 'absolute',
-                top: 0,
-                left: 0,
-                width: '100%',
-                height: '100%',
-                opacity: 0,
-                cursor: 'pointer'
-              }}
-            />
-          </div>
+          <input 
+            type="date" 
+            className="input-field"
+            value={selectedDate}
+            onChange={(e) => setSelectedDate(e.target.value)}
+            style={{ width: '180px', height: '42px', backgroundColor: 'var(--bg-tertiary)', fontWeight: '600', marginBottom: 0 }}
+          />
         </div>
 
         <div className="eod-controls-group">

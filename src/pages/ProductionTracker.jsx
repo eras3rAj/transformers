@@ -4,7 +4,8 @@ import { useProduction } from '../context/ProductionContext';
 import { usePO } from '../context/POContext';
 import { useInspection } from '../context/InspectionContext';
 import { useEmployees } from '../context/EmployeeContext';
-import { Calendar, Save, Check, Layers, Settings, Plus, X, ListFilter, UserCheck } from 'lucide-react';
+import { useInventory } from '../context/InventoryContext';
+import { Calendar, Save, Check, Layers, Settings, Plus, X, ListFilter, UserCheck, Trash2 } from 'lucide-react';
 import '../components/layout/Layout.css';
 
 const ProductionTracker = () => {
@@ -12,6 +13,7 @@ const ProductionTracker = () => {
   const { capacities, pos, companies } = usePO();
   const { inspections } = useInspection();
   const { employees } = useEmployees();
+  const { transactions, items } = useInventory();
   
   const [companyFilter, setCompanyFilter] = useState('All');
   
@@ -45,9 +47,11 @@ const ProductionTracker = () => {
     const loadedGrid = {};
     let lineSupervisor = '';
     
+    const effectiveLine = activeTab === 'tank' ? 'JM-IGC' : selectedLine;
+
     if (existingLog && existingLog.batches) {
       existingLog.batches.forEach(b => {
-        if (b.line === selectedLine) {
+        if (b.line === effectiveLine) {
           if (!loadedGrid[b.capacity]) loadedGrid[b.capacity] = {};
           loadedGrid[b.capacity][b.component] = b.quantity;
           if (b.assigned_to) lineSupervisor = b.assigned_to;
@@ -57,7 +61,7 @@ const ProductionTracker = () => {
     setGridData(loadedGrid);
     setSelectedEmployee(lineSupervisor);
     setSaveSuccess(false);
-  }, [selectedDate, selectedLine, productionLogs]);
+  }, [selectedDate, selectedLine, activeTab, productionLogs]);
 
   // Handle input change in the grid
   const handleGridChange = (capacity, component, value) => {
@@ -84,10 +88,11 @@ const ProductionTracker = () => {
 
   const handleSave = async () => {
     setIsSaving(true);
+    const effectiveLine = activeTab === 'tank' ? 'JM-IGC' : selectedLine;
     
     // We must merge the NEW grid data for the selected line, with the EXISTING batches for OTHER lines
     const existingLog = productionLogs.find(l => l.date === selectedDate);
-    const otherLinesBatches = (existingLog ? existingLog.batches : []).filter(b => b.line !== selectedLine);
+    const otherLinesBatches = (existingLog ? existingLog.batches : []).filter(b => b.line !== effectiveLine);
     
     const newBatches = [];
     Object.keys(gridData).forEach(capacity => {
@@ -96,7 +101,7 @@ const ProductionTracker = () => {
         if (qty && qty > 0) {
           newBatches.push({
             id: Date.now().toString() + Math.random().toString(36).substr(2, 5),
-            line: selectedLine,
+            line: effectiveLine,
             component,
             capacity,
             quantity: Number(qty),
@@ -114,6 +119,13 @@ const ProductionTracker = () => {
       setTimeout(() => setSaveSuccess(false), 3000);
     }
     setIsSaving(false);
+  };
+
+  const handleClearGrid = () => {
+    if (window.confirm('Are you sure you want to clear the grid? This will not delete saved data until you click Save.')) {
+      setGridData({});
+      setSaveSuccess(false);
+    }
   };
 
   const handleAddLine = async () => {
@@ -156,12 +168,33 @@ const ProductionTracker = () => {
     const existingLog = productionLogs.find(l => l.date === selectedDate);
     if (existingLog && existingLog.batches) {
       existingLog.batches.forEach(b => {
-        if (!summary[b.capacity]) summary[b.capacity] = { 'LT Winding': 0, 'HT Winding': 0, 'CCA': 0, 'Box Up': 0, 'Tanks Fabricated': 0 };
+        if (!summary[b.capacity]) summary[b.capacity] = { 'LT Winding': 0, 'HT Winding': 0, 'CCA': 0, 'Box Up': 0, 'Tanks Fabricated': 0, 'Stock In': 0, 'Stock Out': 0 };
         summary[b.capacity][b.component] += b.quantity;
       });
     }
+
+    // Process transactions for Tanks on this date
+    if (transactions && items) {
+      const todaysTxns = transactions.filter(t => t.date === selectedDate);
+      todaysTxns.forEach(t => {
+        const invItem = items.find(i => i.name === t.item);
+        // We only care about tanks. Let's assume category contains 'Tank' or item name contains 'Tank'.
+        if (invItem && (invItem.category?.toLowerCase().includes('tank') || t.item.toLowerCase().includes('tank') || t.item.toLowerCase().includes('kva'))) {
+          // Find matching capacity (e.g. "16 kVA")
+          const matchedCap = capacities.find(c => t.item.toLowerCase().includes(c.toLowerCase()));
+          if (matchedCap) {
+            if (!summary[matchedCap]) {
+              summary[matchedCap] = { 'LT Winding': 0, 'HT Winding': 0, 'CCA': 0, 'Box Up': 0, 'Tanks Fabricated': 0, 'Stock In': 0, 'Stock Out': 0 };
+            }
+            if (t.type === 'IN') summary[matchedCap]['Stock In'] += t.qty;
+            if (t.type === 'OUT') summary[matchedCap]['Stock Out'] += t.qty;
+          }
+        }
+      });
+    }
+
     return summary;
-  }, [productionLogs, selectedDate]);
+  }, [productionLogs, selectedDate, transactions, items, capacities]);
 
   return (
     <div className="animate-fade-in" style={{ paddingBottom: '3rem' }}>
@@ -207,33 +240,13 @@ const ProductionTracker = () => {
 
             <div>
               <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '0.5rem', fontWeight: '500' }}>SELECT DATE</label>
-              <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: '0.5rem', backgroundColor: 'var(--bg-tertiary)', padding: '0.5rem 1rem', borderRadius: '8px', border: '1px solid var(--border-color)', marginBottom: 0, height: '42px', minWidth: '180px', overflow: 'hidden' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', backgroundColor: 'var(--bg-tertiary)', padding: '0.5rem 1rem', borderRadius: '8px', border: '1px solid var(--border-color)', marginBottom: 0 }}>
                 <Calendar size={18} color="var(--text-secondary)" />
-                <span style={{ color: 'var(--text-primary)', fontWeight: '600', pointerEvents: 'none' }}>
-                  {(() => {
-                    if (!selectedDate) return '';
-                    const date = new Date(selectedDate);
-                    if (isNaN(date.getTime())) return selectedDate;
-                    const day = String(date.getDate()).padStart(2, '0');
-                    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-                    const month = months[date.getMonth()];
-                    const year = String(date.getFullYear()).slice(-2);
-                    return `${day}/${month}/${year}`;
-                  })()}
-                </span>
                 <input 
                   type="date" 
                   value={selectedDate}
                   onChange={(e) => setSelectedDate(e.target.value)}
-                  style={{ 
-                    position: 'absolute',
-                    top: 0,
-                    left: 0,
-                    width: '100%',
-                    height: '100%',
-                    opacity: 0,
-                    cursor: 'pointer'
-                  }}
+                  style={{ background: 'transparent', border: 'none', color: 'var(--text-primary)', outline: 'none', fontWeight: '600' }}
                 />
               </div>
             </div>
@@ -243,17 +256,24 @@ const ProductionTracker = () => {
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                 <select 
                   className="input-field" 
-                  value={selectedLine} 
-                  onChange={(e) => setSelectedLine(e.target.value)}
-                  style={{ minWidth: '200px', fontWeight: '600', color: 'var(--accent-primary)' }}
+                  value={activeTab === 'tank' ? 'JM-IGC' : selectedLine} 
+                  onChange={(e) => activeTab === 'tank' ? null : setSelectedLine(e.target.value)}
+                  style={{ minWidth: '200px', fontWeight: '600', color: 'var(--accent-primary)', opacity: activeTab === 'tank' ? 0.7 : 1 }}
+                  disabled={activeTab === 'tank'}
                 >
-                  {productionLines.map(l => (
-                    <option key={l} value={l}>{l}</option>
-                  ))}
+                  {activeTab === 'tank' ? (
+                    <option value="JM-IGC">JM-IGC</option>
+                  ) : (
+                    productionLines.map(l => (
+                      <option key={l} value={l}>{l}</option>
+                    ))
+                  )}
                 </select>
-                <button onClick={() => setShowSettings(!showSettings)} style={{ background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', padding: '0.6rem', borderRadius: '8px', cursor: 'pointer', color: 'var(--text-muted)' }}>
-                  <Settings size={18} />
-                </button>
+                {activeTab !== 'tank' && (
+                  <button onClick={() => setShowSettings(!showSettings)} style={{ background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', padding: '0.6rem', borderRadius: '8px', cursor: 'pointer', color: 'var(--text-muted)' }}>
+                    <Settings size={18} />
+                  </button>
+                )}
               </div>
             </div>
 
@@ -275,20 +295,29 @@ const ProductionTracker = () => {
             </div>
           </div>
           
-          <button 
-            className="btn btn-primary" 
-            onClick={handleSave} 
-            disabled={isSaving}
-            style={{ padding: '0.6rem 1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}
-          >
-            {isSaving ? (
-              <span>Saving...</span>
-            ) : saveSuccess ? (
-              <><Check size={18} /> Saved Successfully</>
-            ) : (
-              <><Save size={18} /> Save Grid</>
-            )}
-          </button>
+          <div style={{ display: 'flex', gap: '1rem' }}>
+            <button 
+              className="btn btn-secondary" 
+              onClick={handleClearGrid} 
+              style={{ padding: '0.6rem 1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+            >
+              <Trash2 size={18} /> Clear Grid
+            </button>
+            <button 
+              className="btn btn-primary" 
+              onClick={handleSave} 
+              disabled={isSaving}
+              style={{ padding: '0.6rem 1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+            >
+              {isSaving ? (
+                <span>Saving...</span>
+              ) : saveSuccess ? (
+                <><Check size={18} /> Saved Successfully</>
+              ) : (
+                <><Save size={18} /> Save Grid</>
+              )}
+            </button>
+          </div>
         </div>
 
         {/* Line Settings Panel */}
@@ -414,48 +443,73 @@ const ProductionTracker = () => {
         </div>
 
         {/* Daily Summary (All Lines) */}
-        {Object.keys(dailySummary).length > 0 && (
-          <div style={{ marginTop: '2rem' }}>
-            <h3 style={{ margin: '0 0 1rem 0', fontSize: '1rem', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <ListFilter size={18} /> Global Summary ({(() => {
-                const date = new Date(selectedDate);
-                if (isNaN(date.getTime())) return selectedDate;
-                const day = String(date.getDate()).padStart(2, '0');
-                const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-                return `${day}/${months[date.getMonth()]}/${String(date.getFullYear()).slice(-2)}`;
-              })()}) - All Lines
-            </h3>
-            <div style={{ overflowX: 'auto' }}>
+        <div style={{ marginTop: '2rem' }}>
+          <h3 style={{ margin: '0 0 1.5rem 0', fontSize: '1.1rem', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <ListFilter size={20} color="var(--accent-primary)" /> Global Production Summary ({new Date(selectedDate).toLocaleDateString()}) - All Lines
+          </h3>
+          
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem' }}>
+            {/* Transformer Summary Table */}
+            <div style={{ overflowX: 'auto', backgroundColor: 'var(--bg-secondary)', borderRadius: '8px', border: '1px solid var(--border-color)', padding: '1rem' }}>
+              <h4 style={{ marginBottom: '1rem', color: 'var(--text-secondary)' }}>Transformer Manufacturing</h4>
               <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'center' }}>
                 <thead>
                   <tr style={{ backgroundColor: 'var(--bg-tertiary)', borderBottom: '2px solid var(--border-color)' }}>
-                    <th style={{ padding: '1rem', textAlign: 'left', color: 'var(--text-muted)' }}>CAPACITY</th>
-                    <th style={{ padding: '1rem', color: 'var(--text-muted)' }}>TOTAL BOX UP</th>
-                    <th style={{ padding: '1rem', color: 'var(--text-muted)' }}>TOTAL CCA</th>
-                    <th style={{ padding: '1rem', color: 'var(--text-muted)' }}>TOTAL HT</th>
-                    <th style={{ padding: '1rem', color: 'var(--text-muted)' }}>TOTAL LT</th>
-                    <th style={{ padding: '1rem', color: 'var(--text-muted)' }}>TANKS FABRICATED</th>
+                    <th style={{ padding: '0.8rem', textAlign: 'left', color: 'var(--text-muted)' }}>CAPACITY</th>
+                    <th style={{ padding: '0.8rem', color: 'var(--text-muted)' }}>BOX UP</th>
+                    <th style={{ padding: '0.8rem', color: 'var(--text-muted)' }}>CCA</th>
+                    <th style={{ padding: '0.8rem', color: 'var(--text-muted)' }}>HT</th>
+                    <th style={{ padding: '0.8rem', color: 'var(--text-muted)' }}>LT</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {Object.keys(dailySummary).map(cap => {
+                  {Object.keys(dailySummary).filter(cap => dailySummary[cap]['Box Up'] > 0 || dailySummary[cap]['CCA'] > 0 || dailySummary[cap]['HT Winding'] > 0 || dailySummary[cap]['LT Winding'] > 0).map(cap => {
                     const data = dailySummary[cap];
                     return (
                       <tr key={cap} style={{ borderBottom: '1px solid var(--border-color)' }}>
-                        <td style={{ padding: '1rem', textAlign: 'left', fontWeight: '700', color: 'var(--text-primary)' }}>{cap}</td>
-                        <td style={{ padding: '1rem', fontWeight: '500' }}>{data['Box Up']}</td>
-                        <td style={{ padding: '1rem', fontWeight: '500' }}>{data['CCA']}</td>
-                        <td style={{ padding: '1rem', fontWeight: '500' }}>{data['HT Winding']}</td>
-                        <td style={{ padding: '1rem', fontWeight: '500' }}>{data['LT Winding']}</td>
-                        <td style={{ padding: '1rem', fontWeight: '500' }}>{data['Tanks Fabricated'] || 0}</td>
+                        <td style={{ padding: '0.8rem', textAlign: 'left', fontWeight: '700', color: 'var(--text-primary)' }}>{cap}</td>
+                        <td style={{ padding: '0.8rem', fontWeight: '500' }}>{data['Box Up'] || '-'}</td>
+                        <td style={{ padding: '0.8rem', fontWeight: '500' }}>{data['CCA'] || '-'}</td>
+                        <td style={{ padding: '0.8rem', fontWeight: '500' }}>{data['HT Winding'] || '-'}</td>
+                        <td style={{ padding: '0.8rem', fontWeight: '500' }}>{data['LT Winding'] || '-'}</td>
                       </tr>
                     );
                   })}
+                  {Object.keys(dailySummary).filter(cap => dailySummary[cap]['Box Up'] > 0 || dailySummary[cap]['CCA'] > 0 || dailySummary[cap]['HT Winding'] > 0 || dailySummary[cap]['LT Winding'] > 0).length === 0 && (
+                    <tr><td colSpan="5" style={{ padding: '1rem', color: 'var(--text-muted)' }}>No transformer production logged for this date.</td></tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Tank Fabrication Summary Table */}
+            <div style={{ overflowX: 'auto', backgroundColor: 'var(--bg-secondary)', borderRadius: '8px', border: '1px solid var(--border-color)', padding: '1rem' }}>
+              <h4 style={{ marginBottom: '1rem', color: 'var(--text-secondary)' }}>Tank Fabrication</h4>
+              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'center' }}>
+                <thead>
+                  <tr style={{ backgroundColor: 'var(--bg-tertiary)', borderBottom: '2px solid var(--border-color)' }}>
+                    <th style={{ padding: '0.8rem', textAlign: 'left', color: 'var(--text-muted)' }}>CAPACITY</th>
+                    <th style={{ padding: '0.8rem', color: 'var(--text-muted)' }}>TOTAL TANKS FABRICATED</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {Object.keys(dailySummary).filter(cap => dailySummary[cap]['Tanks Fabricated'] > 0).map(cap => {
+                    const data = dailySummary[cap];
+                    return (
+                      <tr key={cap} style={{ borderBottom: '1px solid var(--border-color)' }}>
+                        <td style={{ padding: '0.8rem', textAlign: 'left', fontWeight: '700', color: 'var(--text-primary)' }}>{cap}</td>
+                        <td style={{ padding: '0.8rem', fontWeight: '500', color: 'var(--accent-primary)' }}>{data['Tanks Fabricated'] || '-'}</td>
+                      </tr>
+                    );
+                  })}
+                  {Object.keys(dailySummary).filter(cap => dailySummary[cap]['Tanks Fabricated'] > 0).length === 0 && (
+                    <tr><td colSpan="2" style={{ padding: '1rem', color: 'var(--text-muted)' }}>No tank fabrication logged for this date.</td></tr>
+                  )}
                 </tbody>
               </table>
             </div>
           </div>
-        )}
+        </div>
 
       </div>
     </div>

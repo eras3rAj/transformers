@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { formatDate } from '../utils/dateUtils';
 import { Plus, Edit, FileText, Anchor, Trash2 } from 'lucide-react';
 import POForm from '../components/po/POForm';
@@ -12,6 +13,8 @@ const PurchaseOrders = () => {
   const { pos, addPO, deletePO, companies } = usePO();
   const { inspections } = useInspection();
   const { currentUser } = useAuth();
+  const location = useLocation();
+  const navigate = useNavigate();
   
   const canViewFinancials = currentUser?.role === 'superadmin' || currentUser?.role === 'admin';
   
@@ -19,6 +22,15 @@ const PurchaseOrders = () => {
   const [editingPO, setEditingPO] = useState(null);
   const [companyFilter, setCompanyFilter] = useState('All');
   const [deleteModal, setDeleteModal] = useState({ isOpen: false, poId: null, poNo: '' });
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    if (params.get('create') === 'true') {
+      setShowForm(true);
+      // Clean up the URL so refreshing doesn't reopen the form
+      navigate('/purchase-orders', { replace: true });
+    }
+  }, [location, navigate]);
 
   const formatCurrency = (val) => `₹${Number(val).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 

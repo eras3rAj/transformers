@@ -200,7 +200,7 @@ a:hover {
 /* Animations */
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
+  to { opacity: 1; transform: none; }
 }
 
 .animate-fade-in {
@@ -223,4 +223,12 @@ a:hover {
   justify-content: center;
   z-index: 1000;
   padding: 1rem;
+}
+
+/* Custom Rows */
+.supplier-row {
+  transition: var(--transition);
+}
+.supplier-row:hover {
+  background-color: var(--bg-primary);
 }
