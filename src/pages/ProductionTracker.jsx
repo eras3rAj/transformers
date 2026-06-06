@@ -207,13 +207,33 @@ const ProductionTracker = () => {
 
             <div>
               <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '0.5rem', fontWeight: '500' }}>SELECT DATE</label>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', backgroundColor: 'var(--bg-tertiary)', padding: '0.5rem 1rem', borderRadius: '8px', border: '1px solid var(--border-color)', marginBottom: 0 }}>
+              <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: '0.5rem', backgroundColor: 'var(--bg-tertiary)', padding: '0.5rem 1rem', borderRadius: '8px', border: '1px solid var(--border-color)', marginBottom: 0, height: '42px', minWidth: '180px', overflow: 'hidden' }}>
                 <Calendar size={18} color="var(--text-secondary)" />
+                <span style={{ color: 'var(--text-primary)', fontWeight: '600', pointerEvents: 'none' }}>
+                  {(() => {
+                    if (!selectedDate) return '';
+                    const date = new Date(selectedDate);
+                    if (isNaN(date.getTime())) return selectedDate;
+                    const day = String(date.getDate()).padStart(2, '0');
+                    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                    const month = months[date.getMonth()];
+                    const year = String(date.getFullYear()).slice(-2);
+                    return `${day}/${month}/${year}`;
+                  })()}
+                </span>
                 <input 
                   type="date" 
                   value={selectedDate}
                   onChange={(e) => setSelectedDate(e.target.value)}
-                  style={{ background: 'transparent', border: 'none', color: 'var(--text-primary)', outline: 'none', fontWeight: '600' }}
+                  style={{ 
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    width: '100%',
+                    height: '100%',
+                    opacity: 0,
+                    cursor: 'pointer'
+                  }}
                 />
               </div>
             </div>
@@ -397,7 +417,13 @@ const ProductionTracker = () => {
         {Object.keys(dailySummary).length > 0 && (
           <div style={{ marginTop: '2rem' }}>
             <h3 style={{ margin: '0 0 1rem 0', fontSize: '1rem', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <ListFilter size={18} /> Global Summary ({new Date(selectedDate).toLocaleDateString()}) - All Lines
+              <ListFilter size={18} /> Global Summary ({(() => {
+                const date = new Date(selectedDate);
+                if (isNaN(date.getTime())) return selectedDate;
+                const day = String(date.getDate()).padStart(2, '0');
+                const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                return `${day}/${months[date.getMonth()]}/${String(date.getFullYear()).slice(-2)}`;
+              })()}) - All Lines
             </h3>
             <div style={{ overflowX: 'auto' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'center' }}>

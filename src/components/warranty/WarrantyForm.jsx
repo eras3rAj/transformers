@@ -146,7 +146,7 @@ const WarrantyForm = ({ onClose, onSubmit, initialData, availablePOs = [] }) => 
                 <label className="input-label">Purchase Order (PO)</label>
                 <select name="poNo" value={formData.poNo} onChange={handleChange} className="input-field" required>
                   <option value="">-- Select PO --</option>
-                  {availablePOs.map(po => <option key={po.id} value={po.poNo}>{po.poNo} ({po.utilityBoard})</option>)}
+                  {availablePOs.map(po => <option key={po.id} value={po.poNo}>{po.capacity ? `${po.capacity} - ` : ''}{po.poNo} ({po.utilityBoard})</option>)}
                 </select>
               </div>
               

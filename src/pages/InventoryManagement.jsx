@@ -10,8 +10,16 @@ const InventoryManagement = () => {
   const { currentUser } = useAuth();
   const isSuperAdmin = currentUser?.role === 'superadmin';
   
-  const [activeTab, setActiveTab] = useState('Overview');
   const [activeCategoryTab, setActiveCategoryTab] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
+
+  // Filter items based on search query
+  const filteredItems = useMemo(() => {
+    if (!searchQuery.trim()) return items;
+    return items.filter(item =>
+      item.name.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+  }, [items, searchQuery]);
   
   // Modal States
   const [showLocationModal, setShowLocationModal] = useState(false);
@@ -280,8 +288,37 @@ const InventoryManagement = () => {
 
   const renderGlobalOverview = () => (
     <div className="animate-fade-in">
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
+        <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <Database size={20} color="var(--accent-primary)" /> Global Stock Overview
+        </h3>
+        {/* Global Search Input Bar */}
+        <div style={{ position: 'relative', width: '300px', maxWidth: '100%' }}>
+          <input
+            type="text"
+            className="input-field"
+            placeholder="Search items..."
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+            style={{ paddingLeft: '2.5rem', margin: 0, paddingTop: '0.5rem', paddingBottom: '0.5rem', fontSize: '0.9rem' }}
+          />
+          <div style={{ position: 'absolute', left: '0.8rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)', display: 'flex', alignItems: 'center' }}>
+            <PackageSearch size={16} />
+          </div>
+          {searchQuery && (
+            <button 
+              type="button"
+              onClick={() => setSearchQuery('')}
+              style={{ position: 'absolute', right: '0.8rem', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '0.8rem' }}
+            >
+              Clear
+            </button>
+          )}
+        </div>
+      </div>
+
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1.5rem', marginBottom: '2rem' }}>
-        {items.map(item => {
+        {filteredItems.map(item => {
           const globalStock = getGlobalStock(item.name);
           return (
             <div key={item.id} className="card stat-card" style={{ borderLeft: `4px solid ${globalStock > 0 ? 'var(--success)' : 'var(--danger)'}` }}>
@@ -298,14 +335,14 @@ const InventoryManagement = () => {
             </div>
           );
         })}
-        {items.length === 0 && (
+        {filteredItems.length === 0 && (
           <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)', width: '100%', gridColumn: '1 / -1', border: '1px dashed var(--border-color)', borderRadius: '8px' }}>
-            No items tracked yet. Head to Settings to configure your inventory items.
+            {items.length === 0 ? "No items tracked yet. Head to Settings to configure your inventory items." : "No matching items found."}
           </div>
         )}
       </div>
 
-      {items.length > 0 && (
+      {filteredItems.length > 0 && (
         <div className="card">
           <h3 style={{ margin: '0 0 1.5rem 0', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <Archive size={18} color="var(--accent-primary)" /> Global Stock Distribution
@@ -322,7 +359,7 @@ const InventoryManagement = () => {
                 </tr>
               </thead>
               <tbody>
-                {items.map(item => (
+                {filteredItems.map(item => (
                   <tr key={item.id} style={{ borderBottom: '1px solid var(--border-color)' }}>
                     <td style={{ padding: '1rem', fontWeight: '600' }}>{item.name} <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>({item.unit})</span></td>
                     {locations.map(loc => {
@@ -378,10 +415,10 @@ const InventoryManagement = () => {
                               style={{ marginBottom: 0, border: val.valid === false && cartItem.qtyStr ? '1px solid var(--danger)' : undefined }}
                               value={cartItem.qtyStr}
                               onChange={(e) => {
-                                const newCart = [...issueCart];
-                                newCart[idx].qtyStr = e.target.value;
-                                setIssueCart(newCart);
-                              }}
+                                  const newCart = [...issueCart];
+                                  newCart[idx].qtyStr = e.target.value;
+                                  setIssueCart(newCart);
+                                }}
                               placeholder="e.g. 20.1, 19.8"
                             />
                             {val.valid === false && cartItem.qtyStr && <span style={{ color: 'var(--danger)', fontSize: '0.75rem', marginTop: '4px' }}>{val.message}</span>}
@@ -395,10 +432,10 @@ const InventoryManagement = () => {
                             style={{ marginBottom: 0 }}
                             value={cartItem.remarks}
                             onChange={(e) => {
-                              const newCart = [...issueCart];
-                              newCart[idx].remarks = e.target.value;
-                              setIssueCart(newCart);
-                            }}
+                                const newCart = [...issueCart];
+                                newCart[idx].remarks = e.target.value;
+                                setIssueCart(newCart);
+                              }}
                             placeholder="Optional remarks"
                           />
                         </td>
@@ -852,15 +889,15 @@ const InventoryManagement = () => {
       </div>
 
       <div className="tabs-container" style={{ marginBottom: '2rem' }}>
-        <button className={`tab ${activeTab === 'Overview' ? 'active' : ''}`} onClick={() => setActiveTab('Overview')}>
+        <button className={`tab ${activeTab === 'Overview' ? 'active' : ''}`} onClick={() => { setActiveTab('Overview'); setSearchQuery(''); }}>
           Global Overview
         </button>
         {locations.map(loc => (
-          <button key={loc.id} className={`tab ${activeTab === loc.name ? 'active' : ''}`} onClick={() => setActiveTab(loc.name)}>
+          <button key={loc.id} className={`tab ${activeTab === loc.name ? 'active' : ''}`} onClick={() => { setActiveTab(loc.name); setSearchQuery(''); }}>
             {loc.name}
           </button>
         ))}
-        <button className={`tab ${activeTab === 'Settings' ? 'active' : ''}`} onClick={() => setActiveTab('Settings')}>
+        <button className={`tab ${activeTab === 'Settings' ? 'active' : ''}`} onClick={() => { setActiveTab('Settings'); setSearchQuery(''); }}>
           <Settings size={14} style={{ marginRight: '0.4rem', marginBottom: '-2px' }} /> Settings
         </button>
       </div>
