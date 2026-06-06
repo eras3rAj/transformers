@@ -1,17 +1,18 @@
 import React from 'react';
+import { createPortal } from 'react-dom';
 import { AlertTriangle } from 'lucide-react';
 import '../layout/Layout.css';
 
 const ConfirmModal = ({ isOpen, title, message, onConfirm, onCancel, confirmText = 'Confirm', confirmType = 'danger' }) => {
   if (!isOpen) return null;
 
-  return (
+  const modalContent = (
     <div style={{
       position: 'fixed', top: 0, left: 0, width: '100%', height: '100vh',
       backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center',
-      alignItems: 'center', zIndex: 1200, backdropFilter: 'blur(4px)'
+      alignItems: 'center', zIndex: 9999, backdropFilter: 'blur(4px)'
     }}>
-      <div className="card animate-fade-in" style={{ width: '100%', maxWidth: '400px', padding: '2rem', textAlign: 'center' }}>
+      <div className="card animate-fade-in" style={{ width: '100%', maxWidth: '400px', padding: '2rem', textAlign: 'center', margin: '1rem' }}>
         <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '1rem' }}>
           <div style={{ 
             backgroundColor: confirmType === 'danger' ? 'rgba(239, 68, 68, 0.1)' : 'rgba(59, 130, 246, 0.1)', 
@@ -47,6 +48,8 @@ const ConfirmModal = ({ isOpen, title, message, onConfirm, onCancel, confirmText
       </div>
     </div>
   );
+
+  return typeof document !== 'undefined' ? createPortal(modalContent, document.body) : modalContent;
 };
 
 export default ConfirmModal;

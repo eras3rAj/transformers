@@ -61,7 +61,7 @@ const Dashboard = () => {
       const dateStr = d.toISOString().split('T')[0];
       const log = productionLogs.find(l => l.date === dateStr);
       
-      let boxUp = 0, cca = 0, ht = 0, lt = 0;
+      let boxUp = 0, cca = 0, ht = 0, lt = 0, tanks = 0;
       if (log && log.batches) {
         log.batches.forEach(b => {
           // If we have a company filter, only count batches for POs belonging to that company
@@ -71,6 +71,7 @@ const Dashboard = () => {
           if (b.component === 'CCA') cca += b.quantity;
           if (b.component === 'HT Winding') ht += b.quantity;
           if (b.component === 'LT Winding') lt += b.quantity;
+          if (b.component === 'Tanks Fabricated') tanks += b.quantity;
         });
       }
       
@@ -79,13 +80,15 @@ const Dashboard = () => {
         'Box Up': boxUp,
         'CCA': cca,
         'HT Winding': ht,
-        'LT Winding': lt
+        'LT Winding': lt,
+        'Tanks Fabricated': tanks
       });
     }
     return data;
   }, [productionLogs]);
 
   const todaysBoxUps = chartData[6]['Box Up'];
+  const todaysTanks = chartData[6]['Tanks Fabricated'];
 
   // 3. Upcoming Schedules
   const upcomingSchedules = useMemo(() => {
@@ -369,6 +372,21 @@ const Dashboard = () => {
           </div>
         )}
 
+        {hasModule('production') && (
+          <div className="card stat-card">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+              <div>
+                <h3 style={{ margin: '0 0 0.5rem 0', color: 'var(--text-muted)', fontSize: '0.85rem', textTransform: 'uppercase' }}>Today's Fabrication</h3>
+                <p style={{ margin: 0, fontSize: '2rem', fontWeight: '700', color: 'var(--accent-primary)' }}>{todaysTanks}</p>
+                <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginTop: '0.2rem' }}>Tanks Fabricated</div>
+              </div>
+              <div style={{ backgroundColor: 'rgba(59, 130, 246, 0.1)', padding: '0.8rem', borderRadius: '8px', color: 'var(--accent-primary)' }}>
+                <Factory size={24} />
+              </div>
+            </div>
+          </div>
+        )}
+
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: '2rem' }}>
@@ -396,6 +414,7 @@ const Dashboard = () => {
                 <Bar dataKey="CCA" fill="#3b82f6" radius={[4, 4, 0, 0]} />
                 <Bar dataKey="HT Winding" fill="#f59e0b" radius={[4, 4, 0, 0]} />
                 <Bar dataKey="LT Winding" fill="#10b981" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="Tanks Fabricated" fill="#8b5cf6" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>

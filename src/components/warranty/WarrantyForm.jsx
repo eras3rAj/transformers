@@ -108,16 +108,18 @@ const WarrantyForm = ({ onClose, onSubmit, initialData, availablePOs = [] }) => 
 
 
 
-  const renderAddHeader = (label, type) => (
+  const renderAddHeader = (label, type, canAdd = true) => (
     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.4rem' }}>
       <label className="input-label" style={{ marginBottom: 0 }}>{label}</label>
-      <button 
-        type="button" 
-        onClick={() => setAdding({ ...adding, [type]: true })} 
-        style={{ background: 'none', border: 'none', color: 'var(--accent-primary)', cursor: 'pointer', fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '2px', fontWeight: '500' }}
-      >
-        <Plus size={12} /> Add New
-      </button>
+      {canAdd && (
+        <button 
+          type="button" 
+          onClick={() => setAdding({ ...adding, [type]: true })} 
+          style={{ background: 'none', border: 'none', color: 'var(--accent-primary)', cursor: 'pointer', fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '2px', fontWeight: '500' }}
+        >
+          <Plus size={12} /> Add New
+        </button>
+      )}
     </div>
   );
 
@@ -174,7 +176,7 @@ const WarrantyForm = ({ onClose, onSubmit, initialData, availablePOs = [] }) => 
               </div>
 
               <div>
-                {renderAddHeader('Store Name (Place of Damage)', 'store')}
+                {renderAddHeader('Store Name (Place of Damage)', 'store', currentUser?.role === 'superadmin')}
                 {adding.store ? (
                   <div style={{ display: 'flex', gap: '0.5rem' }}>
                     <input type="text" className="input-field" value={newStore} onChange={e => setNewStore(e.target.value)} placeholder="New Store Name" autoFocus />

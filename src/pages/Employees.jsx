@@ -8,6 +8,7 @@ const Employees = () => {
   const { employees, addEmployee, updateEmployee, loading } = useEmployees();
   
   const [showForm, setShowForm] = useState(false);
+  const [editingEmployeeId, setEditingEmployeeId] = useState(null);
   const [statusPrompt, setStatusPrompt] = useState({ isOpen: false, employee: null, action: '' });
   const [departmentFilter, setDepartmentFilter] = useState('All');
   
@@ -18,10 +19,14 @@ const Employees = () => {
     designation: '',
     contact: '',
     join_date: new Date().toISOString().split('T')[0],
-    salary: ''
+    salary: '',
+    pan_number: '',
+    aadhaar_number: '',
+    custom_department: ''
   });
 
-  const departments = ['Production', 'Stores', 'Management', 'Quality', 'Sales', 'Logistics', 'Other'];
+  const baseDepartments = ['Production', 'Stores', 'Management', 'Quality', 'Sales', 'Logistics'];
+  const departments = [...new Set([...baseDepartments, ...employees.map(e => e.department).filter(Boolean)])];
 
   const filteredEmployees = employees.filter(emp => {
     if (departmentFilter !== 'All' && emp.department !== departmentFilter) return false;
@@ -35,13 +40,19 @@ const Employees = () => {
 
   const handleCreateEmployee = async (e) => {
     e.preventDefault();
-    const newEmp = {
+    const employeeData = {
       ...formData,
-      salary: formData.salary ? parseFloat(formData.salary) : null,
-      status: 'Active'
+      department: formData.department === '+ Add New' ? formData.custom_department : formData.department,
+      salary: formData.salary ? parseFloat(formData.salary) : null
     };
+    delete employeeData.custom_department;
     
-    await addEmployee(newEmp);
+    if (editingEmployeeId) {
+      await updateEmployee(editingEmployeeId, employeeData);
+    } else {
+      employeeData.status = 'Active';
+      await addEmployee(employeeData);
+    }
     
     setFormData({
       emp_code: '',
@@ -50,9 +61,45 @@ const Employees = () => {
       designation: '',
       contact: '',
       join_date: new Date().toISOString().split('T')[0],
-      salary: ''
+      salary: '',
+      pan_number: '',
+      aadhaar_number: '',
+      custom_department: ''
     });
+    setEditingEmployeeId(null);
     setShowForm(false);
+  };
+
+  const generateNextEmpCode = () => {
+    if (!employees || employees.length === 0) return 'VF-001';
+    
+    let maxNum = 0;
+    employees.forEach(emp => {
+      const match = emp.emp_code.match(/VF-(\d+)/i);
+      if (match && match[1]) {
+        const num = parseInt(match[1], 10);
+        if (num > maxNum) maxNum = num;
+      }
+    });
+    
+    return `VF-${String(maxNum + 1).padStart(3, '0')}`;
+  };
+
+  const handleEditClick = (emp) => {
+    setEditingEmployeeId(emp.id);
+    setFormData({
+      emp_code: emp.emp_code,
+      name: emp.name,
+      department: emp.department,
+      designation: emp.designation,
+      contact: emp.contact || '',
+      join_date: emp.join_date ? new Date(emp.join_date).toISOString().split('T')[0] : '',
+      salary: emp.salary || '',
+      pan_number: emp.pan_number || '',
+      aadhaar_number: emp.aadhaar_number || '',
+      custom_department: ''
+    });
+    setShowForm(true);
   };
 
   const confirmToggleStatus = async (employee, action) => {
@@ -80,7 +127,14 @@ const Employees = () => {
             <option value="All">All Departments</option>
             {departments.map(d => <option key={d} value={d}>{d}</option>)}
           </select>
-          <button className="btn btn-primary" onClick={() => setShowForm(true)}>
+          <button className="btn btn-primary" onClick={() => {
+            setEditingEmployeeId(null);
+            setFormData({
+              emp_code: generateNextEmpCode(), name: '', department: 'Production', designation: '', contact: '',
+              join_date: new Date().toISOString().split('T')[0], salary: '', pan_number: '', aadhaar_number: '', custom_department: ''
+            });
+            setShowForm(true);
+          }}>
             <Plus size={18} /> Add Employee
           </button>
         </div>
@@ -127,6 +181,9 @@ const Employees = () => {
                     </td>
                     <td style={{ padding: '1rem' }}>
                       <div style={{ display: 'flex', gap: '0.5rem' }}>
+                        <button className="icon-btn text-accent" title="Edit Employee" onClick={() => handleEditClick(emp)}>
+                          <Edit size={18} />
+                        </button>
                         {emp.status === 'Active' ? (
                           <button className="icon-btn text-warning" title="Mark Resigned" onClick={() => setStatusPrompt({ isOpen: true, employee: emp, action: 'suspend' })}>
                             <XCircle size={18} />
@@ -150,7 +207,8 @@ const Employees = () => {
         <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100vh', backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000, backdropFilter: 'blur(4px)' }}>
           <div className="card animate-fade-in" style={{ width: '100%', maxWidth: '600px', padding: '2rem', maxHeight: '90vh', overflowY: 'auto' }}>
             <h3 style={{ marginTop: 0, marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <Plus size={24} color="var(--accent-primary)" /> Onboard New Employee
+              {editingEmployeeId ? <Edit size={24} color="var(--accent-primary)" /> : <Plus size={24} color="var(--accent-primary)" />} 
+              {editingEmployeeId ? 'Edit Employee Details' : 'Onboard New Employee'}
             </h3>
             
             <form onSubmit={handleCreateEmployee}>
@@ -170,7 +228,20 @@ const Employees = () => {
                   <label className="input-label">Department</label>
                   <select name="department" value={formData.department} onChange={handleInputChange} className="input-field" required>
                     {departments.map(d => <option key={d} value={d}>{d}</option>)}
+                    <option value="+ Add New">+ Add New...</option>
                   </select>
+                  {formData.department === '+ Add New' && (
+                    <input 
+                      type="text" 
+                      name="custom_department" 
+                      value={formData.custom_department || ''} 
+                      onChange={handleInputChange} 
+                      className="input-field animate-fade-in" 
+                      placeholder="Enter new department name" 
+                      style={{ marginTop: '0.5rem' }} 
+                      required 
+                    />
+                  )}
                 </div>
                 <div style={{ flex: 1 }}>
                   <label className="input-label">Designation</label>
@@ -178,7 +249,7 @@ const Employees = () => {
                 </div>
               </div>
 
-              <div style={{ display: 'flex', gap: '1rem', marginBottom: '2rem' }}>
+              <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem' }}>
                 <div style={{ flex: 1 }}>
                   <label className="input-label">Contact Number</label>
                   <input type="text" name="contact" value={formData.contact} onChange={handleInputChange} className="input-field" placeholder="+91..." />
@@ -193,9 +264,20 @@ const Employees = () => {
                 </div>
               </div>
 
+              <div style={{ display: 'flex', gap: '1rem', marginBottom: '2rem' }}>
+                <div style={{ flex: 1 }}>
+                  <label className="input-label">PAN Number (Optional)</label>
+                  <input type="text" name="pan_number" value={formData.pan_number || ''} onChange={handleInputChange} className="input-field" placeholder="e.g. ABCDE1234F" style={{ textTransform: 'uppercase' }} />
+                </div>
+                <div style={{ flex: 1 }}>
+                  <label className="input-label">Aadhaar Number (Optional)</label>
+                  <input type="text" name="aadhaar_number" value={formData.aadhaar_number || ''} onChange={handleInputChange} className="input-field" placeholder="e.g. 1234 5678 9012" />
+                </div>
+              </div>
+
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem' }}>
                 <button type="button" className="btn btn-secondary" onClick={() => setShowForm(false)}>Cancel</button>
-                <button type="submit" className="btn btn-primary">Save Employee</button>
+                <button type="submit" className="btn btn-primary">{editingEmployeeId ? 'Update Details' : 'Save Employee'}</button>
               </div>
             </form>
           </div>

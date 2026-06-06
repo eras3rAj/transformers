@@ -10,6 +10,7 @@ const InventoryManagement = () => {
   const { currentUser } = useAuth();
   const isSuperAdmin = currentUser?.role === 'superadmin';
   
+  const [activeTab, setActiveTab] = useState('Overview');
   const [activeCategoryTab, setActiveCategoryTab] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -30,14 +31,16 @@ const InventoryManagement = () => {
   const [showTxnModal, setShowTxnModal] = useState({ isOpen: false, type: 'IN', item: null });
   const [editingMaster, setEditingMaster] = useState(null); // { type, id, oldName }
   const [issueCart, setIssueCart] = useState([]);
+  const [batchUsageType, setBatchUsageType] = useState('INTERNAL');
+  const [batchDepartment, setBatchDepartment] = useState('');
 
   // Form States
   const [locName, setLocName] = useState('');
   const [unitName, setUnitName] = useState('');
   const [companyFormName, setCompanyFormName] = useState('');
   const [categoryData, setCategoryData] = useState({ name: '', suppliers: [] });
-  const [itemData, setItemData] = useState({ name: '', unit: '', category: '', isNewCategory: false, suppliers: [] });
-  const [txnData, setTxnData] = useState({ qty: '', remarks: '', date: new Date().toISOString().split('T')[0], companyName: '', billNo: '', receivingDate: '', billDate: '', unitPrice: '' });
+  const [itemData, setItemData] = useState({ name: '', unit: '', category: '', isNewCategory: false, suppliers: [], minStockLevels: {} });
+  const [txnData, setTxnData] = useState({ qty: '', remarks: '', date: new Date().toISOString().split('T')[0], companyName: '', billNo: '', receivingDate: '', billDate: '', unitPrice: '', usageType: 'INTERNAL', department: '' });
   
   // Company search state
   const [companySearch, setCompanySearch] = useState('');
@@ -147,15 +150,15 @@ const InventoryManagement = () => {
     if (!itemData.name.trim() || !itemData.unit || !itemData.category.trim()) return;
     let success;
     if (editingMaster) {
-      const res = await editEntity(editingMaster.type, editingMaster.id, editingMaster.oldName, itemData.name.trim(), { unit: itemData.unit, category: itemData.category, suppliers: itemData.suppliers });
+      const res = await editEntity(editingMaster.type, editingMaster.id, editingMaster.oldName, itemData.name.trim(), { unit: itemData.unit, category: itemData.category, suppliers: itemData.suppliers, minStockLevels: itemData.minStockLevels });
       success = res.success;
       if (!success) setAlert({ isOpen: true, message: res.message });
     } else {
-      success = await addItem(itemData.name.trim(), itemData.unit, itemData.category, itemData.suppliers);
+      success = await addItem(itemData.name.trim(), itemData.unit, itemData.category, itemData.suppliers, itemData.minStockLevels);
       if (!success) setAlert({ isOpen: true, message: "Item already exists!" });
     }
     if (success) {
-      setItemData({ name: '', unit: '', category: '', isNewCategory: false, suppliers: [] });
+      setItemData({ name: '', unit: '', category: '', isNewCategory: false, suppliers: [], minStockLevels: {} });
       setShowItemModal(false);
       setEditingMaster(null);
     }
@@ -202,7 +205,7 @@ const InventoryManagement = () => {
     };
 
     await logTransaction(payload);
-    setTxnData({ qty: '', remarks: '', date: new Date().toISOString().split('T')[0], companyName: '', billNo: '', receivingDate: '', billDate: '', unitPrice: '' });
+    setTxnData({ qty: '', remarks: '', date: new Date().toISOString().split('T')[0], companyName: '', billNo: '', receivingDate: '', billDate: '', unitPrice: '', usageType: 'INTERNAL', department: '' });
     setShowTxnModal({ isOpen: false, type: 'IN', item: null });
   };
 
@@ -255,7 +258,9 @@ const InventoryManagement = () => {
         billNo: '',
         receivingDate: '',
         billDate: '',
-        unitPrice: ''
+        unitPrice: '',
+        usageType: batchUsageType,
+        department: batchUsageType === 'INTERNAL' ? batchDepartment : ''
       });
     }
 
@@ -364,9 +369,12 @@ const InventoryManagement = () => {
                     <td style={{ padding: '1rem', fontWeight: '600' }}>{item.name} <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>({item.unit})</span></td>
                     {locations.map(loc => {
                       const locStock = getStockAtLocation(item.name, loc.name);
+                      const minStock = item.minStockLevels?.[loc.name] || 0;
+                      const isLowStock = minStock > 0 && locStock < minStock;
                       return (
-                        <td key={loc.id} style={{ padding: '1rem', color: locStock === 0 ? 'var(--text-muted)' : 'var(--text-primary)' }}>
+                        <td key={loc.id} style={{ padding: '1rem', color: isLowStock ? 'var(--danger)' : locStock === 0 ? 'var(--text-muted)' : 'var(--text-primary)', fontWeight: isLowStock ? '700' : 'normal', backgroundColor: isLowStock ? 'rgba(239, 68, 68, 0.05)' : 'transparent' }}>
                           {locStock.toLocaleString()}
+                          {isLowStock && <div style={{ fontSize: '0.7rem', marginTop: '4px' }}>Min: {minStock}</div>}
                         </td>
                       );
                     })}
@@ -450,6 +458,27 @@ const InventoryManagement = () => {
                 </tbody>
               </table>
             </div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', marginBottom: '1.5rem', backgroundColor: 'var(--bg-primary)', padding: '1rem', borderRadius: '8px' }}>
+              <div style={{ flex: 1, minWidth: '200px' }}>
+                <label className="input-label">Batch Usage Type</label>
+                <div style={{ display: 'flex', gap: '1rem', marginTop: '0.5rem' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
+                    <input type="radio" name="batchUsageType" value="INTERNAL" checked={batchUsageType === 'INTERNAL'} onChange={() => { setBatchUsageType('INTERNAL'); }} />
+                    <span style={{ fontSize: '0.9rem' }}>Internal Use</span>
+                  </label>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
+                    <input type="radio" name="batchUsageType" value="EXTERNAL" checked={batchUsageType === 'EXTERNAL'} onChange={() => { setBatchUsageType('EXTERNAL'); setBatchDepartment(''); }} />
+                    <span style={{ fontSize: '0.9rem' }}>External Sale</span>
+                  </label>
+                </div>
+              </div>
+              {batchUsageType === 'INTERNAL' && (
+                <div style={{ flex: 1, minWidth: '200px' }}>
+                  <label className="input-label">Department</label>
+                  <input type="text" className="input-field" value={batchDepartment} onChange={e => setBatchDepartment(e.target.value)} placeholder="E.g. Maintenance, Production" style={{ marginBottom: 0 }} />
+                </div>
+              )}
+            </div>
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem' }}>
               <button className="btn btn-secondary" onClick={() => setIssueCart([])}>Clear Cart</button>
               <button className="btn btn-primary" onClick={handleBatchSubmit}>Submit Batch</button>
@@ -497,13 +526,16 @@ const InventoryManagement = () => {
                       <tbody>
                         {catItems.map(item => {
                           const stock = getStockAtLocation(item.name, locName);
+                          const minStock = item.minStockLevels?.[locName] || 0;
+                          const isLowStock = minStock > 0 && stock < minStock;
                           return (
-                            <tr key={item.id} style={{ borderBottom: '1px solid var(--border-color)' }}>
+                            <tr key={item.id} style={{ borderBottom: '1px solid var(--border-color)', backgroundColor: isLowStock ? 'rgba(239, 68, 68, 0.05)' : 'transparent' }}>
                               <td style={{ padding: '1rem', fontWeight: '600' }}>
                                 {item.name} <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>({item.unit})</span>
+                                {isLowStock && <span style={{ marginLeft: '0.5rem', fontSize: '0.7rem', padding: '0.2rem 0.4rem', backgroundColor: 'var(--danger)', color: 'white', borderRadius: '4px', whiteSpace: 'nowrap' }}>Low Stock (Min {minStock})</span>}
                               </td>
                               <td style={{ padding: '1rem', textAlign: 'center' }}>
-                                <span style={{ fontSize: '1.1rem', fontWeight: '700', color: stock > 0 ? 'var(--success)' : 'var(--danger)' }}>
+                                <span style={{ fontSize: '1.1rem', fontWeight: '700', color: isLowStock ? 'var(--danger)' : stock > 0 ? 'var(--success)' : 'var(--danger)' }}>
                                   {stock.toLocaleString()}
                                 </span>
                               </td>
@@ -546,7 +578,7 @@ const InventoryManagement = () => {
             <thead>
               <tr style={{ backgroundColor: 'var(--bg-tertiary)', borderBottom: '1px solid var(--border-color)' }}>
                 <th style={{ padding: '0.8rem', color: 'var(--text-muted)' }}>DATE</th>
-                <th style={{ padding: '0.8rem', color: 'var(--text-muted)' }}>COMPANY</th>
+                <th style={{ padding: '0.8rem', color: 'var(--text-muted)' }}>PARTY / DEPT</th>
                 <th style={{ padding: '0.8rem', color: 'var(--text-muted)' }}>BILL NO.</th>
                 <th style={{ padding: '0.8rem', color: 'var(--text-muted)' }}>ITEM</th>
                 <th style={{ padding: '0.8rem', color: 'var(--text-muted)' }}>TYPE</th>
@@ -560,7 +592,10 @@ const InventoryManagement = () => {
               {transactions.filter(t => t.location === locName).sort((a,b) => new Date(b.timestamp) - new Date(a.timestamp)).map((txn, idx) => (
                 <tr key={idx} style={{ borderBottom: '1px solid var(--border-color)' }}>
                   <td style={{ padding: '0.8rem', color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>{new Date(txn.date).toLocaleDateString('en-GB')}</td>
-                  <td style={{ padding: '0.8rem', fontWeight: '500', whiteSpace: 'nowrap' }}>{txn.companyName || '-'}</td>
+                  <td style={{ padding: '0.8rem', fontWeight: '500', whiteSpace: 'nowrap' }}>
+                    {txn.type === 'OUT' && txn.usageType === 'INTERNAL' ? txn.department : (txn.companyName || '-')}
+                    {txn.usageType && <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '2px' }}>{txn.usageType}</div>}
+                  </td>
                   <td style={{ padding: '0.8rem', color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>{txn.billNo || '-'}</td>
                   <td style={{ padding: '0.8rem', fontWeight: '500', whiteSpace: 'nowrap' }}>{txn.item}</td>
                   <td style={{ padding: '0.8rem' }}>
@@ -798,7 +833,7 @@ const InventoryManagement = () => {
           <span>Master Items List</span>
           <button className="icon-btn" onClick={() => {
             setEditingMaster(null);
-            setItemData({ name: '', unit: '', category: '', isNewCategory: false, suppliers: [] });
+            setItemData({ name: '', unit: '', category: '', isNewCategory: false, suppliers: [], minStockLevels: {} });
             setSupplierSearch('');
             setShowItemModal(true);
           }}><Plus size={18} /></button>
@@ -845,7 +880,7 @@ const InventoryManagement = () => {
                           <div style={{ display: 'flex', gap: '0.3rem' }}>
                             <button className="icon-btn-small" onClick={() => {
                               setEditingMaster({ type: 'inv_item', id: item.id, oldName: item.name });
-                              setItemData({ name: item.name, unit: item.unit, category: item.category, isNewCategory: false, suppliers: item.suppliers || [] });
+                              setItemData({ name: item.name, unit: item.unit, category: item.category, isNewCategory: false, suppliers: item.suppliers || [], minStockLevels: item.minStockLevels || {} });
                               setSupplierSearch('');
                               setShowItemModal(true);
                             }} title="Edit Item"><Edit size={14} color="var(--accent-primary)" /></button>
@@ -1038,6 +1073,36 @@ const InventoryManagement = () => {
                 </div>
               </div>
 
+              <div style={{ marginBottom: '2rem' }}>
+                <label className="input-label">Minimum Stock Levels (Per Location)</label>
+                <div style={{ border: '1px solid var(--border-color)', borderRadius: '8px', backgroundColor: 'var(--bg-secondary)', overflow: 'hidden', padding: '0.5rem' }}>
+                  {sortedLocations.map(loc => (
+                    <div key={loc.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.4rem', borderBottom: '1px solid var(--border-color)' }}>
+                      <span style={{ fontSize: '0.9rem' }}>{loc.name}</span>
+                      <input 
+                        type="number" 
+                        min="0"
+                        className="input-field" 
+                        style={{ width: '100px', padding: '0.3rem 0.5rem', marginBottom: 0 }}
+                        placeholder="Min Qty"
+                        value={itemData.minStockLevels?.[loc.name] !== undefined ? itemData.minStockLevels[loc.name] : ''}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setItemData({
+                            ...itemData,
+                            minStockLevels: {
+                              ...itemData.minStockLevels,
+                              [loc.name]: val !== '' ? Number(val) : undefined
+                            }
+                          });
+                        }}
+                      />
+                    </div>
+                  ))}
+                  {sortedLocations.length === 0 && <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>No locations configured.</div>}
+                </div>
+              </div>
+
               <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end' }}>
                 <button type="button" className="btn btn-secondary" onClick={() => setShowItemModal(false)}>Cancel</button>
                 <button type="submit" className="btn btn-primary">Save Item</button>
@@ -1144,9 +1209,33 @@ const InventoryManagement = () => {
                 <label className="input-label">Date</label>
                 <input type="date" className="input-field" value={txnData.date} onChange={e => setTxnData({ ...txnData, date: e.target.value })} required />
               </div>
-              <div style={{ marginBottom: '1.5rem' }}>
-                <label className="input-label">Company Name</label>
-                <div style={{ position: 'relative', display: 'flex', gap: '0.5rem' }}>
+              {showTxnModal.type === 'OUT' && (
+                <>
+                  <div style={{ marginBottom: '1.5rem' }}>
+                    <label className="input-label">Usage Type</label>
+                    <div style={{ display: 'flex', gap: '1rem', marginTop: '0.5rem' }}>
+                      <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
+                        <input type="radio" name="usageType" value="INTERNAL" checked={txnData.usageType === 'INTERNAL'} onChange={() => setTxnData({ ...txnData, usageType: 'INTERNAL', companyName: '' })} />
+                        <span style={{ fontSize: '0.9rem' }}>Internal Use</span>
+                      </label>
+                      <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
+                        <input type="radio" name="usageType" value="EXTERNAL" checked={txnData.usageType === 'EXTERNAL'} onChange={() => setTxnData({ ...txnData, usageType: 'EXTERNAL', department: '' })} />
+                        <span style={{ fontSize: '0.9rem' }}>External Sale</span>
+                      </label>
+                    </div>
+                  </div>
+                  {txnData.usageType === 'INTERNAL' && (
+                    <div style={{ marginBottom: '1.5rem' }}>
+                      <label className="input-label">Department</label>
+                      <input type="text" className="input-field" value={txnData.department} onChange={e => setTxnData({ ...txnData, department: e.target.value })} placeholder="E.g. Maintenance, Production" required />
+                    </div>
+                  )}
+                </>
+              )}
+              {(showTxnModal.type === 'IN' || txnData.usageType === 'EXTERNAL') && (
+                <div style={{ marginBottom: '1.5rem' }}>
+                  <label className="input-label">{showTxnModal.type === 'IN' ? 'Company Name' : 'Customer Company (Optional)'}</label>
+                  <div style={{ position: 'relative', display: 'flex', gap: '0.5rem' }}>
                   <div style={{ flex: 1, position: 'relative' }}>
                     <input 
                       type="text" 
@@ -1162,7 +1251,7 @@ const InventoryManagement = () => {
                         setCompanySearch('');
                       }}
                       placeholder="Search or select company..."
-                      required={!txnData.companyName}
+                      required={showTxnModal.type === 'IN' && !txnData.companyName}
                     />
                     {companyDropdownOpen && (
                       <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 10, backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)', borderRadius: '0 0 8px 8px', maxHeight: '160px', overflowY: 'auto', boxShadow: 'var(--shadow-lg)' }}>
@@ -1236,6 +1325,7 @@ const InventoryManagement = () => {
                   </button>
                 </div>
               </div>
+              )}
               <div style={{ marginBottom: '1.5rem' }}>
                 <label className="input-label">Bill / Invoice No. (Optional)</label>
                 <input type="text" className="input-field" value={txnData.billNo} onChange={e => setTxnData({ ...txnData, billNo: e.target.value })} placeholder="E.g. INV-2026-0451" />
