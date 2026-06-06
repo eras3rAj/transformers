@@ -20,6 +20,7 @@ const Sidebar = ({ isMobileMenuOpen, setIsMobileMenuOpen }) => {
     { name: 'Pending Tasks', icon: <ListTodo size={20} />, path: '/pending-tasks', adminOk: true, normalOk: true },
     { name: 'Milestones', icon: <Target size={20} />, path: '/milestones', adminOk: true, normalOk: true },
     { name: 'Daily Expenses', icon: <FileText size={20} />, path: '/expenses', adminOk: true, normalOk: true },
+    { name: 'Daily Summary', icon: <FileText size={20} />, path: '/eod-summary', adminOk: true, normalOk: true },
     { name: 'Bank Guarantee & LC', icon: <Briefcase size={20} />, path: '/bg-lc', adminOk: true, normalOk: true },
     { name: 'Custom Duty', icon: <Percent size={20} />, path: '/custom-duty', adminOk: true, normalOk: true },
     { name: 'Audit Logs', icon: <ClipboardList size={20} />, path: '/logs', adminOk: false, normalOk: false },
@@ -44,6 +45,7 @@ const Sidebar = ({ isMobileMenuOpen, setIsMobileMenuOpen }) => {
       '/pending-tasks': 'pending-tasks',
       '/milestones': 'milestones',
       '/expenses': 'expenses',
+      '/eod-summary': 'eod-summary',
       '/bg-lc': 'bg-lc',
       '/custom-duty': 'custom-duty'
     };
