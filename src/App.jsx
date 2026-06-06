@@ -62,6 +62,7 @@ function App() {
                       <ExpenseProvider>
                         <EmployeeProvider>
                           <VendorProvider>
+                            <TaskProvider>
                               <MilestoneProvider>
                                 <BgLcProvider>
                                   <CustomDutyProvider>
