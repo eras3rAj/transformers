@@ -38,10 +38,11 @@ const EodSummary = () => {
     return formatDate(selectedDate);
   }, [selectedDate]);
 
-  // 1. Aggregated Production Data
+  // 1. Aggregated Production Data (Latest available log)
   const productionSummary = useMemo(() => {
-    const log = productionLogs.find(l => l.date === selectedDate);
-    if (!log || !log.batches) return [];
+    const sortedLogs = [...productionLogs].sort((a, b) => new Date(b.date) - new Date(a.date));
+    const log = sortedLogs.find(l => l.batches && l.batches.length > 0);
+    if (!log || !log.batches) return { date: null, groups: [] };
     
     // Group by production line
     const linesMap = {};
@@ -56,63 +57,62 @@ const EodSummary = () => {
       linesMap[b.line].batches.push(b);
     });
     
-    return Object.values(linesMap);
-  }, [productionLogs, selectedDate]);
+    return { date: log.date, groups: Object.values(linesMap) };
+  }, [productionLogs]);
 
   // Helper to count total production items
   const totalProductionCount = useMemo(() => {
     let count = 0;
-    productionSummary.forEach(lineGroup => {
-      lineGroup.batches.forEach(b => {
-        count += Number(b.quantity || 0);
+    if (productionSummary.groups) {
+      productionSummary.groups.forEach(lineGroup => {
+        lineGroup.batches.forEach(b => {
+          count += Number(b.quantity || 0);
+        });
       });
-    });
+    }
     return count;
   }, [productionSummary]);
 
-  // 2. Aggregated Delivery Schedules
+  // 2. Aggregated Delivery Schedules (Next upcoming schedule per PO)
   const deliverySchedules = useMemo(() => {
-    const daily = [];
+    const upcoming = [];
+    const today = new Date().toISOString().split('T')[0];
+    
     schedules.forEach(poSched => {
       if (Array.isArray(poSched.schedules)) {
-        poSched.schedules.forEach(s => {
-          if (s.date === selectedDate) {
-            const poDetails = pos.find(p => p.poNo === poSched.poNo) || {};
-            daily.push({
-              poNo: poSched.poNo,
-              qty: s.quantity,
-              companyName: poDetails.companyName || 'Unassigned',
-              utilityBoard: poDetails.utilityBoard || 'N/A',
-              capacity: poDetails.capacity || 'N/A',
-              noOfPhases: poDetails.noOfPhases || '3-Phase'
-            });
-          }
-        });
+        const futureSchedules = poSched.schedules.filter(s => s.date >= today).sort((a,b) => new Date(a.date) - new Date(b.date));
+        if (futureSchedules.length > 0) {
+          const nextSched = futureSchedules[0];
+          const poDetails = pos.find(p => p.poNo === poSched.poNo) || {};
+          upcoming.push({
+            poNo: poSched.poNo,
+            qty: nextSched.quantity,
+            date: nextSched.date,
+            companyName: poDetails.companyName || 'Unassigned',
+            utilityBoard: poDetails.utilityBoard || 'N/A',
+            capacity: poDetails.capacity || 'N/A',
+            noOfPhases: poDetails.noOfPhases || '3-Phase'
+          });
+        }
       }
     });
-    return daily;
-  }, [schedules, pos, selectedDate]);
+    upcoming.sort((a, b) => new Date(a.date) - new Date(b.date));
+    return upcoming;
+  }, [schedules, pos]);
 
-  // 3. Aggregated Warranty Claims
+  // 3. Aggregated Warranty Claims (All active/pending claims)
   const warrantyEvents = useMemo(() => {
-    const daily = [];
-    claims.forEach(c => {
-      // Check which date field matches the selected date
-      const matches = [];
-      if (c.damageDate === selectedDate) matches.push('Damage Reported');
-      if (c.intimationDate === selectedDate) matches.push('Intimation Received');
-      if (c.returnDate === selectedDate) matches.push('Material Returned');
-      if (c.inspectionDate === selectedDate) matches.push('Inspection Completed');
-      
-      if (matches.length > 0) {
-        daily.push({
-          ...c,
-          eventTypes: matches.join(', ')
-        });
-      }
+    return claims.filter(c => 
+      !c.isHidden && 
+      c.status !== 'Resolved' && 
+      c.status !== 'Deleted' && 
+      c.status !== 'Pending Deletion'
+    ).sort((a, b) => {
+      if (!a.returnDate) return 1;
+      if (!b.returnDate) return -1;
+      return new Date(a.returnDate) - new Date(b.returnDate);
     });
-    return daily;
-  }, [claims, selectedDate]);
+  }, [claims]);
 
   // 4. Aggregated Expenses
   const dailyExpenses = useMemo(() => {
@@ -659,12 +659,12 @@ const EodSummary = () => {
       {/* 2. Daily Production */}
       <div className="report-section card">
         <h2 style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', margin: '0 0 1rem 0' }}>
-          <Layers size={20} color="var(--accent-primary)" /> Daily Production Batches
+          <Layers size={20} color="var(--accent-primary)" /> Latest Production Batches {productionSummary.date && <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 'normal', marginLeft: '0.5rem' }}>(Updated: {formatDate(productionSummary.date)})</span>}
         </h2>
-        {productionSummary.length === 0 ? (
+        {productionSummary.groups.length === 0 ? (
           <div className="empty-display">
             <Inbox size={32} />
-            <p>No manufacturing output or assembly logs recorded for {displayFormattedDate}.</p>
+            <p>No manufacturing output or assembly logs recorded.</p>
           </div>
         ) : (
           <div className="table-container">
@@ -679,7 +679,7 @@ const EodSummary = () => {
                 </tr>
               </thead>
               <tbody>
-                {productionSummary.map(lineGroup => (
+                {productionSummary.groups.map(lineGroup => (
                   lineGroup.batches.map((batch, index) => (
                     <tr key={batch.id}>
                       {index === 0 ? (
@@ -712,7 +712,7 @@ const EodSummary = () => {
         {deliverySchedules.length === 0 ? (
           <div className="empty-display">
             <Inbox size={32} />
-            <p>No client deliveries or dispatches scheduled for {displayFormattedDate}.</p>
+            <p>No upcoming client deliveries or dispatches scheduled.</p>
           </div>
         ) : (
           <div className="table-container">
@@ -723,6 +723,7 @@ const EodSummary = () => {
                   <th>UTILITY BOARD</th>
                   <th>CLIENT / COMPANY</th>
                   <th>PRODUCT DETAILS</th>
+                  <th>SCHEDULED DATE</th>
                   <th style={{ textAlign: 'right' }}>SCHEDULED QTY</th>
                 </tr>
               </thead>
@@ -733,6 +734,7 @@ const EodSummary = () => {
                     <td>{item.utilityBoard}</td>
                     <td>{item.companyName}</td>
                     <td>{item.capacity} ({item.noOfPhases})</td>
+                    <td style={{ color: 'var(--accent-primary)', fontWeight: '500' }}>{formatDate(item.date)}</td>
                     <td style={{ textAlign: 'right', fontWeight: '700', color: 'var(--success)' }}>
                       {item.qty}
                     </td>
@@ -752,7 +754,7 @@ const EodSummary = () => {
         {warrantyEvents.length === 0 ? (
           <div className="empty-display">
             <Inbox size={32} />
-            <p>No warranty claim damage logs, intimations, or returns filed for {displayFormattedDate}.</p>
+            <p>No pending warranty claims.</p>
           </div>
         ) : (
           <div className="table-container">
@@ -764,7 +766,7 @@ const EodSummary = () => {
                   <th>UTILITY BOARD</th>
                   <th>STORE NAME</th>
                   <th>RATING</th>
-                  <th>EVENT FILED TODAY</th>
+                  <th>RETURN DEADLINE</th>
                   <th>CURRENT STATUS</th>
                 </tr>
               </thead>
@@ -776,7 +778,7 @@ const EodSummary = () => {
                     <td>{claim.utilityBoard}</td>
                     <td>{claim.storeName}</td>
                     <td>{claim.capacity}</td>
-                    <td style={{ color: 'var(--warning)', fontWeight: '500' }}>{claim.eventTypes}</td>
+                    <td style={{ color: (!claim.returnDate || new Date(claim.returnDate) < new Date()) ? 'var(--danger)' : 'var(--warning)', fontWeight: '500' }}>{claim.returnDate ? formatDate(claim.returnDate) : 'Not Set'}</td>
                     <td>
                       <span className="badge-status" style={{ 
                         padding: '0.2rem 0.5rem', 
