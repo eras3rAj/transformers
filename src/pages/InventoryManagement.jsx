@@ -10,6 +10,7 @@ const InventoryManagement = () => {
   const { currentUser } = useAuth();
   const isSuperAdmin = currentUser?.role === 'superadmin';
   
+  const [activeTab, setActiveTab] = useState('Overview');
   const [activeCategoryTab, setActiveCategoryTab] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
 
