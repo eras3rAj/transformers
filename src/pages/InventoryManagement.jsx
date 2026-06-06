@@ -6,7 +6,7 @@ import ConfirmModal from '../components/common/ConfirmModal';
 import '../components/layout/Layout.css';
 
 const InventoryManagement = () => {
-  const { locations, units, items, companies, transactions, categories, loading, addLocation, addUnit, addItem, addCompany, logTransaction, logBatchTransactions, deleteTransaction, getStockAtLocation, getGlobalStock, saveCategory, deleteEntity, editEntity } = useInventory();
+  const { locations, units, items, companies, departments, transactions, categories, loading, addLocation, addUnit, addItem, addCompany, addDepartment, logTransaction, logBatchTransactions, deleteTransaction, getStockAtLocation, getGlobalStock, saveCategory, deleteEntity, editEntity } = useInventory();
   const { currentUser } = useAuth();
   const isSuperAdmin = currentUser?.role === 'superadmin';
   
@@ -27,6 +27,7 @@ const InventoryManagement = () => {
   const [showUnitModal, setShowUnitModal] = useState(false);
   const [showItemModal, setShowItemModal] = useState(false);
   const [showCompanyModal, setShowCompanyModal] = useState(false);
+  const [showDepartmentModal, setShowDepartmentModal] = useState(false);
   const [showCategoryModal, setShowCategoryModal] = useState(false);
   const [showTxnModal, setShowTxnModal] = useState({ isOpen: false, type: 'IN', item: null });
   const [editingMaster, setEditingMaster] = useState(null); // { type, id, oldName }
@@ -38,13 +39,17 @@ const InventoryManagement = () => {
   const [locName, setLocName] = useState('');
   const [unitName, setUnitName] = useState('');
   const [companyFormName, setCompanyFormName] = useState('');
+  const [departmentFormName, setDepartmentFormName] = useState('');
   const [categoryData, setCategoryData] = useState({ name: '', suppliers: [] });
   const [itemData, setItemData] = useState({ name: '', unit: '', category: '', isNewCategory: false, suppliers: [], minStockLevels: {} });
   const [txnData, setTxnData] = useState({ qty: '', remarks: '', date: new Date().toISOString().split('T')[0], companyName: '', billNo: '', receivingDate: '', billDate: '', unitPrice: '', usageType: 'INTERNAL', department: '' });
   
-  // Company search state
   const [companySearch, setCompanySearch] = useState('');
   const [companyDropdownOpen, setCompanyDropdownOpen] = useState(false);
+  const [departmentSearch, setDepartmentSearch] = useState('');
+  const [departmentDropdownOpen, setDepartmentDropdownOpen] = useState(false);
+  const [batchDepartmentSearch, setBatchDepartmentSearch] = useState('');
+  const [batchDepartmentDropdownOpen, setBatchDepartmentDropdownOpen] = useState(false);
   const [supplierSearch, setSupplierSearch] = useState('');
   const [activeSettingsTab, setActiveSettingsTab] = useState('Supplier Companies');
   
@@ -126,6 +131,25 @@ const InventoryManagement = () => {
     }
   };
 
+  const handleAddDepartment = async (e) => {
+    e.preventDefault();
+    if (!departmentFormName.trim()) return;
+    let success;
+    if (editingMaster) {
+      const res = await editEntity(editingMaster.type, editingMaster.id, editingMaster.oldName, departmentFormName.trim());
+      success = res.success;
+      if (!success) setAlert({ isOpen: true, message: res.message });
+    } else {
+      success = await addDepartment(departmentFormName.trim());
+      if (!success) setAlert({ isOpen: true, message: "Department name already exists!" });
+    }
+    if (success) {
+      setDepartmentFormName('');
+      setShowDepartmentModal(false);
+      setEditingMaster(null);
+    }
+  };
+
   const handleAddCategory = async (e) => {
     e.preventDefault();
     if (!categoryData.name.trim()) return;
@@ -201,6 +225,8 @@ const InventoryManagement = () => {
       billNo: txnData.billNo,
       receivingDate: txnData.receivingDate,
       billDate: txnData.billDate,
+      usageType: txnData.usageType,
+      department: txnData.department,
       unitPrice: showTxnModal.type === 'IN' && txnData.unitPrice ? Number(txnData.unitPrice) : ''
     };
 
@@ -475,7 +501,69 @@ const InventoryManagement = () => {
               {batchUsageType === 'INTERNAL' && (
                 <div style={{ flex: 1, minWidth: '200px' }}>
                   <label className="input-label">Department</label>
-                  <input type="text" className="input-field" value={batchDepartment} onChange={e => setBatchDepartment(e.target.value)} placeholder="E.g. Maintenance, Production" style={{ marginBottom: 0 }} />
+                  <div style={{ position: 'relative', display: 'flex', gap: '0.5rem' }}>
+                    <div style={{ flex: 1, position: 'relative' }}>
+                      <input 
+                        type="text" 
+                        className="input-field" 
+                        style={{ marginBottom: 0 }}
+                        value={batchDepartmentDropdownOpen ? batchDepartmentSearch : batchDepartment}
+                        onChange={e => {
+                          setBatchDepartmentSearch(e.target.value);
+                          if (!batchDepartmentDropdownOpen) setBatchDepartmentDropdownOpen(true);
+                        }}
+                        onFocus={() => {
+                          setBatchDepartmentDropdownOpen(true);
+                          setBatchDepartmentSearch('');
+                        }}
+                        placeholder="Select or enter department..."
+                      />
+                      {batchDepartmentDropdownOpen && (
+                        <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 100, backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)', borderRadius: '8px', marginTop: '4px', boxShadow: 'var(--shadow-md)', maxHeight: '200px', overflowY: 'auto' }}>
+                          {(() => {
+                            const term = batchDepartmentSearch.toLowerCase();
+                            const mappedList = departments.filter(d => d.name.toLowerCase().includes(term)).sort((a,b) => a.name.localeCompare(b.name));
+                            return (
+                              <>
+                                {mappedList.length > 0 && (
+                                  <>
+                                    <div style={{ padding: '0.4rem 1rem', fontSize: '0.75rem', fontWeight: 'bold', color: 'var(--text-muted)', backgroundColor: 'var(--bg-primary)' }}>AVAILABLE DEPARTMENTS</div>
+                                    {mappedList.map(d => (
+                                      <div 
+                                        key={d.id} 
+                                        onClick={() => {
+                                          setBatchDepartment(d.name);
+                                          setBatchDepartmentDropdownOpen(false);
+                                          setBatchDepartmentSearch('');
+                                        }}
+                                        style={{ padding: '0.6rem 1rem', cursor: 'pointer', fontSize: '0.9rem', borderBottom: '1px solid var(--border-color)', transition: 'background 0.15s', backgroundColor: batchDepartment === d.name ? 'var(--accent-glow)' : 'transparent' }}
+                                        onMouseEnter={e => e.target.style.backgroundColor = 'var(--bg-tertiary)'}
+                                        onMouseLeave={e => e.target.style.backgroundColor = batchDepartment === d.name ? 'var(--accent-glow)' : 'transparent'}
+                                      >
+                                        {d.name} {batchDepartment === d.name && <span style={{ color: 'var(--success)', fontSize: '0.8rem', marginLeft: '0.5rem' }}>✓</span>}
+                                      </div>
+                                    ))}
+                                  </>
+                                )}
+                                {mappedList.length === 0 && (
+                                  <div style={{ padding: '0.6rem 1rem', color: 'var(--text-muted)', fontSize: '0.85rem' }}>No matching departments found.</div>
+                                )}
+                              </>
+                            );
+                          })()}
+                        </div>
+                      )}
+                    </div>
+                    <button 
+                      type="button" 
+                      className="icon-btn" 
+                      title="Add New Department"
+                      style={{ border: '1px solid var(--border-color)', borderRadius: '8px', width: '42px', height: '42px', flexShrink: 0 }}
+                      onClick={() => { setBatchDepartmentDropdownOpen(false); setShowDepartmentModal(true); }}
+                    >
+                      <Plus size={18} />
+                    </button>
+                  </div>
                 </div>
               )}
             </div>
@@ -624,7 +712,7 @@ const InventoryManagement = () => {
 };
 
   const renderSettings = () => {
-    const tabs = ['Supplier Companies', 'Master Categories', 'Store Locations', 'Units of Measure'];
+    const tabs = ['Supplier Companies', 'Internal Departments', 'Master Categories', 'Store Locations', 'Units of Measure'];
     
     return (
     <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
@@ -651,6 +739,7 @@ const InventoryManagement = () => {
               }}
             >
               {tab === 'Supplier Companies' ? <><Building2 size={16} style={{ marginRight: '0.5rem', verticalAlign: 'text-bottom' }}/>Supplier Companies</> : 
+               tab === 'Internal Departments' ? <><Building2 size={16} style={{ marginRight: '0.5rem', verticalAlign: 'text-bottom' }}/>Internal Departments</> :
                tab === 'Master Categories' ? <><Database size={16} style={{ marginRight: '0.5rem', verticalAlign: 'text-bottom' }}/>Master Categories</> :
                tab === 'Store Locations' ? <><MapPin size={16} style={{ marginRight: '0.5rem', verticalAlign: 'text-bottom' }}/>Store Locations</> :
                <><Settings size={16} style={{ marginRight: '0.5rem', verticalAlign: 'text-bottom' }}/>Units of Measure</>}
@@ -819,6 +908,51 @@ const InventoryManagement = () => {
               </div>
             </li>
           ))}
+              </ul>
+            </div>
+          )}
+
+          {activeSettingsTab === 'Internal Departments' && (
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
+                <h3 style={{ margin: 0, color: 'var(--text-primary)' }}>Manage Internal Departments</h3>
+                <div style={{ display: 'flex', gap: '1rem', flex: 1, justifyContent: 'flex-end', minWidth: '300px' }}>
+                  <div className="search-bar" style={{ flex: 1, maxWidth: '300px' }}>
+                    <Search size={16} className="search-icon" />
+                    <input 
+                      type="text" 
+                      placeholder="Search departments..." 
+                      className="search-input"
+                      value={departmentSearch}
+                      onChange={(e) => setDepartmentSearch(e.target.value)}
+                    />
+                  </div>
+                  <button className="btn btn-primary" style={{ padding: '0.5rem 1rem', fontSize: '0.85rem', whiteSpace: 'nowrap' }} onClick={() => {
+                    setEditingMaster(null);
+                    setDepartmentFormName('');
+                    setShowDepartmentModal(true);
+                  }}><Plus size={16} style={{ marginRight: '0.4rem' }}/> Add Department</button>
+                </div>
+              </div>
+              <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '0.8rem' }}>
+          {departments.filter(d => d.name.toLowerCase().includes(departmentSearch.toLowerCase())).sort((a,b) => a.name.localeCompare(b.name)).map(d => (
+            <li key={d.id} style={{ padding: '1rem', backgroundColor: 'var(--bg-tertiary)', borderRadius: '8px', border: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div style={{ fontWeight: '600', color: 'var(--text-primary)', fontSize: '1.05rem' }}>{d.name}</div>
+                {isSuperAdmin && (
+                  <div style={{ display: 'flex', gap: '0.5rem' }}>
+                    <button className="icon-btn-small" onClick={() => {
+                      setEditingMaster({ type: 'inv_department', id: d.id, oldName: d.name });
+                      setDepartmentFormName(d.name);
+                      setShowDepartmentModal(true);
+                    }} title="Edit Department"><Edit size={14} color="var(--accent-primary)" /></button>
+                    <button className="icon-btn-small" onClick={() => handleDeleteMaster('inv_department', d.id, d.name)} title="Delete Department"><Trash2 size={14} color="var(--danger)" /></button>
+                  </div>
+                )}
+              </div>
+            </li>
+          ))}
+          {departments.length === 0 && <li style={{ color: 'var(--text-muted)' }}>No departments configured.</li>}
               </ul>
             </div>
           )}
@@ -1148,6 +1282,24 @@ const InventoryManagement = () => {
         </div>
       )}
 
+      {showDepartmentModal && (
+        <div className="modal-backdrop">
+          <div className="card animate-fade-in" style={{ width: '400px', padding: '2rem' }}>
+            <h3>{editingMaster ? 'Edit' : 'Add'} Department</h3>
+            <form onSubmit={handleAddDepartment}>
+              <div style={{ marginBottom: '2rem' }}>
+                <label className="input-label">Department Name *</label>
+                <input type="text" className="input-field" value={departmentFormName} onChange={e => setDepartmentFormName(e.target.value)} placeholder="e.g. Maintenance, Production" autoFocus required />
+              </div>
+              <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end' }}>
+                <button type="button" className="btn btn-secondary" onClick={() => setShowDepartmentModal(false)}>Cancel</button>
+                <button type="submit" className="btn btn-primary">Save Department</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       {showCategoryModal && (
         <div className="modal-backdrop">
           <div className="card animate-fade-in" style={{ width: '400px', padding: '2rem' }}>
@@ -1227,7 +1379,69 @@ const InventoryManagement = () => {
                   {txnData.usageType === 'INTERNAL' && (
                     <div style={{ marginBottom: '1.5rem' }}>
                       <label className="input-label">Department</label>
-                      <input type="text" className="input-field" value={txnData.department} onChange={e => setTxnData({ ...txnData, department: e.target.value })} placeholder="E.g. Maintenance, Production" required />
+                      <div style={{ position: 'relative', display: 'flex', gap: '0.5rem' }}>
+                        <div style={{ flex: 1, position: 'relative' }}>
+                          <input 
+                            type="text" 
+                            className="input-field" 
+                            style={{ marginBottom: 0 }}
+                            value={departmentDropdownOpen ? departmentSearch : txnData.department}
+                            onChange={e => {
+                              setDepartmentSearch(e.target.value);
+                              if (!departmentDropdownOpen) setDepartmentDropdownOpen(true);
+                            }}
+                            onFocus={() => {
+                              setDepartmentDropdownOpen(true);
+                              setDepartmentSearch('');
+                            }}
+                            placeholder="Select or enter department..."
+                          />
+                          {departmentDropdownOpen && (
+                            <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 100, backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)', borderRadius: '8px', marginTop: '4px', boxShadow: 'var(--shadow-md)', maxHeight: '200px', overflowY: 'auto' }}>
+                              {(() => {
+                                const term = departmentSearch.toLowerCase();
+                                const mappedList = departments.filter(d => d.name.toLowerCase().includes(term)).sort((a,b) => a.name.localeCompare(b.name));
+                                return (
+                                  <>
+                                    {mappedList.length > 0 && (
+                                      <>
+                                        <div style={{ padding: '0.4rem 1rem', fontSize: '0.75rem', fontWeight: 'bold', color: 'var(--text-muted)', backgroundColor: 'var(--bg-primary)' }}>AVAILABLE DEPARTMENTS</div>
+                                        {mappedList.map(d => (
+                                          <div 
+                                            key={d.id} 
+                                            onClick={() => {
+                                              setTxnData({ ...txnData, department: d.name });
+                                              setDepartmentDropdownOpen(false);
+                                              setDepartmentSearch('');
+                                            }}
+                                            style={{ padding: '0.6rem 1rem', cursor: 'pointer', fontSize: '0.9rem', borderBottom: '1px solid var(--border-color)', transition: 'background 0.15s', backgroundColor: txnData.department === d.name ? 'var(--accent-glow)' : 'transparent' }}
+                                            onMouseEnter={e => e.target.style.backgroundColor = 'var(--bg-tertiary)'}
+                                            onMouseLeave={e => e.target.style.backgroundColor = txnData.department === d.name ? 'var(--accent-glow)' : 'transparent'}
+                                          >
+                                            {d.name} {txnData.department === d.name && <span style={{ color: 'var(--success)', fontSize: '0.8rem', marginLeft: '0.5rem' }}>✓</span>}
+                                          </div>
+                                        ))}
+                                      </>
+                                    )}
+                                    {mappedList.length === 0 && (
+                                      <div style={{ padding: '0.6rem 1rem', color: 'var(--text-muted)', fontSize: '0.85rem' }}>No matching departments found.</div>
+                                    )}
+                                  </>
+                                );
+                              })()}
+                            </div>
+                          )}
+                        </div>
+                        <button 
+                          type="button" 
+                          className="icon-btn" 
+                          title="Add New Department"
+                          style={{ border: '1px solid var(--border-color)', borderRadius: '8px', width: '42px', height: '42px', flexShrink: 0 }}
+                          onClick={() => { setDepartmentDropdownOpen(false); setShowDepartmentModal(true); }}
+                        >
+                          <Plus size={18} />
+                        </button>
+                      </div>
                     </div>
                   )}
                 </>
