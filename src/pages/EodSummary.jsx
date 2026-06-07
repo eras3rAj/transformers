@@ -6,15 +6,15 @@ import { useWarranty } from '../context/WarrantyContext';
 import { useExpenses } from '../context/ExpenseContext';
 import { useInventory } from '../context/InventoryContext';
 import { formatDate } from '../utils/dateUtils';
+import html2pdf from 'html2pdf.js';
 import { 
   FileText, 
   Layers, 
   Truck, 
   ShieldAlert, 
-  DollarSign, 
   PackageCheck, 
   AlertTriangle, 
-  Printer,
+  Download,
   Inbox
 } from 'lucide-react';
 import '../components/layout/Layout.css';
@@ -44,63 +44,124 @@ const EodSummary = () => {
     const log = sortedLogs.find(l => l.batches && l.batches.length > 0);
     if (!log || !log.batches) return { date: null, groups: [] };
     
-    // Group by production line
-    const linesMap = {};
+    // Group by Capacity (rating) and then map components, excluding Tanks
+    const capacityMap = {};
     log.batches.forEach(b => {
-      if (!linesMap[b.line]) {
-        linesMap[b.line] = {
-          line: b.line,
-          lead: b.assigned_to || 'N/A',
-          batches: []
+      if (b.component === 'Tanks Fabricated') return; // Exclude tanks
+      
+      const cap = b.capacity || 'Unknown Rating';
+      if (!capacityMap[cap]) {
+        capacityMap[cap] = {
+          capacity: cap,
+          'Box Up': 0,
+          'CCA': 0,
+          'HT Winding': 0,
+          'LT Winding': 0,
+          total: 0
         };
       }
-      linesMap[b.line].batches.push(b);
+      const comp = b.component;
+      const qty = Number(b.quantity || 0);
+      if (capacityMap[cap][comp] !== undefined) {
+        capacityMap[cap][comp] += qty;
+      }
+      capacityMap[cap].total += qty;
     });
     
-    return { date: log.date, groups: Object.values(linesMap) };
+    return { date: log.date, groups: Object.values(capacityMap) };
+  }, [productionLogs]);
+
+  // Tank Fabrication Data (Last 5 active days)
+  const tankFabricationSummary = useMemo(() => {
+    const tankBatches = [];
+    productionLogs.forEach(log => {
+      if (log.batches) {
+        log.batches.forEach(b => {
+          if (b.component === 'Tanks Fabricated') {
+            tankBatches.push({ ...b, date: log.date });
+          }
+        });
+      }
+    });
+
+    const groupedByDate = {};
+    tankBatches.forEach(b => {
+      if (!groupedByDate[b.date]) {
+        groupedByDate[b.date] = { total: 0, capacities: {} };
+      }
+      
+      const qty = Number(b.quantity || 0);
+      groupedByDate[b.date].total += qty;
+      
+      const cap = b.capacity || 'Unknown Rating';
+      if (!groupedByDate[b.date].capacities[cap]) {
+        groupedByDate[b.date].capacities[cap] = 0;
+      }
+      groupedByDate[b.date].capacities[cap] += qty;
+    });
+
+    const sortedDates = Object.keys(groupedByDate).sort((a, b) => new Date(b) - new Date(a)).slice(0, 5);
+
+    return sortedDates.map(date => ({
+      date,
+      total: groupedByDate[date].total,
+      capacities: groupedByDate[date].capacities
+    }));
   }, [productionLogs]);
 
   // Helper to count total production items
   const totalProductionCount = useMemo(() => {
     let count = 0;
     if (productionSummary.groups) {
-      productionSummary.groups.forEach(lineGroup => {
-        lineGroup.batches.forEach(b => {
-          count += Number(b.quantity || 0);
-        });
+      productionSummary.groups.forEach(capGroup => {
+        count += capGroup.total;
       });
     }
     return count;
   }, [productionSummary]);
 
-  // 2. Aggregated Delivery Schedules (Next upcoming schedule per PO)
+  // 2. Aggregated Delivery Schedules (Last unfulfilled delivery schedule sorted by nearest deadline)
+  const { inspections } = useInspection(); // Need this to compute unfulfilled properly
   const deliverySchedules = useMemo(() => {
     const upcoming = [];
-    const today = new Date().toISOString().split('T')[0];
     
     schedules.forEach(poSched => {
       if (Array.isArray(poSched.schedules)) {
-        const futureSchedules = poSched.schedules.filter(s => s.date >= today).sort((a,b) => new Date(a.date) - new Date(b.date));
-        if (futureSchedules.length > 0) {
-          const nextSched = futureSchedules[0];
-          const poDetails = pos.find(p => p.poNo === poSched.poNo) || {};
-          upcoming.push({
-            poNo: poSched.poNo,
-            qty: nextSched.quantity,
-            date: nextSched.date,
-            companyName: poDetails.companyName || 'Unassigned',
-            utilityBoard: poDetails.utilityBoard || 'N/A',
-            capacity: poDetails.capacity || 'N/A',
-            noOfPhases: poDetails.noOfPhases || '3-Phase'
-          });
+        // Calculate total delivered for this PO
+        const delivered = (inspections || [])
+          .filter(i => i.poNo === poSched.poNo && i.type === 'Final')
+          .reduce((sum, i) => sum + (Number(i.qtyAccepted) || 0), 0);
+          
+        let remainingDelivered = delivered;
+        
+        const sortedPoSchedules = [...poSched.schedules].sort((a, b) => new Date(a.date) - new Date(b.date));
+        
+        for (const s of sortedPoSchedules) {
+          if (remainingDelivered >= Number(s.quantity)) {
+            remainingDelivered -= Number(s.quantity);
+          } else {
+            const remainingToDeliver = Number(s.quantity) - remainingDelivered;
+            const poDetails = pos.find(p => p.poNo === poSched.poNo) || {};
+            upcoming.push({
+              poNo: poSched.poNo,
+              qty: remainingToDeliver, // Unfulfilled amount
+              date: s.date,
+              companyName: poDetails.companyName || 'Unassigned',
+              utilityBoard: poDetails.utilityBoard || 'N/A',
+              capacity: poDetails.capacity || 'N/A',
+              noOfPhases: poDetails.noOfPhases || '3-Phase'
+            });
+            break; // only push the immediate next unfulfilled one per PO
+          }
         }
       }
     });
+    // Sort according to nearest deadline first
     upcoming.sort((a, b) => new Date(a.date) - new Date(b.date));
     return upcoming;
-  }, [schedules, pos]);
+  }, [schedules, pos, inspections]);
 
-  // 3. Aggregated Warranty Claims (All active/pending claims)
+  // 3. Aggregated Warranty Claims (All active/pending claims with advanced metrics)
   const warrantyEvents = useMemo(() => {
     return claims.filter(c => 
       !c.isHidden && 
@@ -149,8 +210,91 @@ const EodSummary = () => {
     }).filter(item => item.currentStock < threshold);
   }, [items, stockThreshold, getGlobalStock]);
 
-  const handlePrint = () => {
-    window.print();
+  const [isGenerating, setIsGenerating] = useState(false);
+
+  const handlePrint = async () => {
+    setIsGenerating(true);
+
+    // Save original theme and force light mode for PDF
+    const originalTheme = document.documentElement.getAttribute('data-theme');
+    document.documentElement.setAttribute('data-theme', 'light');
+
+    // Hide controls temporarily
+    const noPrintElements = document.querySelectorAll('.no-print');
+    noPrintElements.forEach(el => el.style.display = 'none');
+
+    const printHeader = document.querySelector('.print-header');
+    if (printHeader) printHeader.style.display = 'block';
+    const printMeta = document.querySelector('.print-meta-info');
+    if (printMeta) printMeta.style.display = 'flex';
+    const printSig = document.querySelector('.print-signatures');
+    if (printSig) printSig.style.display = 'flex';
+
+    // Wait 500ms for CSS variables to fully recompute after theme switch
+    await new Promise(r => setTimeout(r, 500));
+
+    const element = document.querySelector('.eod-summary-container');
+    if (element) {
+      try {
+        // CRITICAL: html2canvas cannot resolve CSS custom properties (var()).
+        // We must bake the computed colors as inline styles on the REAL DOM
+        // before html2canvas clones it. Then restore originals afterward.
+        const allEls = [element, ...element.querySelectorAll('*')];
+        const savedInlineStyles = allEls.map(el => el.getAttribute('style') || '');
+
+        allEls.forEach(el => {
+          const cs = window.getComputedStyle(el);
+          el.style.color = cs.color;
+          el.style.backgroundColor = cs.backgroundColor;
+          el.style.borderTopColor = cs.borderTopColor;
+          el.style.borderRightColor = cs.borderRightColor;
+          el.style.borderBottomColor = cs.borderBottomColor;
+          el.style.borderLeftColor = cs.borderLeftColor;
+        });
+
+        const opt = {
+          margin:       [10, 10, 10, 10],
+          filename:     `VoltForge_EOD_${selectedDate}.pdf`,
+          image:        { type: 'jpeg', quality: 1.0 },
+          html2canvas:  {
+            scale: 3,
+            useCORS: true,
+            letterRendering: true,
+            backgroundColor: '#ffffff'
+          },
+          jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' },
+          pagebreak:    { mode: ['css', 'avoid-all', 'legacy'] }
+        };
+        await html2pdf().from(element).set(opt).save();
+
+        // Restore every element's original inline style
+        allEls.forEach((el, i) => {
+          if (savedInlineStyles[i]) {
+            el.setAttribute('style', savedInlineStyles[i]);
+          } else {
+            el.removeAttribute('style');
+          }
+        });
+      } catch (e) {
+        console.error("PDF generation failed:", e);
+        alert("Failed to generate PDF. Please try again.");
+      }
+    }
+
+    // Restore elements
+    noPrintElements.forEach(el => el.style.display = '');
+    if (printHeader) printHeader.style.display = 'none';
+    if (printMeta) printMeta.style.display = 'none';
+    if (printSig) printSig.style.display = 'none';
+
+    // Restore original theme
+    if (originalTheme) {
+      document.documentElement.setAttribute('data-theme', originalTheme);
+    } else {
+      document.documentElement.removeAttribute('data-theme');
+    }
+
+    setIsGenerating(false);
   };
 
   return (
@@ -158,208 +302,7 @@ const EodSummary = () => {
       
       {/* CSS Styles for Print/PDF Mode */}
       <style>{`
-        @media print {
-          /* Hide sidebar, top navigation header and dashboard control panels */
-          aside,
-          .header,
-          .sidebar,
-          .eod-controls,
-          .btn-print,
-          .no-print {
-            display: none !important;
-          }
-          
-          /* Reset content margins and display */
-          body {
-            background-color: #ffffff !important;
-            color: #000000 !important;
-            font-family: 'Inter', Arial, sans-serif !important;
-            font-size: 11pt !important;
-            margin: 0 !important;
-            padding: 0 !important;
-          }
-          
-          .page-content,
-          .main-content,
-          .app-container {
-            overflow: visible !important;
-            padding: 0 !important;
-            margin: 0 !important;
-            height: auto !important;
-            width: 100% !important;
-          }
-          
-          .eod-summary-container {
-            padding: 0 !important;
-            margin: 0 !important;
-          }
-          
-          /* Official A4 Letterhead */
-          .print-header {
-            display: block !important;
-            border-bottom: 3px double #1e293b;
-            padding-bottom: 15px;
-            margin-bottom: 25px;
-            text-align: center;
-          }
-          
-          .print-header h1 {
-            color: #1e293b !important;
-            font-size: 24pt !important;
-            margin: 0 0 5px 0 !important;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            font-weight: 700;
-          }
-          
-          .print-header p {
-            color: #475569 !important;
-            margin: 2px 0 !important;
-            font-size: 10pt !important;
-          }
-
-          .print-meta-info {
-            display: flex !important;
-            justify-content: space-between;
-            margin-bottom: 20px;
-            background-color: #f1f5f9;
-            padding: 8px 12px;
-            border-radius: 4px;
-            font-size: 10pt;
-            border: 1px solid #cbd5e1;
-          }
-
-          .print-meta-info span {
-            font-weight: 600;
-            color: #334155;
-          }
-          
-          /* Print Layout Adjustments */
-          .card {
-            background: #ffffff !important;
-            border: 1px solid #e2e8f0 !important;
-            box-shadow: none !important;
-            margin-bottom: 20px !important;
-            padding: 12px !important;
-            page-break-inside: avoid;
-            border-radius: 6px !important;
-          }
-          
-          .card h2, .card h3 {
-            color: #1e293b !important;
-            border-bottom: 1px solid #cbd5e1;
-            padding-bottom: 6px;
-            margin-top: 0;
-            font-size: 14pt !important;
-          }
-          
-          .metric-cards-grid {
-            display: grid !important;
-            grid-template-columns: repeat(4, 1fr) !important;
-            gap: 10px !important;
-            margin-bottom: 20px !important;
-          }
-          
-          .metric-card {
-            background: #f8fafc !important;
-            border: 1px solid #cbd5e1 !important;
-            padding: 10px !important;
-            text-align: center;
-            border-radius: 4px;
-          }
-          
-          .metric-card h4 {
-            font-size: 8pt !important;
-            color: #64748b !important;
-            margin: 0 !important;
-            text-transform: uppercase;
-          }
-          
-          .metric-card p {
-            font-size: 16pt !important;
-            font-weight: bold !important;
-            color: #0f172a !important;
-            margin: 5px 0 0 0 !important;
-          }
-
-          /* Print Tables styling */
-          table {
-            width: 100% !important;
-            border-collapse: collapse !important;
-            margin-top: 8px !important;
-          }
-          
-          th {
-            background-color: #f1f5f9 !important;
-            color: #1e293b !important;
-            border: 1px solid #cbd5e1 !important;
-            padding: 6px 8px !important;
-            font-size: 9pt !important;
-            font-weight: bold !important;
-            text-align: left !important;
-          }
-          
-          td {
-            border: 1px solid #cbd5e1 !important;
-            padding: 6px 8px !important;
-            font-size: 9pt !important;
-            color: #334155 !important;
-            background-color: #ffffff !important;
-          }
-          
-          tr {
-            page-break-inside: avoid;
-          }
-          
-          /* Badges */
-          .badge-status {
-            border: 1px solid #cbd5e1 !important;
-            background: transparent !important;
-            color: #0f172a !important;
-            padding: 1px 4px !important;
-            border-radius: 3px;
-          }
-          
-          .empty-state {
-            color: #64748b !important;
-            padding: 15px !important;
-            font-style: italic;
-            border: 1px dashed #cbd5e1 !important;
-            text-align: center;
-          }
-
-          .alert-section {
-            background-color: #fff1f2 !important;
-            border: 1px solid #fecdd3 !important;
-          }
-
-          .alert-section h2 {
-            color: #9f1239 !important;
-            border-bottom-color: #fecdd3;
-          }
-          
-          /* Footer Signature Blocks */
-          .print-signatures {
-            display: flex !important;
-            justify-content: space-between;
-            margin-top: 50px;
-            padding-top: 20px;
-            page-break-inside: avoid;
-          }
-          
-          .sig-line {
-            width: 30%;
-            text-align: center;
-            font-size: 10pt;
-            color: #334155;
-          }
-          
-          .sig-line div {
-            border-top: 1px solid #000000;
-            margin-top: 40px;
-            padding-top: 5px;
-          }
-        }
+        /* Removed .pdf-export-mode styles */
 
         /* Non-print specific displays */
         .print-header,
@@ -516,19 +459,30 @@ const EodSummary = () => {
       `}</style>
 
       {/* Official Letterhead for Print/PDF Output */}
-      <div className="print-header">
-        <h1>VoltForge Manufacturing</h1>
-        <p>Plot No. 45, Phase 1, Industrial Area, PSPCL Grid Road</p>
-        <p>Phone: +91 161 5029311 | Email: ops@voltforge.in</p>
-        <h2 style={{ marginTop: '15px', color: '#0f172a', fontWeight: '700', fontSize: '15pt', border: 'none' }}>
+      <div className="print-header" style={{ borderBottom: '3px double var(--border-color)', paddingBottom: '15px', marginBottom: '25px', textAlign: 'center' }}>
+        <h1 style={{ margin: '0 0 5px 0', fontSize: '24pt', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: '700', color: 'var(--text-primary)' }}>
+          VoltForge Manufacturing
+        </h1>
+        <h2 style={{ marginTop: '15px', color: 'var(--text-secondary)', fontWeight: '700', fontSize: '15pt', border: 'none' }}>
           DAILY EXECUTIVE OPERATIONS REPORT
         </h2>
       </div>
 
-      <div className="print-meta-info">
-        <div>Report Date: <span>{displayFormattedDate}</span></div>
-        <div>Generated By: <span>VoltForge ERP</span></div>
-        <div>Status: <span>Official Copy</span></div>
+      <div className="print-meta-info" style={{
+        justifyContent: 'space-between',
+        width: '100%',
+        boxSizing: 'border-box',
+        marginBottom: '20px',
+        backgroundColor: 'var(--bg-tertiary)',
+        padding: '12px 16px',
+        borderRadius: '6px',
+        fontSize: '11pt',
+        border: '1px solid var(--border-color)',
+        color: 'var(--text-secondary)'
+      }}>
+        <div>Report Date: <span style={{ fontWeight: '600', color: 'var(--text-primary)' }}>{displayFormattedDate}</span></div>
+        <div>Generated By: <span style={{ fontWeight: '600', color: 'var(--text-primary)' }}>VoltForge ERP</span></div>
+        <div>Status: <span style={{ fontWeight: '600', color: 'var(--text-primary)' }}>Official Copy</span></div>
       </div>
 
       {/* Screen Title Block */}
@@ -542,8 +496,8 @@ const EodSummary = () => {
             Generate operational summary, inventory stock alerts, and print-ready PDF reports for any date.
           </p>
         </div>
-        <button className="btn btn-primary btn-print" onClick={handlePrint}>
-          <Printer size={18} /> Print / Save PDF
+        <button className="btn btn-primary btn-print" onClick={handlePrint} disabled={isGenerating}>
+          <Download size={18} /> {isGenerating ? 'Generating PDF...' : 'Download PDF'}
         </button>
       </div>
 
@@ -608,7 +562,7 @@ const EodSummary = () => {
 
         <div className="metric-card">
           <div className="metric-card-icon" style={{ backgroundColor: 'rgba(239, 68, 68, 0.1)', color: 'var(--danger)' }}>
-            <DollarSign size={22} />
+            <span style={{ fontSize: '20px', fontWeight: 'bold' }}>₹</span>
           </div>
           <div className="metric-card-info">
             <h4>Approved Expenses</h4>
@@ -659,7 +613,7 @@ const EodSummary = () => {
       {/* 2. Daily Production */}
       <div className="report-section card">
         <h2 style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', margin: '0 0 1rem 0' }}>
-          <Layers size={20} color="var(--accent-primary)" /> Latest Production Batches {productionSummary.date && <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 'normal', marginLeft: '0.5rem' }}>(Updated: {formatDate(productionSummary.date)})</span>}
+          <Layers size={20} color="var(--accent-primary)" /> Transformer Assembly {productionSummary.date && <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 'normal', marginLeft: '0.5rem' }}>(Updated: {formatDate(productionSummary.date)})</span>}
         </h2>
         {productionSummary.groups.length === 0 ? (
           <div className="empty-display">
@@ -668,38 +622,76 @@ const EodSummary = () => {
           </div>
         ) : (
           <div className="table-container">
-            <table className="report-table">
+            <table className="report-table" style={{ textAlign: 'center' }}>
               <thead>
                 <tr>
-                  <th>PRODUCTION LINE</th>
-                  <th>ASSIGNED LEAD</th>
-                  <th>PRODUCT COMPONENT</th>
-                  <th>CAPACITY RATING</th>
-                  <th style={{ textAlign: 'right' }}>QUANTITY</th>
+                  <th style={{ textAlign: 'left' }}>CAPACITY RATING</th>
+                  <th style={{ textAlign: 'center' }}>BOX UP</th>
+                  <th style={{ textAlign: 'center' }}>CCA</th>
+                  <th style={{ textAlign: 'center' }}>HT WINDING</th>
+                  <th style={{ textAlign: 'center' }}>LT WINDING</th>
+                  <th style={{ textAlign: 'center', color: 'var(--accent-primary)' }}>TOTAL</th>
                 </tr>
               </thead>
               <tbody>
-                {productionSummary.groups.map(lineGroup => (
-                  lineGroup.batches.map((batch, index) => (
-                    <tr key={batch.id}>
-                      {index === 0 ? (
-                        <td rowSpan={lineGroup.batches.length} style={{ fontWeight: '600', verticalAlign: 'middle' }}>
-                          <span className="line-badge">{lineGroup.line}</span>
-                        </td>
-                      ) : null}
-                      {index === 0 ? (
-                        <td rowSpan={lineGroup.batches.length} style={{ verticalAlign: 'middle', fontWeight: '500' }}>
-                          {lineGroup.lead}
-                        </td>
-                      ) : null}
-                      <td>{batch.component}</td>
-                      <td style={{ fontWeight: '500' }}>{batch.capacity}</td>
-                      <td style={{ textAlign: 'right', fontWeight: '600' }}>{batch.quantity}</td>
-                    </tr>
-                  ))
+                {productionSummary.groups.map((group, index) => (
+                  <tr key={index}>
+                    <td style={{ fontWeight: '600', textAlign: 'left' }}>
+                      <span className="line-badge">{group.capacity}</span>
+                    </td>
+                    <td>{group['Box Up'] || '-'}</td>
+                    <td>{group['CCA'] || '-'}</td>
+                    <td>{group['HT Winding'] || '-'}</td>
+                    <td>{group['LT Winding'] || '-'}</td>
+                    <td style={{ fontWeight: '700', color: 'var(--accent-primary)' }}>{group.total}</td>
+                  </tr>
                 ))}
               </tbody>
             </table>
+          </div>
+        )}
+      </div>
+
+      {/* 2.5 Tank Fabrication */}
+      <div className="report-section card">
+        <h2 style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', margin: '0 0 1rem 0' }}>
+          <Layers size={20} color="var(--warning)" /> Tank Fabrication (Last 5 Days)
+        </h2>
+        {tankFabricationSummary.length === 0 ? (
+          <div className="empty-display">
+            <Inbox size={32} />
+            <p>No recent tank fabrication logs found.</p>
+          </div>
+        ) : (
+          <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+            {tankFabricationSummary.map((day, idx) => (
+              <div key={idx} style={{ 
+                flex: '1', 
+                minWidth: '160px', 
+                backgroundColor: 'var(--bg-tertiary)', 
+                border: '1px solid var(--border-color)', 
+                padding: '1.2rem', 
+                borderRadius: '8px'
+              }}>
+                <h4 style={{ margin: '0 0 0.8rem 0', fontSize: '0.95rem', color: 'var(--text-primary)', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.4rem' }}>
+                  {formatDate(day.date)}
+                </h4>
+                
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', marginBottom: '0.8rem' }}>
+                  {Object.entries(day.capacities).map(([cap, qty]) => (
+                    <div key={cap} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                      <span>{cap}</span>
+                      <span style={{ fontWeight: '600', color: 'var(--text-primary)' }}>{qty}</span>
+                    </div>
+                  ))}
+                </div>
+
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px dashed var(--border-color)', paddingTop: '0.6rem' }}>
+                  <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Total</span>
+                  <span style={{ fontSize: '1.4rem', fontWeight: '700', color: 'var(--warning)' }}>{day.total}</span>
+                </div>
+              </div>
+            ))}
           </div>
         )}
       </div>
@@ -728,18 +720,35 @@ const EodSummary = () => {
                 </tr>
               </thead>
               <tbody>
-                {deliverySchedules.map((item, index) => (
-                  <tr key={index}>
-                    <td style={{ fontWeight: '600' }}>{item.poNo}</td>
-                    <td>{item.utilityBoard}</td>
-                    <td>{item.companyName}</td>
-                    <td>{item.capacity} ({item.noOfPhases})</td>
-                    <td style={{ color: 'var(--accent-primary)', fontWeight: '500' }}>{formatDate(item.date)}</td>
-                    <td style={{ textAlign: 'right', fontWeight: '700', color: 'var(--success)' }}>
-                      {item.qty}
-                    </td>
-                  </tr>
-                ))}
+                {deliverySchedules.map((item, index) => {
+                  const itemDate = new Date(item.date);
+                  const now = new Date();
+                  itemDate.setHours(0, 0, 0, 0);
+                  now.setHours(0, 0, 0, 0);
+                  
+                  const diffTime = itemDate.getTime() - now.getTime();
+                  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                  
+                  let dateColor = 'var(--success)'; // > 15 days
+                  if (diffDays < 0) {
+                    dateColor = 'var(--danger)'; // Overdue
+                  } else if (diffDays <= 15) {
+                    dateColor = 'var(--warning)'; // Within 15 days
+                  }
+
+                  return (
+                    <tr key={index}>
+                      <td style={{ fontWeight: '600' }}>{item.poNo}</td>
+                      <td>{item.utilityBoard}</td>
+                      <td>{item.companyName}</td>
+                      <td>{item.capacity} ({item.noOfPhases})</td>
+                      <td style={{ color: dateColor, fontWeight: '700' }}>{formatDate(item.date)}</td>
+                      <td style={{ textAlign: 'right', fontWeight: '700', color: 'var(--text-primary)' }}>
+                        {item.qty}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -751,46 +760,60 @@ const EodSummary = () => {
         <h2 style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', margin: '0 0 1rem 0' }}>
           <ShieldAlert size={20} color="var(--warning)" /> Active Warranty Updates
         </h2>
-        {warrantyEvents.length === 0 ? (
-          <div className="empty-display">
-            <Inbox size={32} />
-            <p>No pending warranty claims.</p>
+        
+        {/* Warranty Metrics */}
+        {warrantyEvents.length > 0 && (
+          <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
+            <div style={{ flex: 1, minWidth: '150px', backgroundColor: 'rgba(239, 68, 68, 0.05)', border: '1px solid rgba(239, 68, 68, 0.2)', padding: '1rem', borderRadius: '8px' }}>
+              <h4 style={{ margin: '0 0 0.5rem 0', fontSize: '0.8rem', color: 'var(--danger)', textTransform: 'uppercase' }}>Late (Overdue)</h4>
+              <p style={{ margin: 0, fontSize: '1.5rem', fontWeight: '700', color: 'var(--text-primary)' }}>
+                {warrantyEvents.filter(c => c.returnDate && new Date(c.returnDate) < new Date()).length}
+              </p>
+            </div>
+            <div style={{ flex: 1, minWidth: '150px', backgroundColor: 'rgba(245, 158, 11, 0.05)', border: '1px solid rgba(245, 158, 11, 0.2)', padding: '1rem', borderRadius: '8px' }}>
+              <h4 style={{ margin: '0 0 0.5rem 0', fontSize: '0.8rem', color: 'var(--warning)', textTransform: 'uppercase' }}>Due in 15 Days</h4>
+              <p style={{ margin: 0, fontSize: '1.5rem', fontWeight: '700', color: 'var(--text-primary)' }}>
+                {warrantyEvents.filter(c => {
+                  if (!c.returnDate) return false;
+                  const d = new Date(c.returnDate).getTime();
+                  const now = new Date().getTime();
+                  return d >= now && d <= now + (15 * 24 * 60 * 60 * 1000);
+                }).length}
+              </p>
+            </div>
+            <div style={{ flex: 1, minWidth: '150px', backgroundColor: 'rgba(59, 130, 246, 0.05)', border: '1px solid rgba(59, 130, 246, 0.2)', padding: '1rem', borderRadius: '8px' }}>
+              <h4 style={{ margin: '0 0 0.5rem 0', fontSize: '0.8rem', color: 'var(--accent-primary)', textTransform: 'uppercase' }}>Due in 30 Days</h4>
+              <p style={{ margin: 0, fontSize: '1.5rem', fontWeight: '700', color: 'var(--text-primary)' }}>
+                {warrantyEvents.filter(c => {
+                  if (!c.returnDate) return false;
+                  const d = new Date(c.returnDate).getTime();
+                  const now = new Date().getTime();
+                  return d > now + (15 * 24 * 60 * 60 * 1000) && d <= now + (30 * 24 * 60 * 60 * 1000);
+                }).length}
+              </p>
+            </div>
           </div>
-        ) : (
-          <div className="table-container">
-            <table className="report-table">
+        )}
+
+        {warrantyEvents.length > 0 && (
+          <div className="table-container" style={{ marginBottom: '1.5rem' }}>
+            <h3 style={{ margin: '0 0 0.5rem 0', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>Total To Be Returned (Rating Wise)</h3>
+            <table className="report-table" style={{ width: 'auto', minWidth: '300px' }}>
               <thead>
                 <tr>
-                  <th>SERIAL NUMBER</th>
-                  <th>PO NUMBER</th>
-                  <th>UTILITY BOARD</th>
-                  <th>STORE NAME</th>
-                  <th>RATING</th>
-                  <th>RETURN DEADLINE</th>
-                  <th>CURRENT STATUS</th>
+                  <th>CAPACITY RATING</th>
+                  <th style={{ textAlign: 'right' }}>PENDING COUNT</th>
                 </tr>
               </thead>
               <tbody>
-                {warrantyEvents.map(claim => (
-                  <tr key={claim.id}>
-                    <td style={{ fontWeight: '600' }}>{claim.slNo}</td>
-                    <td>{claim.poNo}</td>
-                    <td>{claim.utilityBoard}</td>
-                    <td>{claim.storeName}</td>
-                    <td>{claim.capacity}</td>
-                    <td style={{ color: (!claim.returnDate || new Date(claim.returnDate) < new Date()) ? 'var(--danger)' : 'var(--warning)', fontWeight: '500' }}>{claim.returnDate ? formatDate(claim.returnDate) : 'Not Set'}</td>
-                    <td>
-                      <span className="badge-status" style={{ 
-                        padding: '0.2rem 0.5rem', 
-                        borderRadius: '4px', 
-                        fontSize: '0.75rem', 
-                        fontWeight: '600',
-                        backgroundColor: claim.status === 'Resolved' ? 'rgba(34, 197, 94, 0.1)' : 'rgba(234, 179, 8, 0.1)',
-                        color: claim.status === 'Resolved' ? 'var(--success)' : 'var(--warning)'
-                      }}>
-                        {claim.status}
-                      </span>
-                    </td>
+                {Object.entries(warrantyEvents.reduce((acc, claim) => {
+                  const cap = claim.capacity || 'Unknown';
+                  acc[cap] = (acc[cap] || 0) + 1;
+                  return acc;
+                }, {})).map(([rating, count]) => (
+                  <tr key={rating}>
+                    <td style={{ fontWeight: '600' }}>{rating}</td>
+                    <td style={{ textAlign: 'right', fontWeight: '700', color: 'var(--warning)' }}>{count}</td>
                   </tr>
                 ))}
               </tbody>
@@ -802,7 +825,7 @@ const EodSummary = () => {
       {/* 5. Daily Expenses */}
       <div className="report-section card">
         <h2 style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', margin: '0 0 1rem 0' }}>
-          <DollarSign size={20} color="var(--danger)" /> Daily Operational Expenses
+          <span style={{ fontSize: '20px', fontWeight: 'bold', color: 'var(--danger)' }}>₹</span> Daily Operational Expenses
         </h2>
         {dailyExpenses.length === 0 ? (
           <div className="empty-display">

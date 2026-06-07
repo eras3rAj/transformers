@@ -52,6 +52,10 @@ const ProtectedRoute = ({ children, requireSuperAdmin }) => {
 };
 
 function App() {
+  React.useEffect(() => {
+    // Default to light theme on initial load
+    document.documentElement.setAttribute('data-theme', 'light');
+  }, []);
   return (
     <UserProvider>
       <AuthProvider>
@@ -71,6 +75,13 @@ function App() {
                                 <BgLcProvider>
                                   <CustomDutyProvider>
       <Router>
+          {/* Theme toggle button */}
+          <button className="theme-toggle btn btn-secondary" onClick={() => {
+            const current = document.documentElement.getAttribute('data-theme');
+            document.documentElement.setAttribute('data-theme', current === 'light' ? 'dark' : 'light');
+          }} style={{ position: 'fixed', top: '1rem', right: '1rem', zIndex: 1000 }}>
+            Toggle Theme
+          </button>
         <Suspense fallback={<div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>Loading application...</div>}>
           <Routes>
             <Route path="/login" element={<AdminLogin />} />
