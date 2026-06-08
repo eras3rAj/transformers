@@ -23,7 +23,7 @@ const DailyReports = () => {
     'CCA': { mainTable: [{qty: '', rating: ''}], oven1: [], oven2: [], machineProblem: false, machineProblemDesc: '', materialShortage: false, materialShortageDesc: '', remarks: '' },
     'Winding Section': { ltWinders: '', htWinders: '', ratingsTable: [], machineProblem: false, machineProblemDesc: '', materialShortage: false, materialShortageDesc: '', remarks: '' },
     'Core Cutting': { ratingInOven: '', openingTime: '', cuttingRating: '', nextOvenTime: '', testingTable: [], machineProblem: false, machineProblemDesc: '', materialShortage: false, materialShortageDesc: '', remarks: '' },
-    'Tank Fabrication': { weldersPresent: '', ratingManufactured: '', machineProblem: false, machineProblemDesc: '', materialShortage: false, materialShortageDesc: '', remarks: '' }
+    'Tank Fabrication': { weldersPresent: '', ratingsTable: [{rating: '', qty: ''}], machineProblem: false, machineProblemDesc: '', materialShortage: false, materialShortageDesc: '', remarks: '' }
   };
 
   const [formData, setFormData] = useState(JSON.parse(JSON.stringify(emptyReport)));
@@ -83,7 +83,7 @@ const DailyReports = () => {
 
   const handleTableChange = (section, tableField, index, colField, value) => {
     setFormData(prev => {
-      const table = [...prev[section][tableField]];
+      const table = [...(prev[section][tableField] || [])];
       if (!table[index]) table[index] = {};
       table[index][colField] = value;
       const updated = { ...prev, [section]: { ...prev[section], [tableField]: table } };
@@ -95,12 +95,64 @@ const DailyReports = () => {
 
   const addTableRow = (section, tableField, emptyRow) => {
     setFormData(prev => {
-      const table = [...prev[section][tableField], emptyRow];
+      const table = [...(prev[section][tableField] || []), emptyRow];
       return { ...prev, [section]: { ...prev[section], [tableField]: table } };
     });
   };
 
+  const [validationError, setValidationError] = useState('');
+
+  const validateSection = (section) => {
+    const data = formData[section];
+    if (section === 'Box-up' || section === 'CCA') {
+      const hasMain = data.mainTable && data.mainTable.length > 0 && data.mainTable[0].qty !== '' && data.mainTable[0].rating !== '';
+      if (!hasMain) return `Please fill the primary Quantity and Rating in ${section} (enter 0 if none).`;
+    }
+    if (section === 'Winding Section') {
+      if (data.ltWinders === '' || data.htWinders === '') return 'Please enter the number of LT and HT winders.';
+    }
+    if (section === 'Core Cutting') {
+      if (!data.ratingInOven || !data.openingTime || !data.cuttingRating || !data.nextOvenTime) {
+        return 'Please fill all primary Core Cutting details (Rating, Opening Time, Next Oven Time).';
+      }
+    }
+    if (section === 'Tank Fabrication') {
+      if (data.weldersPresent === '') return 'Please enter the number of Welders present.';
+    }
+    return null; // valid
+  };
+
+  const handleNextSection = (currentSection) => {
+    const error = validateSection(currentSection);
+    if (error) {
+      setValidationError(error);
+      return;
+    }
+    setValidationError('');
+    
+    // Auto-save draft on next
+    localStorage.setItem(`draft_report_${selectedDate}_${selectedShift}`, JSON.stringify(formData));
+    
+    const currentIndex = tabs.indexOf(currentSection);
+    if (currentIndex < tabs.length - 1) {
+      setActiveTab(tabs[currentIndex + 1]);
+    } else {
+      handleSave();
+    }
+  };
+
   const handleSave = async () => {
+    // Validate all
+    for (const t of tabs) {
+      const err = validateSection(t);
+      if (err) {
+        setActiveTab(t);
+        setValidationError(err);
+        return;
+      }
+    }
+    setValidationError('');
+
     setIsSaving(true);
     const success = await saveReport(selectedDate, selectedShift, formData);
     if (success) {
@@ -110,6 +162,15 @@ const DailyReports = () => {
     }
     setIsSaving(false);
   };
+
+  const renderSectionFooter = (section) => (
+    <div style={{ marginTop: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <span style={{ color: 'var(--danger)', fontWeight: '500' }}>{validationError && activeTab === section ? validationError : ''}</span>
+      <button className="btn btn-primary" onClick={() => handleNextSection(section)}>
+        {section === 'Tank Fabrication' ? 'Submit Entire Report' : 'Save Section & Next'}
+      </button>
+    </div>
+  );
 
   const renderCommonFields = (section) => (
     <div className="report-section card" style={{ marginTop: '20px' }}>
@@ -172,6 +233,7 @@ const DailyReports = () => {
           onChange={(e) => handleDataChange(section, 'remarks', e.target.value)}
         ></textarea>
       </div>
+      {renderSectionFooter(section)}
     </div>
   );
 
@@ -399,11 +461,27 @@ const DailyReports = () => {
             <label className="input-label">No. of Welders Present</label>
             <input type="number" className="input-field" value={formData['Tank Fabrication'].weldersPresent} onChange={(e) => handleDataChange('Tank Fabrication', 'weldersPresent', e.target.value)} />
           </div>
-          <div className="input-group">
-            <label className="input-label">Rating Being Manufactured</label>
-            <input type="text" list="capacities-list" className="input-field" placeholder="Select or type..." value={formData['Tank Fabrication'].ratingManufactured} onChange={(e) => handleDataChange('Tank Fabrication', 'ratingManufactured', e.target.value)} />
-          </div>
         </div>
+      </div>
+      
+      <div className="card" style={{ marginTop: '20px' }}>
+        <div style={{ display:'flex', justifyContent:'space-between' }}>
+          <h3>Ratings Being Manufactured</h3>
+          <button className="btn btn-secondary" onClick={() => addTableRow('Tank Fabrication', 'ratingsTable', {rating:'', qty:''})} style={{ padding:'0.2rem 0.5rem', fontSize:'0.8rem' }}>+ Add Rating</button>
+        </div>
+        <table className="report-table" style={{ width: '100%', marginTop: '10px' }}>
+          <thead><tr><th>Rating</th><th>Quantity (Optional)</th></tr></thead>
+          <tbody>
+            {(formData['Tank Fabrication'].ratingsTable || []).map((row, i) => (
+              <tr key={i}>
+                <td>
+                  <input type="text" list="capacities-list" style={{width:'100%', padding:'4px'}} placeholder="Select or type..." value={row.rating||''} onChange={e=>handleTableChange('Tank Fabrication','ratingsTable',i,'rating',e.target.value)}/>
+                </td>
+                <td><input type="number" style={{width:'100%', padding:'4px'}} value={row.qty||''} onChange={e=>handleTableChange('Tank Fabrication','ratingsTable',i,'qty',e.target.value)}/></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
       {renderCommonFields('Tank Fabrication')}
     </div>
