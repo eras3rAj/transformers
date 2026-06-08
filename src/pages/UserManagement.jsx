@@ -271,11 +271,13 @@ const UserManagement = () => {
                   </td>
                   <td style={{ padding: '1rem' }}>
                     {canManageUser(u.role) && u.id !== currentUser.id && u.id !== 'usr-1' && (
-                      <div style={{ display: 'flex', gap: '0.5rem' }}>
-                        {u.role !== 'superadmin' && (
+                      <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                        {u.role !== 'superadmin' ? (
                           <button className="icon-btn" style={{ color: 'var(--accent-primary)' }} title="Edit Access Modules" onClick={() => setEditModulesModal({ isOpen: true, user: u, modules: u.modules || [] })}>
                             <Settings size={18} />
                           </button>
+                        ) : (
+                          <div style={{ width: '28px' }}></div>
                         )}
                         
                         {u.status === 'inactive' ? (
