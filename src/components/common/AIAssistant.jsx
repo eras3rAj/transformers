@@ -13,7 +13,7 @@ const AIAssistant = () => {
   const messagesEndRef = useRef(null);
 
   const { expenses } = useExpenses();
-  const { items, getInventoryStats } = useInventory();
+  const { items, getGlobalStock } = useInventory();
   const { production } = useProduction();
 
   const scrollToBottom = () => {
@@ -33,10 +33,15 @@ const AIAssistant = () => {
     setInput('');
     setIsTyping(true);
 
+    const inventoryStats = items.reduce((acc, item) => {
+      acc[item.name] = getGlobalStock(item.name);
+      return acc;
+    }, {});
+
     const contextData = {
       expenses,
       inventory: items,
-      inventoryStats: getInventoryStats(),
+      inventoryStats,
       production
     };
 
