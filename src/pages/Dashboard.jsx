@@ -236,24 +236,6 @@ const Dashboard = () => {
       .map(d => ({ name: d.name, Stock: d.Stock })); // Return format expected by chart
   }, [invTxns, invItems]);
 
-  // 7. Production Yield (Pass vs Fail)
-  const productionYieldData = useMemo(() => {
-    let accepted = 0, rejectedOrPending = 0;
-    inspections.forEach(i => {
-      if (companyFilter !== 'All' && !validPONos.has(i.poNo)) return;
-      if (i.type === 'Final') {
-        const acc = Number(i.qtyAccepted) || 0;
-        const off = Number(i.qtyOffered) || 0;
-        accepted += acc;
-        if (off > acc) rejectedOrPending += (off - acc);
-      }
-    });
-    return [
-      { name: 'Accepted', value: accepted, color: 'var(--success)' },
-      { name: 'Rejected/Rework', value: rejectedOrPending, color: 'var(--danger)' }
-    ].filter(d => d.value > 0);
-  }, [inspections, companyFilter, validPONos]);
-
   // 8. Milestones
   const upcomingMilestones = useMemo(() => {
     return milestones
@@ -572,33 +554,6 @@ const Dashboard = () => {
                 <PieChart>
                   <Pie data={warrantyPieData} cx="50%" cy="50%" innerRadius={60} outerRadius={80} paddingAngle={5} dataKey="value">
                     {warrantyPieData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
-                    ))}
-                  </Pie>
-                  <Tooltip contentStyle={{ backgroundColor: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', borderRadius: '8px' }} wrapperStyle={{ zIndex: 1000 }} />
-                  <Legend />
-                </PieChart>
-              </ResponsiveContainer>
-            )}
-          </div>
-        </div>
-        )}
-
-        {/* Production Yield Pie */}
-        {hasModule('inspections') && (
-        <div className="card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column' }}>
-          <h2 style={{ margin: '0 0 1.5rem 0', fontSize: '1.2rem', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <Target size={20} color="var(--accent-primary)" />
-            Production Yield (Final)
-          </h2>
-          <div style={{ flex: 1, minHeight: '250px', width: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-            {productionYieldData.length === 0 ? (
-              <div style={{ color: 'var(--text-muted)' }}>No inspection data found.</div>
-            ) : (
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie data={productionYieldData} cx="50%" cy="50%" innerRadius={60} outerRadius={80} paddingAngle={5} dataKey="value">
-                    {productionYieldData.map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={entry.color} />
                     ))}
                   </Pie>
