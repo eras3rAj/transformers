@@ -531,19 +531,24 @@ const DailyReports = () => {
   );
 
   const renderSummary = () => {
-    const eveningReport = reports.find(r => r.shift === 'evening')?.data;
-    const afternoonReport = reports.find(r => r.shift === 'afternoon')?.data;
-    const morningReport = reports.find(r => r.shift === 'morning')?.data;
+    const eveningReportObj = reports.find(r => r.shift === 'evening');
+    const afternoonReportObj = reports.find(r => r.shift === 'afternoon');
+    const morningReportObj = reports.find(r => r.shift === 'morning');
     
+    let latestReportObj = null;
     let latestData = {};
     if (summaryShift === 'Latest') {
-      latestData = eveningReport || afternoonReport || morningReport || formData;
+      latestReportObj = eveningReportObj || afternoonReportObj || morningReportObj;
+      latestData = latestReportObj?.data || formData;
     } else if (summaryShift === 'Morning') {
-      latestData = morningReport || emptyReport;
+      latestReportObj = morningReportObj;
+      latestData = latestReportObj?.data || emptyReport;
     } else if (summaryShift === 'Afternoon') {
-      latestData = afternoonReport || emptyReport;
+      latestReportObj = afternoonReportObj;
+      latestData = latestReportObj?.data || emptyReport;
     } else if (summaryShift === 'Evening') {
-      latestData = eveningReport || emptyReport;
+      latestReportObj = eveningReportObj;
+      latestData = latestReportObj?.data || emptyReport;
     }
 
     const issues = [];
@@ -553,19 +558,28 @@ const DailyReports = () => {
     });
 
     const maxWelders = Math.max(
-      Number(eveningReport?.['Tank Fabrication']?.weldersPresent || 0),
-      Number(afternoonReport?.['Tank Fabrication']?.weldersPresent || 0),
-      Number(morningReport?.['Tank Fabrication']?.weldersPresent || 0),
+      Number(eveningReportObj?.data?.['Tank Fabrication']?.weldersPresent || 0),
+      Number(afternoonReportObj?.data?.['Tank Fabrication']?.weldersPresent || 0),
+      Number(morningReportObj?.data?.['Tank Fabrication']?.weldersPresent || 0),
       Number(formData['Tank Fabrication']?.weldersPresent || 0)
     );
 
     return (
       <div className="animate-fade-in card">
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
           <h3>Daily Summary for {selectedDate ? `${String(new Date(selectedDate).getDate()).padStart(2, '0')}-${["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"][new Date(selectedDate).getMonth()]}-${new Date(selectedDate).getFullYear()}` : ''} ({summaryShift})</h3>
           <span className="status-badge" style={{ background: 'var(--success)20', color: 'var(--success)' }}>Auto-Generated</span>
         </div>
-        <p style={{ color: 'var(--text-muted)' }}>This summary aggregates data from the latest available shift for this date.</p>
+        
+        {latestReportObj && latestReportObj.submitted_by ? (
+          <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginBottom: '1.5rem' }}>
+            Logged by <strong style={{ color: 'var(--text-primary)' }}>{latestReportObj.submitted_by}</strong> on {new Date(latestReportObj.timestamp).toLocaleDateString('en-GB')} at {new Date(latestReportObj.timestamp).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
+          </p>
+        ) : (
+          <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginBottom: '1.5rem' }}>
+            {summaryShift === 'Latest' ? 'This summary aggregates data from the latest available shift for this date.' : `Displaying data for the ${summaryShift.toLowerCase()} shift.`}
+          </p>
+        )}
         
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', marginTop: '20px' }}>
           
@@ -748,6 +762,7 @@ const DailyReports = () => {
                 <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
                   <input 
                     type="date" 
+                    className="date-overlay"
                     style={{ position: 'absolute', opacity: 0, width: '100%', height: '100%', cursor: 'pointer', zIndex: 2 }}
                     value={selectedDate} 
                     onChange={(e) => setSelectedDate(e.target.value)} 
@@ -808,6 +823,7 @@ const DailyReports = () => {
                 <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
                   <input 
                     type="date" 
+                    className="date-overlay"
                     style={{ position: 'absolute', opacity: 0, width: '100%', height: '100%', cursor: 'pointer', zIndex: 2 }}
                     value={selectedDate} 
                     onChange={(e) => setSelectedDate(e.target.value)} 

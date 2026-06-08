@@ -29,7 +29,9 @@ export const DailyReportProvider = ({ children }) => {
         id: log.id,
         shift: log.claim_id.split('_')[1],
         date: log.claim_id.split('_')[0],
-        data: log.changes || {}
+        data: log.changes || {},
+        submitted_by: log.user_name,
+        timestamp: log.timestamp
       }));
       setReports(mapped);
       setLoading(false);
