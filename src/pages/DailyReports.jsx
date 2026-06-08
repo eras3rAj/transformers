@@ -737,7 +737,7 @@ const DailyReports = () => {
     }
 
     const issues = [];
-    ['Box-up', 'CCA', 'Winding Section', 'Core Cutting', 'Tank Fabrication'].forEach(sec => {
+    ['Box-up', 'CCA', 'Winding Section', 'Core Cutting', 'Tank Fabrication', 'Loading / Unloading'].forEach(sec => {
        if (latestData[sec]?.machineProblem) issues.push({ section: sec, type: 'Machine Problem', desc: latestData[sec].machineProblemDesc });
        if (latestData[sec]?.materialShortage) issues.push({ section: sec, type: 'Material Shortage', desc: latestData[sec].materialShortageDesc });
     });
