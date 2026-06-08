@@ -19,8 +19,8 @@ const DailyReports = () => {
 
   // Default empty structure
   const emptyReport = {
-    'Box-up': { qty: '', rating: '', oven1: [], oven2: [], machineProblem: false, machineProblemDesc: '', materialShortage: false, materialShortageDesc: '', remarks: '' },
-    'CCA': { qty: '', rating: '', oven1: [], oven2: [], machineProblem: false, machineProblemDesc: '', materialShortage: false, materialShortageDesc: '', remarks: '' },
+    'Box-up': { mainTable: [{qty: '', rating: ''}], oven1: [], oven2: [], machineProblem: false, machineProblemDesc: '', materialShortage: false, materialShortageDesc: '', remarks: '' },
+    'CCA': { mainTable: [{qty: '', rating: ''}], oven1: [], oven2: [], machineProblem: false, machineProblemDesc: '', materialShortage: false, materialShortageDesc: '', remarks: '' },
     'Winding Section': { ltWinders: '', htWinders: '', ratingsTable: [], machineProblem: false, machineProblemDesc: '', materialShortage: false, materialShortageDesc: '', remarks: '' },
     'Core Cutting': { ratingInOven: '', openingTime: '', cuttingRating: '', nextOvenTime: '', testingTable: [], machineProblem: false, machineProblemDesc: '', materialShortage: false, materialShortageDesc: '', remarks: '' },
     'Tank Fabrication': { weldersPresent: '', ratingManufactured: '', machineProblem: false, machineProblemDesc: '', materialShortage: false, materialShortageDesc: '', remarks: '' }
@@ -178,20 +178,23 @@ const DailyReports = () => {
   const renderBoxUp = () => (
     <div className="animate-fade-in">
       <div className="card">
-        <h3>Box-up Details</h3>
-        <div className="grid-2">
-          <div className="input-group">
-            <label className="input-label">Quantity being boxed up</label>
-            <input type="number" className="input-field" value={formData['Box-up'].qty} onChange={(e) => handleDataChange('Box-up', 'qty', e.target.value)} />
-          </div>
-          <div className="input-group">
-            <label className="input-label">Rating</label>
-            <select className="input-field" value={formData['Box-up'].rating} onChange={(e) => handleDataChange('Box-up', 'rating', e.target.value)}>
-              <option value="">Select Rating...</option>
-              {capacities.map(c => <option key={c} value={c}>{c} kVA</option>)}
-            </select>
-          </div>
+        <div style={{ display:'flex', justifyContent:'space-between' }}>
+          <h3>Box-up Details</h3>
+          <button className="btn btn-secondary" onClick={() => addTableRow('Box-up', 'mainTable', {qty:'', rating:''})} style={{ padding:'0.2rem 0.5rem', fontSize:'0.8rem' }}>+ Add Row</button>
         </div>
+        <table className="report-table" style={{ width: '100%', marginTop: '10px' }}>
+          <thead><tr><th>Quantity being boxed up</th><th>Rating</th></tr></thead>
+          <tbody>
+            {(formData['Box-up'].mainTable || []).map((row, i) => (
+              <tr key={i}>
+                <td><input type="number" style={{width:'100%', padding:'4px'}} value={row.qty||''} onChange={e=>handleTableChange('Box-up','mainTable',i,'qty',e.target.value)}/></td>
+                <td>
+                  <input type="text" list="capacities-list" style={{width:'100%', padding:'4px'}} placeholder="Select or type..." value={row.rating||''} onChange={e=>handleTableChange('Box-up','mainTable',i,'rating',e.target.value)}/>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
 
       <div className="grid-2" style={{ marginTop: '20px' }}>
@@ -207,10 +210,7 @@ const DailyReports = () => {
                 <tr key={i}>
                   <td><input type="number" style={{width:'100%', padding:'4px'}} value={row.qty||''} onChange={e=>handleTableChange('Box-up','oven1',i,'qty',e.target.value)}/></td>
                   <td>
-                    <select style={{width:'100%', padding:'4px'}} value={row.rating||''} onChange={e=>handleTableChange('Box-up','oven1',i,'rating',e.target.value)}>
-                      <option value=""></option>
-                      {capacities.map(c => <option key={c} value={c}>{c}</option>)}
-                    </select>
+                    <input type="text" list="capacities-list" style={{width:'100%', padding:'4px'}} placeholder="Select or type..." value={row.rating||''} onChange={e=>handleTableChange('Box-up','oven1',i,'rating',e.target.value)}/>
                   </td>
                 </tr>
               ))}
@@ -230,10 +230,7 @@ const DailyReports = () => {
                 <tr key={i}>
                   <td><input type="number" style={{width:'100%', padding:'4px'}} value={row.qty||''} onChange={e=>handleTableChange('Box-up','oven2',i,'qty',e.target.value)}/></td>
                   <td>
-                    <select style={{width:'100%', padding:'4px'}} value={row.rating||''} onChange={e=>handleTableChange('Box-up','oven2',i,'rating',e.target.value)}>
-                      <option value=""></option>
-                      {capacities.map(c => <option key={c} value={c}>{c}</option>)}
-                    </select>
+                    <input type="text" list="capacities-list" style={{width:'100%', padding:'4px'}} placeholder="Select or type..." value={row.rating||''} onChange={e=>handleTableChange('Box-up','oven2',i,'rating',e.target.value)}/>
                   </td>
                 </tr>
               ))}
@@ -248,20 +245,23 @@ const DailyReports = () => {
   const renderCCA = () => (
     <div className="animate-fade-in">
       <div className="card">
-        <h3>CCA Details</h3>
-        <div className="grid-2">
-          <div className="input-group">
-            <label className="input-label">Quantity of Assembly</label>
-            <input type="number" className="input-field" value={formData['CCA'].qty} onChange={(e) => handleDataChange('CCA', 'qty', e.target.value)} />
-          </div>
-          <div className="input-group">
-            <label className="input-label">Rating</label>
-            <select className="input-field" value={formData['CCA'].rating} onChange={(e) => handleDataChange('CCA', 'rating', e.target.value)}>
-              <option value="">Select Rating...</option>
-              {capacities.map(c => <option key={c} value={c}>{c} kVA</option>)}
-            </select>
-          </div>
+        <div style={{ display:'flex', justifyContent:'space-between' }}>
+          <h3>CCA Details</h3>
+          <button className="btn btn-secondary" onClick={() => addTableRow('CCA', 'mainTable', {qty:'', rating:''})} style={{ padding:'0.2rem 0.5rem', fontSize:'0.8rem' }}>+ Add Row</button>
         </div>
+        <table className="report-table" style={{ width: '100%', marginTop: '10px' }}>
+          <thead><tr><th>Quantity of Assembly</th><th>Rating</th></tr></thead>
+          <tbody>
+            {(formData['CCA'].mainTable || []).map((row, i) => (
+              <tr key={i}>
+                <td><input type="number" style={{width:'100%', padding:'4px'}} value={row.qty||''} onChange={e=>handleTableChange('CCA','mainTable',i,'qty',e.target.value)}/></td>
+                <td>
+                  <input type="text" list="capacities-list" style={{width:'100%', padding:'4px'}} placeholder="Select or type..." value={row.rating||''} onChange={e=>handleTableChange('CCA','mainTable',i,'rating',e.target.value)}/>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
 
       <div className="grid-2" style={{ marginTop: '20px' }}>
@@ -331,10 +331,7 @@ const DailyReports = () => {
             {formData['Winding Section'].ratingsTable.map((row, i) => (
               <tr key={i}>
                 <td>
-                  <select style={{width:'100%', padding:'4px'}} value={row.rating||''} onChange={e=>handleTableChange('Winding Section','ratingsTable',i,'rating',e.target.value)}>
-                    <option value=""></option>
-                    {capacities.map(c => <option key={c} value={c}>{c} kVA</option>)}
-                  </select>
+                  <input type="text" list="capacities-list" style={{width:'100%', padding:'4px'}} placeholder="Select or type..." value={row.rating||''} onChange={e=>handleTableChange('Winding Section','ratingsTable',i,'rating',e.target.value)}/>
                 </td>
                 <td><input type="number" style={{width:'100%', padding:'4px'}} value={row.count||''} onChange={e=>handleTableChange('Winding Section','ratingsTable',i,'count',e.target.value)}/></td>
               </tr>
@@ -353,10 +350,7 @@ const DailyReports = () => {
         <div className="grid-2">
           <div className="input-group">
             <label className="input-label">Rating inside Oven</label>
-            <select className="input-field" value={formData['Core Cutting'].ratingInOven} onChange={(e) => handleDataChange('Core Cutting', 'ratingInOven', e.target.value)}>
-              <option value=""></option>
-              {capacities.map(c => <option key={c} value={c}>{c} kVA</option>)}
-            </select>
+            <input type="text" list="capacities-list" className="input-field" placeholder="Select or type..." value={formData['Core Cutting'].ratingInOven} onChange={(e) => handleDataChange('Core Cutting', 'ratingInOven', e.target.value)} />
           </div>
           <div className="input-group">
             <label className="input-label">Opening Time of Oven</label>
@@ -364,10 +358,7 @@ const DailyReports = () => {
           </div>
           <div className="input-group">
             <label className="input-label">Cutting Rating</label>
-            <select className="input-field" value={formData['Core Cutting'].cuttingRating} onChange={(e) => handleDataChange('Core Cutting', 'cuttingRating', e.target.value)}>
-              <option value=""></option>
-              {capacities.map(c => <option key={c} value={c}>{c} kVA</option>)}
-            </select>
+            <input type="text" list="capacities-list" className="input-field" placeholder="Select or type..." value={formData['Core Cutting'].cuttingRating} onChange={(e) => handleDataChange('Core Cutting', 'cuttingRating', e.target.value)} />
           </div>
           <div className="input-group">
             <label className="input-label">Next Oven Time</label>
@@ -387,10 +378,7 @@ const DailyReports = () => {
             {formData['Core Cutting'].testingTable.map((row, i) => (
               <tr key={i}>
                 <td>
-                  <select style={{width:'100%', padding:'4px'}} value={row.rating||''} onChange={e=>handleTableChange('Core Cutting','testingTable',i,'rating',e.target.value)}>
-                    <option value=""></option>
-                    {capacities.map(c => <option key={c} value={c}>{c} kVA</option>)}
-                  </select>
+                  <input type="text" list="capacities-list" style={{width:'100%', padding:'4px'}} placeholder="Select or type..." value={row.rating||''} onChange={e=>handleTableChange('Core Cutting','testingTable',i,'rating',e.target.value)}/>
                 </td>
                 <td><input type="text" style={{width:'100%', padding:'4px'}} value={row.srNo||''} onChange={e=>handleTableChange('Core Cutting','testingTable',i,'srNo',e.target.value)}/></td>
               </tr>
@@ -413,10 +401,7 @@ const DailyReports = () => {
           </div>
           <div className="input-group">
             <label className="input-label">Rating Being Manufactured</label>
-            <select className="input-field" value={formData['Tank Fabrication'].ratingManufactured} onChange={(e) => handleDataChange('Tank Fabrication', 'ratingManufactured', e.target.value)}>
-              <option value=""></option>
-              {capacities.map(c => <option key={c} value={c}>{c} kVA</option>)}
-            </select>
+            <input type="text" list="capacities-list" className="input-field" placeholder="Select or type..." value={formData['Tank Fabrication'].ratingManufactured} onChange={(e) => handleDataChange('Tank Fabrication', 'ratingManufactured', e.target.value)} />
           </div>
         </div>
       </div>
@@ -426,6 +411,11 @@ const DailyReports = () => {
 
   return (
     <div className="page-content animate-fade-in" style={{ paddingBottom: '3rem' }}>
+      {/* Global datalist for combo boxes */}
+      <datalist id="capacities-list">
+        {capacities.map(c => <option key={c} value={c} />)}
+      </datalist>
+
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', flexWrap: 'wrap', gap: '1rem' }}>
         <div>
           <h1 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.8rem' }}>
@@ -448,12 +438,21 @@ const DailyReports = () => {
         <div className="grid-2">
           <div className="input-group">
             <label className="input-label">Report Date</label>
-            <input 
-              type="date" 
-              className="input-field" 
-              value={selectedDate} 
-              onChange={(e) => setSelectedDate(e.target.value)} 
-            />
+            <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+              <input 
+                type="date" 
+                style={{ position: 'absolute', opacity: 0, width: '100%', height: '100%', cursor: 'pointer', zIndex: 2 }}
+                value={selectedDate} 
+                onChange={(e) => setSelectedDate(e.target.value)} 
+              />
+              <input 
+                type="text" 
+                className="input-field" 
+                value={selectedDate ? `${String(new Date(selectedDate).getDate()).padStart(2, '0')}-${["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"][new Date(selectedDate).getMonth()]}-${new Date(selectedDate).getFullYear()}` : ''}
+                readOnly
+                style={{ pointerEvents: 'none', backgroundColor: 'var(--bg-secondary)' }}
+              />
+            </div>
           </div>
           <div className="input-group">
             <label className="input-label">Shift Timing</label>
