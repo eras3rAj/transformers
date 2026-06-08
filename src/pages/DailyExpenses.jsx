@@ -114,6 +114,8 @@ const DailyExpenses = () => {
           ...(comment ? [{ field: 'Approver Comment', oldValue: '', newValue: comment }] : [])
         ]
       });
+    } else {
+      alert('Failed to update expense: ' + (res.error || 'Unknown error'));
     }
     setActionModal({ isOpen: false, type: '', expenseId: null });
   };
