@@ -52,7 +52,7 @@ const DailyReports = () => {
     const draft = localStorage.getItem(`draft_report_${selectedDate}_${selectedShift}`);
     if (draft) {
       try {
-        setFormData(JSON.parse(draft));
+        setFormData({ ...JSON.parse(JSON.stringify(emptyReport)), ...JSON.parse(draft) });
       } catch(e) {}
     }
   }, [selectedDate, selectedShift]);
@@ -66,7 +66,7 @@ const DailyReports = () => {
   useEffect(() => {
     const currentReport = reports.find(r => r.shift === selectedShift);
     if (currentReport && Object.keys(currentReport.data).length > 0) {
-      setFormData(currentReport.data);
+      setFormData({ ...JSON.parse(JSON.stringify(emptyReport)), ...currentReport.data });
     } else {
       // If empty, try to auto-populate from previous shift today
       const prevShift = selectedShift === 'evening' ? 'afternoon' : (selectedShift === 'afternoon' ? 'morning' : null);
@@ -74,7 +74,7 @@ const DailyReports = () => {
         const prevReport = reports.find(r => r.shift === prevShift);
         if (prevReport && Object.keys(prevReport.data).length > 0) {
           // Clone it so they have fewest changes possible
-          let cloned = JSON.parse(JSON.stringify(prevReport.data));
+          let cloned = { ...JSON.parse(JSON.stringify(emptyReport)), ...JSON.parse(JSON.stringify(prevReport.data)) };
           
           // SMART CARRY-OVER Logic:
           tabs.forEach(tab => {
