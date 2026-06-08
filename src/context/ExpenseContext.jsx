@@ -25,12 +25,19 @@ export const ExpenseProvider = ({ children }) => {
     });
   };
 
+  const updateExpenseComment = async (id, comment) => {
+    return await update(id, {
+      approver_comment: comment
+    });
+  };
+
   return (
     <ExpenseContext.Provider value={{ 
       expenses, 
       loading,
       addExpense, 
       updateExpenseStatus,
+      updateExpenseComment,
       refreshExpenses: () => fetchAll('created_at', false)
     }}>
       {children}

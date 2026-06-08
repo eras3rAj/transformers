@@ -3,13 +3,13 @@ import { useExpenses } from '../context/ExpenseContext';
 import { useAuth } from '../context/AuthContext';
 import { useLogs } from '../context/LogContext';
 import { useUsers } from '../context/UserContext';
-import { FileText, Plus, CheckCircle, XCircle, Clock } from 'lucide-react';
+import { FileText, Plus, CheckCircle, XCircle, Clock, MessageSquare } from 'lucide-react';
 import ConfirmModal from '../components/common/ConfirmModal';
 import { exportToPDF, exportToExcel } from '../utils/exportUtils';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 
 const DailyExpenses = () => {
-  const { expenses, addExpense, updateExpenseStatus, loading } = useExpenses();
+  const { expenses, addExpense, updateExpenseStatus, updateExpenseComment, loading } = useExpenses();
   const { currentUser } = useAuth();
   const { addLog } = useLogs();
   const { users } = useUsers();
@@ -76,6 +76,29 @@ const DailyExpenses = () => {
 
   const confirmAction = async (comment) => {
     const { expenseId, type } = actionModal;
+    
+    if (type === 'comment') {
+      if (!comment) {
+        setActionModal({ isOpen: false, type: '', expenseId: null });
+        return;
+      }
+      const res = await updateExpenseComment(expenseId, comment);
+      if (res.success) {
+        addLog({
+          id: Date.now().toString(),
+          timestamp: new Date().toISOString(),
+          action: `Added Comment to Expense`,
+          user: currentUser.name,
+          changes: [
+            { field: 'Expense ID', oldValue: '', newValue: expenseId },
+            { field: 'Comment', oldValue: '', newValue: comment }
+          ]
+        });
+      }
+      setActionModal({ isOpen: false, type: '', expenseId: null });
+      return;
+    }
+
     const status = type === 'approve' ? 'Approved' : 'Rejected';
     const res = await updateExpenseStatus(expenseId, status, currentUser.name, comment);
     
@@ -233,6 +256,9 @@ const DailyExpenses = () => {
                               <button className="icon-btn" style={{ color: 'var(--danger)', border: '1px solid var(--danger)', borderRadius: '4px', width: '28px', height: '28px' }} onClick={() => setActionModal({ isOpen: true, type: 'reject', expenseId: exp.id })} title="Reject">
                                 <XCircle size={14} />
                               </button>
+                              <button className="icon-btn" style={{ color: 'var(--warning)', border: '1px solid var(--warning)', borderRadius: '4px', width: '28px', height: '28px' }} onClick={() => setActionModal({ isOpen: true, type: 'comment', expenseId: exp.id })} title="Raise Comment">
+                                <MessageSquare size={14} />
+                              </button>
                             </>
                           ) : (
                             exp.submitted_by === currentUser?.name ? (
@@ -296,12 +322,12 @@ const DailyExpenses = () => {
 
       <ConfirmModal 
         isOpen={actionModal.isOpen}
-        title={actionModal.type === 'approve' ? 'Approve Expense' : 'Reject Expense'}
-        message={`Are you sure you want to ${actionModal.type} this expense request?`}
-        confirmText={actionModal.type === 'approve' ? 'Approve' : 'Reject'}
-        confirmType={actionModal.type === 'approve' ? 'primary' : 'danger'}
+        title={actionModal.type === 'approve' ? 'Approve Expense' : actionModal.type === 'reject' ? 'Reject Expense' : 'Raise Comment'}
+        message={actionModal.type === 'comment' ? 'Add a comment or query for this expense request without changing its pending status.' : `Are you sure you want to ${actionModal.type} this expense request?`}
+        confirmText={actionModal.type === 'approve' ? 'Approve' : actionModal.type === 'reject' ? 'Reject' : 'Add Comment'}
+        confirmType={actionModal.type === 'approve' ? 'primary' : actionModal.type === 'reject' ? 'danger' : 'primary'}
         showInput={true}
-        inputPlaceholder="Add an optional comment..."
+        inputPlaceholder={actionModal.type === 'comment' ? "Type your comment here..." : "Add an optional comment..."}
         onConfirm={(comment) => confirmAction(comment)}
         onCancel={() => setActionModal({ isOpen: false, type: '', expenseId: null })}
       />
