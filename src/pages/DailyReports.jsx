@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { useDailyReports } from '../context/DailyReportContext';
 import { usePO } from '../context/POContext';
-import { Save, Check, FileText, AlertTriangle, Image as ImageIcon } from 'lucide-react';
+import { useTasks } from '../context/TaskContext';
+import { Save, Check, FileText, AlertTriangle, Image as ImageIcon, Link } from 'lucide-react';
 import '../components/layout/Layout.css';
 
 const DailyReports = () => {
   const { reports, fetchReportsForDate, saveReport, loading } = useDailyReports();
   const { capacities } = usePO();
+  const { tasks, addTask, addLatestUpdate } = useTasks();
   
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [selectedShift, setSelectedShift] = useState('morning');
@@ -15,21 +17,32 @@ const DailyReports = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
 
-  const tabs = ['Box-up', 'CCA', 'Winding Section', 'Core Cutting', 'Tank Fabrication'];
+  const tabs = ['Box-up', 'CCA', 'Winding Section', 'Core Cutting', 'Tank Fabrication', 'Loading / Unloading'];
   const [mainTab, setMainTab] = useState('Daily Summary');
   const [summaryShift, setSummaryShift] = useState('Latest');
 
+  const defaultIssues = { 
+    machineProblem: false, machineProblemDesc: '', machineProblemAction: '', machineProblemETA: '', machineProblemTaskId: null,
+    materialShortage: false, materialShortageDesc: '', materialShortageAction: '', materialShortageETA: '', materialShortageTaskId: null,
+    remarks: '' 
+  };
+
   // Default empty structure
   const emptyReport = {
-    'Box-up': { mainTable: [{qty: '', rating: ''}], oven1: [], oven2: [], machineProblem: false, machineProblemDesc: '', materialShortage: false, materialShortageDesc: '', remarks: '' },
-    'CCA': { mainTable: [{qty: '', rating: ''}], oven1: [], oven2: [], machineProblem: false, machineProblemDesc: '', materialShortage: false, materialShortageDesc: '', remarks: '' },
-    'Winding Section': { ltWinders: '', htWinders: '', ratingsTable: [], machineProblem: false, machineProblemDesc: '', materialShortage: false, materialShortageDesc: '', remarks: '' },
+    'Box-up': { mainTable: [{qty: '', rating: ''}], oven1: [], oven2: [], ...defaultIssues },
+    'CCA': { mainTable: [{qty: '', rating: ''}], oven1: [], oven2: [], ...defaultIssues },
+    'Winding Section': { ltWinders: '', htWinders: '', ratingsTable: [], ...defaultIssues },
     'Core Cutting': { 
       ratingInOven: '', openingTime: '', cuttingRating: '', nextOvenTime: '', testingTable: [], 
       ribbonStock: { '142.2mm': { available: '', incoming: '' }, '170.2mm': { available: '', incoming: '' }, '213.4mm': { available: '', incoming: '' } },
-      machineProblem: false, machineProblemDesc: '', materialShortage: false, materialShortageDesc: '', remarks: '' 
+      ...defaultIssues 
     },
-    'Tank Fabrication': { weldersPresent: '', ratingsTable: [{rating: '', qty: ''}], machineProblem: false, machineProblemDesc: '', materialShortage: false, materialShortageDesc: '', remarks: '' }
+    'Tank Fabrication': { weldersPresent: '', ratingsTable: [{rating: '', qty: ''}], ...defaultIssues },
+    'Loading / Unloading': {
+      unloadingExpected: '', unloadingCompleted: '',
+      loadingTanks: [{ rating: '', qty: '' }], loadingPOs: [{ poNumber: '', qty: '' }], loadingPlanned: '',
+      ...defaultIssues
+    }
   };
 
   const [formData, setFormData] = useState(JSON.parse(JSON.stringify(emptyReport)));
@@ -61,7 +74,42 @@ const DailyReports = () => {
         const prevReport = reports.find(r => r.shift === prevShift);
         if (prevReport && Object.keys(prevReport.data).length > 0) {
           // Clone it so they have fewest changes possible
-          setFormData(JSON.parse(JSON.stringify(prevReport.data)));
+          let cloned = JSON.parse(JSON.stringify(prevReport.data));
+          
+          // SMART CARRY-OVER Logic:
+          tabs.forEach(tab => {
+            if (!cloned[tab]) return;
+            // Check Task Status
+            if (cloned[tab].machineProblemTaskId) {
+              const t = tasks.find(tsk => tsk.id === cloned[tab].machineProblemTaskId);
+              if (t && t.status === 'Completed') {
+                cloned[tab].machineProblem = false;
+                cloned[tab].machineProblemDesc = '';
+                cloned[tab].machineProblemAction = '';
+                cloned[tab].machineProblemETA = '';
+                cloned[tab].machineProblemTaskId = null;
+              }
+            }
+            if (cloned[tab].materialShortageTaskId) {
+              const t = tasks.find(tsk => tsk.id === cloned[tab].materialShortageTaskId);
+              if (t && t.status === 'Completed') {
+                cloned[tab].materialShortage = false;
+                cloned[tab].materialShortageDesc = '';
+                cloned[tab].materialShortageAction = '';
+                cloned[tab].materialShortageETA = '';
+                cloned[tab].materialShortageTaskId = null;
+              }
+            }
+          });
+
+          if (cloned['Loading / Unloading']) {
+             // Reset completed lists, carry over expected targets
+             cloned['Loading / Unloading'].unloadingCompleted = '';
+             cloned['Loading / Unloading'].loadingTanks = [{ rating: '', qty: '' }];
+             cloned['Loading / Unloading'].loadingPOs = [{ poNumber: '', qty: '' }];
+          }
+
+          setFormData(cloned);
         } else {
           setFormData(JSON.parse(JSON.stringify(emptyReport)));
         }
@@ -69,7 +117,7 @@ const DailyReports = () => {
         setFormData(JSON.parse(JSON.stringify(emptyReport)));
       }
     }
-  }, [reports, selectedShift]); // eslint-disable-line
+  }, [reports, selectedShift, tasks]); // eslint-disable-line
 
   // Handle auto-save draft
   const handleDataChange = (section, field, value) => {
@@ -179,9 +227,61 @@ const DailyReports = () => {
       }
     }
     setValidationError('');
-
     setIsSaving(true);
-    const success = await saveReport(selectedDate, selectedShift, formData);
+
+    // Deep clone formData to mutate with task IDs before saving
+    let dataToSave = JSON.parse(JSON.stringify(formData));
+
+    // Process tasks for machine problems and material shortages
+    for (const t of tabs) {
+      if (!dataToSave[t]) continue;
+      
+      const secData = dataToSave[t];
+      
+      // Machine Problem Task
+      if (secData.machineProblem) {
+        if (!secData.machineProblemTaskId) {
+          const res = await addTask({
+            task_title: `[System: Daily Report] Machine Problem in ${t}`,
+            task_desc: `Issue: ${secData.machineProblemDesc}\nAction Taken: ${secData.machineProblemAction || 'None'}\nETA: ${secData.machineProblemETA || 'Unknown'}`,
+            priority: 'High',
+            deadline: secData.machineProblemETA || new Date().toISOString().split('T')[0],
+            status: 'In Progress',
+            assigned_to: 'Admin',
+            department: 'Production'
+          });
+          if (res.success && res.data) {
+            secData.machineProblemTaskId = res.data[0].id;
+          }
+        } else {
+          await addLatestUpdate(secData.machineProblemTaskId, `Shift ${selectedShift}: Action Taken - ${secData.machineProblemAction || 'None'}`);
+        }
+      }
+
+      // Material Shortage Task
+      if (secData.materialShortage) {
+        if (!secData.materialShortageTaskId) {
+          const res = await addTask({
+            task_title: `[System: Daily Report] Material Shortage in ${t}`,
+            task_desc: `Issue: ${secData.materialShortageDesc}\nAction Taken: ${secData.materialShortageAction || 'None'}\nETA: ${secData.materialShortageETA || 'Unknown'}`,
+            priority: 'High',
+            deadline: secData.materialShortageETA || new Date().toISOString().split('T')[0],
+            status: 'In Progress',
+            assigned_to: 'Admin', 
+            department: 'Inventory'
+          });
+          if (res.success && res.data) {
+            secData.materialShortageTaskId = res.data[0].id;
+          }
+        } else {
+          await addLatestUpdate(secData.materialShortageTaskId, `Shift ${selectedShift}: Action Taken - ${secData.materialShortageAction || 'None'}`);
+        }
+      }
+    }
+
+    setFormData(dataToSave);
+
+    const success = await saveReport(selectedDate, selectedShift, dataToSave);
     if (success) {
       setSaveSuccess(true);
       localStorage.removeItem(`draft_report_${selectedDate}_${selectedShift}`);
@@ -194,7 +294,7 @@ const DailyReports = () => {
     <div style={{ marginTop: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
       <span style={{ color: 'var(--danger)', fontWeight: '500' }}>{validationError && activeTab === section ? validationError : ''}</span>
       <button className="btn btn-primary" onClick={() => handleNextSection(section)}>
-        {section === 'Tank Fabrication' ? 'Submit Entire Report' : 'Save Section & Next'}
+        {section === 'Loading / Unloading' ? 'Submit Entire Report' : 'Save Section & Next'}
       </button>
     </div>
   );
@@ -215,15 +315,26 @@ const DailyReports = () => {
           </select>
         </div>
         {formData[section].machineProblem && (
-          <div className="input-group">
-            <label className="input-label">Specify Machine Problem</label>
-            <input 
-              type="text" 
-              className="input-field" 
-              placeholder="Describe issue..." 
-              value={formData[section].machineProblemDesc || ''} 
-              onChange={(e) => handleDataChange(section, 'machineProblemDesc', e.target.value)}
-            />
+          <div style={{ gridColumn: '1 / -1', background: 'var(--bg-tertiary)', padding: '1rem', borderRadius: '8px', borderLeft: '4px solid var(--danger)' }}>
+            <div className="grid-3" style={{ marginBottom: '0.5rem' }}>
+              <div className="input-group">
+                <label className="input-label">Specify Machine Problem</label>
+                <input type="text" className="input-field" placeholder="Describe issue..." value={formData[section].machineProblemDesc || ''} onChange={(e) => handleDataChange(section, 'machineProblemDesc', e.target.value)} />
+              </div>
+              <div className="input-group">
+                <label className="input-label">Action Taken</label>
+                <input type="text" className="input-field" placeholder="What has been done?" value={formData[section].machineProblemAction || ''} onChange={(e) => handleDataChange(section, 'machineProblemAction', e.target.value)} />
+              </div>
+              <div className="input-group">
+                <label className="input-label">Expected Resolution Date</label>
+                <input type="date" className="input-field" value={formData[section].machineProblemETA || ''} onChange={(e) => handleDataChange(section, 'machineProblemETA', e.target.value)} />
+              </div>
+            </div>
+            {formData[section].machineProblemTaskId && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+                <Link size={14} /> Linked to Pending Task #{formData[section].machineProblemTaskId}
+              </div>
+            )}
           </div>
         )}
         
@@ -239,15 +350,26 @@ const DailyReports = () => {
           </select>
         </div>
         {formData[section].materialShortage && (
-          <div className="input-group">
-            <label className="input-label">Specify Material Shortage</label>
-            <input 
-              type="text" 
-              className="input-field" 
-              placeholder="Describe shortage..." 
-              value={formData[section].materialShortageDesc || ''} 
-              onChange={(e) => handleDataChange(section, 'materialShortageDesc', e.target.value)}
-            />
+          <div style={{ gridColumn: '1 / -1', background: 'var(--bg-tertiary)', padding: '1rem', borderRadius: '8px', borderLeft: '4px solid var(--warning)' }}>
+            <div className="grid-3" style={{ marginBottom: '0.5rem' }}>
+              <div className="input-group">
+                <label className="input-label">Specify Material Shortage</label>
+                <input type="text" className="input-field" placeholder="Describe shortage..." value={formData[section].materialShortageDesc || ''} onChange={(e) => handleDataChange(section, 'materialShortageDesc', e.target.value)} />
+              </div>
+              <div className="input-group">
+                <label className="input-label">Action Taken</label>
+                <input type="text" className="input-field" placeholder="What has been done?" value={formData[section].materialShortageAction || ''} onChange={(e) => handleDataChange(section, 'materialShortageAction', e.target.value)} />
+              </div>
+              <div className="input-group">
+                <label className="input-label">Expected Resolution Date</label>
+                <input type="date" className="input-field" value={formData[section].materialShortageETA || ''} onChange={(e) => handleDataChange(section, 'materialShortageETA', e.target.value)} />
+              </div>
+            </div>
+            {formData[section].materialShortageTaskId && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+                <Link size={14} /> Linked to Pending Task #{formData[section].materialShortageTaskId}
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -530,6 +652,69 @@ const DailyReports = () => {
     </div>
   );
 
+  const renderLoadingUnloading = () => (
+    <div className="animate-fade-in">
+      <div className="card">
+        <h3>Unloading Details</h3>
+        <div className="grid-2">
+          <div className="input-group">
+            <label className="input-label">Expected un-loading of material</label>
+            <textarea className="input-field" rows="2" placeholder="Describe expected material..." value={formData['Loading / Unloading']?.unloadingExpected || ''} onChange={(e) => handleDataChange('Loading / Unloading', 'unloadingExpected', e.target.value)}></textarea>
+          </div>
+          <div className="input-group">
+            <label className="input-label">Material unloaded till report was filed</label>
+            <textarea className="input-field" rows="2" placeholder="List unloaded material..." value={formData['Loading / Unloading']?.unloadingCompleted || ''} onChange={(e) => handleDataChange('Loading / Unloading', 'unloadingCompleted', e.target.value)}></textarea>
+          </div>
+        </div>
+      </div>
+
+      <div className="card" style={{ marginTop: '20px' }}>
+        <div style={{ display:'flex', justifyContent:'space-between' }}>
+          <h3>Transformers Loaded by Rating</h3>
+          <button className="btn btn-secondary" onClick={() => addTableRow('Loading / Unloading', 'loadingTanks', {rating:'', qty:''})} style={{ padding:'0.2rem 0.5rem', fontSize:'0.8rem' }}>+ Add Row</button>
+        </div>
+        <table className="report-table" style={{ width: '100%', marginTop: '10px' }}>
+          <thead><tr><th>Rating</th><th>Quantity</th></tr></thead>
+          <tbody>
+            {(formData['Loading / Unloading']?.loadingTanks || []).map((row, i) => (
+              <tr key={i}>
+                <td><input type="text" list="capacities-list" placeholder="Select or type..." value={row.rating||''} onChange={e=>handleTableChange('Loading / Unloading','loadingTanks',i,'rating',e.target.value)}/></td>
+                <td><input type="number" value={row.qty||''} onChange={e=>handleTableChange('Loading / Unloading','loadingTanks',i,'qty',e.target.value)}/></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      <div className="card" style={{ marginTop: '20px' }}>
+        <div style={{ display:'flex', justifyContent:'space-between' }}>
+          <h3>Transformers Loaded by PO</h3>
+          <button className="btn btn-secondary" onClick={() => addTableRow('Loading / Unloading', 'loadingPOs', {poNumber:'', qty:''})} style={{ padding:'0.2rem 0.5rem', fontSize:'0.8rem' }}>+ Add Row</button>
+        </div>
+        <table className="report-table" style={{ width: '100%', marginTop: '10px' }}>
+          <thead><tr><th>PO Number</th><th>Quantity</th></tr></thead>
+          <tbody>
+            {(formData['Loading / Unloading']?.loadingPOs || []).map((row, i) => (
+              <tr key={i}>
+                <td><input type="text" placeholder="Enter PO Number..." value={row.poNumber||''} onChange={e=>handleTableChange('Loading / Unloading','loadingPOs',i,'poNumber',e.target.value)}/></td>
+                <td><input type="number" value={row.qty||''} onChange={e=>handleTableChange('Loading / Unloading','loadingPOs',i,'qty',e.target.value)}/></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      <div className="card" style={{ marginTop: '20px' }}>
+        <div className="input-group">
+          <label className="input-label">Loading planned for the day</label>
+          <textarea className="input-field" rows="2" placeholder="Describe planned loading..." value={formData['Loading / Unloading']?.loadingPlanned || ''} onChange={(e) => handleDataChange('Loading / Unloading', 'loadingPlanned', e.target.value)}></textarea>
+        </div>
+      </div>
+      
+      {renderCommonFields('Loading / Unloading')}
+    </div>
+  );
+
   const renderSummary = () => {
     const eveningReportObj = reports.find(r => r.shift === 'evening');
     const afternoonReportObj = reports.find(r => r.shift === 'afternoon');
@@ -683,6 +868,35 @@ const DailyReports = () => {
               </div>
             ) : <span style={{ color: 'var(--text-muted)' }}>No tanks recorded.</span>}
           </div>
+          </div>
+
+          {/* Loading / Unloading */}
+          <div style={{ padding: '1.2rem', background: 'var(--bg-secondary)', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+            <h4 style={{ margin: '0 0 12px 0', color: 'var(--accent-primary)', display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--border-color)', paddingBottom: '8px' }}>
+              <span>🚚 Loading & Unloading</span>
+            </h4>
+            <div className="grid-2">
+              <div>
+                <strong style={{ color: 'var(--text-secondary)' }}>Unloading:</strong>
+                <ul style={{ margin: '8px 0 0 20px', color: 'var(--text-primary)' }}>
+                  <li style={{ marginBottom: '4px' }}>Expected: <strong>{latestData['Loading / Unloading']?.unloadingExpected || 'None'}</strong></li>
+                  <li style={{ marginBottom: '4px' }}>Completed: <strong>{latestData['Loading / Unloading']?.unloadingCompleted || 'None'}</strong></li>
+                </ul>
+              </div>
+              <div>
+                <strong style={{ color: 'var(--text-secondary)' }}>Loading:</strong>
+                <ul style={{ margin: '8px 0 0 20px', color: 'var(--text-primary)' }}>
+                  <li style={{ marginBottom: '4px' }}>Planned: <strong>{latestData['Loading / Unloading']?.loadingPlanned || 'None'}</strong></li>
+                  <li style={{ marginBottom: '4px' }}>
+                    Tanks Loaded: <strong>{latestData['Loading / Unloading']?.loadingTanks?.reduce((sum, r) => sum + (Number(r.qty) || 0), 0) || 0}</strong>
+                  </li>
+                  <li style={{ marginBottom: '4px' }}>
+                    POs Loaded: <strong>{latestData['Loading / Unloading']?.loadingPOs?.reduce((sum, r) => sum + (Number(r.qty) || 0), 0) || 0}</strong>
+                  </li>
+                </ul>
+              </div>
+            </div>
+          </div>
           
         </div>
 
@@ -812,6 +1026,7 @@ const DailyReports = () => {
             {activeTab === 'Winding Section' && renderWinding()}
             {activeTab === 'Core Cutting' && renderCoreCutting()}
             {activeTab === 'Tank Fabrication' && renderTankFab()}
+            {activeTab === 'Loading / Unloading' && renderLoadingUnloading()}
           </div>
         </div>
       ) : (
