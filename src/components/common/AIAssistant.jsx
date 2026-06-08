@@ -4,6 +4,7 @@ import { generateAIResponse } from '../../utils/aiEngine';
 import { useExpenses } from '../../context/ExpenseContext';
 import { useInventory } from '../../context/InventoryContext';
 import { useProduction } from '../../context/ProductionContext';
+import { usePO } from '../../context/POContext';
 
 const AIAssistant = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -15,6 +16,7 @@ const AIAssistant = () => {
   const { expenses } = useExpenses();
   const { items, getGlobalStock } = useInventory();
   const { production } = useProduction();
+  const { pos } = usePO();
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -33,27 +35,35 @@ const AIAssistant = () => {
     setInput('');
     setIsTyping(true);
 
-    const inventoryStats = items.reduce((acc, item) => {
-      acc[item.name] = getGlobalStock(item.name);
-      return acc;
-    }, {});
+    try {
+      const inventoryStats = (items || []).reduce((acc, item) => {
+        if (getGlobalStock) {
+          acc[item.name] = getGlobalStock(item.name);
+        }
+        return acc;
+      }, {});
 
-    const contextData = {
-      expenses,
-      inventory: items,
-      inventoryStats,
-      production
-    };
+      const contextData = {
+        expenses,
+        inventory: items,
+        inventoryStats,
+        production,
+        purchaseOrders: pos
+      };
 
-    const apiKey = import.meta.env.VITE_GEMINI_API_KEY || '';
-    
-    // Slight artificial delay for UX in simulated mode
-    if (!apiKey) await new Promise(r => setTimeout(r, 600));
+      const apiKey = import.meta.env.VITE_GEMINI_API_KEY || '';
+      
+      if (!apiKey) await new Promise(r => setTimeout(r, 600));
 
-    const responseText = await generateAIResponse(userMsg.text, contextData, apiKey);
+      const responseText = await generateAIResponse(userMsg.text, contextData, apiKey);
 
-    setMessages(prev => [...prev, { id: Date.now() + 1, sender: 'ai', text: responseText }]);
-    setIsTyping(false);
+      setMessages(prev => [...prev, { id: Date.now() + 1, sender: 'ai', text: responseText }]);
+    } catch (error) {
+      console.error('Error in AIAssistant:', error);
+      setMessages(prev => [...prev, { id: Date.now() + 1, sender: 'ai', text: "I encountered an internal error. Please try again." }]);
+    } finally {
+      setIsTyping(false);
+    }
   };
 
   return (

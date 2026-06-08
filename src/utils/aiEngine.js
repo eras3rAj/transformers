@@ -36,11 +36,19 @@ const simulateAIResponse = (query, context) => {
     return `To date, you have logged production for ${totalProduced} units. Check the Executive Dashboard for a detailed yield breakdown.`;
   }
 
-  if (q.includes('hello') || q.includes('hi ')) {
-    return "Hello! I am your VoltForge AI Assistant. Ask me about your expenses, inventory shortages, or production stats!";
+  if (q.includes('purchase order') || q.includes('po') || q.includes('orders')) {
+    if (!context.purchaseOrders || context.purchaseOrders.length === 0) {
+      return "You currently have no purchase orders in the system.";
+    }
+    const pending = context.purchaseOrders.filter(po => po.status === 'Pending').length;
+    return `You have ${context.purchaseOrders.length} total purchase orders, with ${pending} currently pending.`;
   }
 
-  return "I'm sorry, I couldn't understand that query. Try asking about 'expenses', 'inventory shortages', or 'production totals'. (Simulated Mode)";
+  if (q.includes('hello') || q.includes('hi ')) {
+    return "Hello! I am your VoltForge AI Assistant. Ask me about your expenses, inventory shortages, production stats, or purchase orders!";
+  }
+
+  return "I'm sorry, I couldn't understand that query. Try asking about 'expenses', 'inventory shortages', 'production totals', or 'purchase orders'. (Simulated Mode)";
 };
 
 const fetchGeminiResponse = async (query, context, apiKey) => {
