@@ -15,7 +15,7 @@ const DailyReports = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
 
-  const tabs = ['Box-up', 'CCA', 'Winding Section', 'Core Cutting', 'Tank Fabrication'];
+  const tabs = ['Box-up', 'CCA', 'Winding Section', 'Core Cutting', 'Tank Fabrication', 'Daily Summary'];
 
   // Default empty structure
   const emptyReport = {
@@ -487,6 +487,73 @@ const DailyReports = () => {
     </div>
   );
 
+  const renderSummary = () => {
+    const eveningReport = reports.find(r => r.shift === 'evening')?.data;
+    const afternoonReport = reports.find(r => r.shift === 'afternoon')?.data;
+    const morningReport = reports.find(r => r.shift === 'morning')?.data;
+    const latestData = eveningReport || afternoonReport || morningReport || formData;
+
+    const issues = [];
+    ['Box-up', 'CCA', 'Winding Section', 'Core Cutting', 'Tank Fabrication'].forEach(sec => {
+       if (latestData[sec]?.machineProblem) issues.push({ section: sec, type: 'Machine Problem', desc: latestData[sec].machineProblemDesc });
+       if (latestData[sec]?.materialShortage) issues.push({ section: sec, type: 'Material Shortage', desc: latestData[sec].materialShortageDesc });
+    });
+
+    return (
+      <div className="animate-fade-in card">
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <h3>Daily Summary for {selectedDate ? `${String(new Date(selectedDate).getDate()).padStart(2, '0')}-${["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"][new Date(selectedDate).getMonth()]}-${new Date(selectedDate).getFullYear()}` : ''}</h3>
+          <span className="badge" style={{ background: 'var(--success)20', color: 'var(--success)' }}>Auto-Generated</span>
+        </div>
+        <p style={{ color: 'var(--text-muted)' }}>This summary aggregates data from the latest available shift for this date.</p>
+        
+        <div className="grid-3" style={{ marginTop: '20px' }}>
+          <div className="card" style={{ background: 'var(--bg-secondary)', textAlign: 'center' }}>
+            <h4 style={{ margin: '0 0 10px 0', color: 'var(--text-secondary)' }}>Total Box-up</h4>
+            <p style={{ fontSize: '2.5rem', margin: 0, fontWeight: 'bold', color: 'var(--accent-primary)' }}>
+              {latestData['Box-up']?.mainTable?.reduce((sum, r) => sum + (Number(r.qty) || 0), 0) || 0}
+            </p>
+          </div>
+          <div className="card" style={{ background: 'var(--bg-secondary)', textAlign: 'center' }}>
+            <h4 style={{ margin: '0 0 10px 0', color: 'var(--text-secondary)' }}>Total CCA</h4>
+            <p style={{ fontSize: '2.5rem', margin: 0, fontWeight: 'bold', color: 'var(--accent-primary)' }}>
+              {latestData['CCA']?.mainTable?.reduce((sum, r) => sum + (Number(r.qty) || 0), 0) || 0}
+            </p>
+          </div>
+          <div className="card" style={{ background: 'var(--bg-secondary)', textAlign: 'center' }}>
+            <h4 style={{ margin: '0 0 10px 0', color: 'var(--text-secondary)' }}>Max Welders</h4>
+            <p style={{ fontSize: '2.5rem', margin: 0, fontWeight: 'bold', color: 'var(--accent-primary)' }}>
+               {Math.max(
+                 Number(eveningReport?.['Tank Fabrication']?.weldersPresent || 0),
+                 Number(afternoonReport?.['Tank Fabrication']?.weldersPresent || 0),
+                 Number(morningReport?.['Tank Fabrication']?.weldersPresent || 0),
+                 Number(formData['Tank Fabrication']?.weldersPresent || 0)
+               )}
+            </p>
+          </div>
+        </div>
+
+        <h4 style={{ marginTop: '30px', borderBottom: '1px solid var(--border-color)', paddingBottom: '10px' }}>Reported Issues</h4>
+        {issues.length > 0 ? (
+          <table className="report-table" style={{ width: '100%', marginTop: '10px' }}>
+            <thead><tr><th style={{ textAlign: 'left' }}>Section</th><th style={{ textAlign: 'left' }}>Issue Type</th><th style={{ textAlign: 'left' }}>Description</th></tr></thead>
+            <tbody>
+              {issues.map((iss, i) => (
+                <tr key={i}>
+                  <td style={{ fontWeight: '500' }}>{iss.section}</td>
+                  <td><span className="badge" style={{ background: iss.type === 'Machine Problem' ? '#ef444420' : '#f59e0b20', color: iss.type === 'Machine Problem' ? '#ef4444' : '#f59e0b' }}>{iss.type}</span></td>
+                  <td>{iss.desc || 'N/A'}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        ) : (
+          <p style={{ color: 'var(--text-muted)', padding: '10px 0' }}>No issues reported on this date.</p>
+        )}
+      </div>
+    );
+  };
+
   return (
     <div className="page-content animate-fade-in" style={{ paddingBottom: '3rem' }}>
       {/* Global datalist for combo boxes */}
@@ -568,6 +635,7 @@ const DailyReports = () => {
         {activeTab === 'Winding Section' && renderWinding()}
         {activeTab === 'Core Cutting' && renderCoreCutting()}
         {activeTab === 'Tank Fabrication' && renderTankFab()}
+        {activeTab === 'Daily Summary' && renderSummary()}
       </div>
     </div>
   );
