@@ -16,7 +16,8 @@ const DailyReports = () => {
   const [saveSuccess, setSaveSuccess] = useState(false);
 
   const tabs = ['Box-up', 'CCA', 'Winding Section', 'Core Cutting', 'Tank Fabrication'];
-  const [mainTab, setMainTab] = useState('Daily Report');
+  const [mainTab, setMainTab] = useState('Daily Summary');
+  const [summaryShift, setSummaryShift] = useState('Latest');
 
   // Default empty structure
   const emptyReport = {
@@ -533,7 +534,17 @@ const DailyReports = () => {
     const eveningReport = reports.find(r => r.shift === 'evening')?.data;
     const afternoonReport = reports.find(r => r.shift === 'afternoon')?.data;
     const morningReport = reports.find(r => r.shift === 'morning')?.data;
-    const latestData = eveningReport || afternoonReport || morningReport || formData;
+    
+    let latestData = {};
+    if (summaryShift === 'Latest') {
+      latestData = eveningReport || afternoonReport || morningReport || formData;
+    } else if (summaryShift === 'Morning') {
+      latestData = morningReport || emptyReport;
+    } else if (summaryShift === 'Afternoon') {
+      latestData = afternoonReport || emptyReport;
+    } else if (summaryShift === 'Evening') {
+      latestData = eveningReport || emptyReport;
+    }
 
     const issues = [];
     ['Box-up', 'CCA', 'Winding Section', 'Core Cutting', 'Tank Fabrication'].forEach(sec => {
@@ -551,8 +562,8 @@ const DailyReports = () => {
     return (
       <div className="animate-fade-in card">
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <h3>Daily Summary for {selectedDate ? `${String(new Date(selectedDate).getDate()).padStart(2, '0')}-${["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"][new Date(selectedDate).getMonth()]}-${new Date(selectedDate).getFullYear()}` : ''}</h3>
-          <span className="badge" style={{ background: 'var(--success)20', color: 'var(--success)' }}>Auto-Generated</span>
+          <h3>Daily Summary for {selectedDate ? `${String(new Date(selectedDate).getDate()).padStart(2, '0')}-${["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"][new Date(selectedDate).getMonth()]}-${new Date(selectedDate).getFullYear()}` : ''} ({summaryShift})</h3>
+          <span className="status-badge" style={{ background: 'var(--success)20', color: 'var(--success)' }}>Auto-Generated</span>
         </div>
         <p style={{ color: 'var(--text-muted)' }}>This summary aggregates data from the latest available shift for this date.</p>
         
@@ -567,7 +578,7 @@ const DailyReports = () => {
             {latestData['Box-up']?.mainTable?.some(r => r.qty || r.rating) ? (
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem' }}>
                 {latestData['Box-up'].mainTable.filter(r => r.qty || r.rating).map((r, i) => (
-                  <span key={i} className="badge" style={{ background: 'var(--bg-tertiary)', padding: '0.4rem 0.8rem', fontSize: '0.9rem', border: '1px solid var(--border-color)' }}>
+                  <span key={i} className="status-badge" style={{ background: 'var(--bg-tertiary)', padding: '0.4rem 0.8rem', fontSize: '0.9rem', border: '1px solid var(--border-color)' }}>
                     {r.rating || 'Unknown'}: <strong style={{ color: 'var(--accent-primary)', marginLeft: '6px' }}>{r.qty || 0}</strong>
                   </span>
                 ))}
@@ -584,7 +595,7 @@ const DailyReports = () => {
             {latestData['CCA']?.mainTable?.some(r => r.qty || r.rating) ? (
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem' }}>
                 {latestData['CCA'].mainTable.filter(r => r.qty || r.rating).map((r, i) => (
-                  <span key={i} className="badge" style={{ background: 'var(--bg-tertiary)', padding: '0.4rem 0.8rem', fontSize: '0.9rem', border: '1px solid var(--border-color)' }}>
+                  <span key={i} className="status-badge" style={{ background: 'var(--bg-tertiary)', padding: '0.4rem 0.8rem', fontSize: '0.9rem', border: '1px solid var(--border-color)' }}>
                     {r.rating || 'Unknown'}: <strong style={{ color: 'var(--accent-primary)', marginLeft: '6px' }}>{r.qty || 0}</strong>
                   </span>
                 ))}
@@ -601,7 +612,7 @@ const DailyReports = () => {
             {latestData['Winding Section']?.ratingsTable?.length > 0 ? (
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem' }}>
                 {latestData['Winding Section'].ratingsTable.filter(r => r.count || r.rating).map((r, i) => (
-                  <span key={i} className="badge" style={{ background: 'var(--bg-tertiary)', padding: '0.4rem 0.8rem', fontSize: '0.9rem', border: '1px solid var(--border-color)' }}>
+                  <span key={i} className="status-badge" style={{ background: 'var(--bg-tertiary)', padding: '0.4rem 0.8rem', fontSize: '0.9rem', border: '1px solid var(--border-color)' }}>
                     {r.rating || 'Unknown'} (Winders): <strong style={{ color: 'var(--accent-primary)', marginLeft: '6px' }}>{r.count || 0}</strong>
                   </span>
                 ))}
@@ -651,7 +662,7 @@ const DailyReports = () => {
             {latestData['Tank Fabrication']?.ratingsTable?.some(r => r.qty || r.rating) ? (
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem' }}>
                 {latestData['Tank Fabrication'].ratingsTable.filter(r => r.qty || r.rating).map((r, i) => (
-                  <span key={i} className="badge" style={{ background: 'var(--bg-tertiary)', padding: '0.4rem 0.8rem', fontSize: '0.9rem', border: '1px solid var(--border-color)' }}>
+                  <span key={i} className="status-badge" style={{ background: 'var(--bg-tertiary)', padding: '0.4rem 0.8rem', fontSize: '0.9rem', border: '1px solid var(--border-color)' }}>
                     {r.rating || 'Unknown'}: <strong style={{ color: 'var(--accent-primary)', marginLeft: '6px' }}>{r.qty || 0}</strong>
                   </span>
                 ))}
@@ -669,7 +680,7 @@ const DailyReports = () => {
               {issues.map((iss, i) => (
                 <tr key={i}>
                   <td style={{ fontWeight: '500' }}>{iss.section}</td>
-                  <td><span className="badge" style={{ background: iss.type === 'Machine Problem' ? '#ef444420' : '#f59e0b20', color: iss.type === 'Machine Problem' ? '#ef4444' : '#f59e0b' }}>{iss.type}</span></td>
+                  <td><span className="status-badge" style={{ background: iss.type === 'Machine Problem' ? '#ef444420' : '#f59e0b20', color: iss.type === 'Machine Problem' ? '#ef4444' : '#f59e0b' }}>{iss.type}</span></td>
                   <td>{iss.desc || 'N/A'}</td>
                 </tr>
               ))}
@@ -702,7 +713,7 @@ const DailyReports = () => {
       </div>
 
       <div className="tabs" style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem' }}>
-        {['Daily Report', 'Daily Summary'].map(t => (
+        {['Daily Summary', 'Daily Report'].map(t => (
           <button 
             key={t}
             onClick={() => setMainTab(t)}
@@ -791,22 +802,33 @@ const DailyReports = () => {
       ) : (
         <div className="animate-fade-in">
           <div className="card" style={{ marginBottom: '2rem' }}>
-            <div className="input-group" style={{ maxWidth: '300px' }}>
-              <label className="input-label">Select Date to View Summary</label>
-              <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-                <input 
-                  type="date" 
-                  style={{ position: 'absolute', opacity: 0, width: '100%', height: '100%', cursor: 'pointer', zIndex: 2 }}
-                  value={selectedDate} 
-                  onChange={(e) => setSelectedDate(e.target.value)} 
-                />
-                <input 
-                  type="text" 
-                  className="input-field" 
-                  value={selectedDate ? `${String(new Date(selectedDate).getDate()).padStart(2, '0')}-${["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"][new Date(selectedDate).getMonth()]}-${new Date(selectedDate).getFullYear()}` : ''}
-                  readOnly
-                  style={{ pointerEvents: 'none', backgroundColor: 'var(--bg-secondary)' }}
-                />
+            <div className="grid-2">
+              <div className="input-group" style={{ maxWidth: '300px' }}>
+                <label className="input-label">Select Date to View Summary</label>
+                <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                  <input 
+                    type="date" 
+                    style={{ position: 'absolute', opacity: 0, width: '100%', height: '100%', cursor: 'pointer', zIndex: 2 }}
+                    value={selectedDate} 
+                    onChange={(e) => setSelectedDate(e.target.value)} 
+                  />
+                  <input 
+                    type="text" 
+                    className="input-field" 
+                    value={selectedDate ? `${String(new Date(selectedDate).getDate()).padStart(2, '0')}-${["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"][new Date(selectedDate).getMonth()]}-${new Date(selectedDate).getFullYear()}` : ''}
+                    readOnly
+                    style={{ pointerEvents: 'none', backgroundColor: 'var(--bg-secondary)' }}
+                  />
+                </div>
+              </div>
+              <div className="input-group" style={{ maxWidth: '300px' }}>
+                <label className="input-label">Select Shift</label>
+                <select className="input-field" value={summaryShift} onChange={(e) => setSummaryShift(e.target.value)}>
+                  <option value="Latest">Latest Available</option>
+                  <option value="Morning">Morning (9-10 AM)</option>
+                  <option value="Afternoon">Afternoon (2-3 PM)</option>
+                  <option value="Evening">Evening (5-6 PM)</option>
+                </select>
               </div>
             </div>
             {loading && <p style={{ color: 'var(--text-muted)' }}>Loading summary data...</p>}

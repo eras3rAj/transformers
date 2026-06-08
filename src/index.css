@@ -235,6 +235,17 @@ a:hover {
 .text-danger { color: var(--danger); }
 .text-warning { color: var(--warning); }
 
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.2rem 0.6rem;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
 /* Modals */
 .modal-backdrop {
   position: fixed;
