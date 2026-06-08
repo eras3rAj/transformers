@@ -1002,17 +1002,17 @@ const DailyReports = () => {
             {loading && <p style={{ color: 'var(--text-muted)' }}>Loading report data...</p>}
           </div>
 
-          <div className="tabs" style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem', overflowX: 'auto' }}>
+          <div className="tabs" style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '1.5rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem' }}>
             {tabs.map(t => (
               <button 
                 key={t}
                 onClick={() => setActiveTab(t)}
                 style={{
-                  background: 'none', border: 'none', padding: '0.5rem 1rem', cursor: 'pointer',
+                  background: 'none', border: 'none', padding: '0.5rem 0.8rem', cursor: 'pointer',
                   color: activeTab === t ? 'var(--accent-primary)' : 'var(--text-secondary)',
                   borderBottom: activeTab === t ? '2px solid var(--accent-primary)' : '2px solid transparent',
                   fontWeight: activeTab === t ? '600' : '500',
-                  whiteSpace: 'nowrap'
+                  fontSize: '0.9rem'
                 }}
               >
                 {t}
