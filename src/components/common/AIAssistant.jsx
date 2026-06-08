@@ -29,8 +29,11 @@ const AIAssistant = () => {
   const handleSend = async (e) => {
     e.preventDefault();
     if (!input.trim()) return;
+    await processSend(input.trim());
+  };
 
-    const userMsg = { id: Date.now(), sender: 'user', text: input.trim() };
+  const processSend = async (text) => {
+    const userMsg = { id: Date.now(), sender: 'user', text };
     setMessages(prev => [...prev, userMsg]);
     setInput('');
     setIsTyping(true);
@@ -55,7 +58,7 @@ const AIAssistant = () => {
       
       if (!apiKey) await new Promise(r => setTimeout(r, 600));
 
-      const responseText = await generateAIResponse(userMsg.text, contextData, apiKey);
+      const responseText = await generateAIResponse(text, contextData, apiKey);
 
       setMessages(prev => [...prev, { id: Date.now() + 1, sender: 'ai', text: responseText }]);
     } catch (error) {
@@ -65,6 +68,13 @@ const AIAssistant = () => {
       setIsTyping(false);
     }
   };
+
+  const prompts = [
+    "Total expenses",
+    "Inventory shortages",
+    "Production yield",
+    "Pending purchase orders"
+  ];
 
   return (
     <>
@@ -147,16 +157,38 @@ const AIAssistant = () => {
             <div ref={messagesEndRef} />
           </div>
 
+          <div style={{ display: 'flex', gap: '0.5rem', overflowX: 'auto', padding: '0.5rem 1rem', borderTop: '1px solid var(--border-color)', backgroundColor: 'var(--bg-primary)' }}>
+            {prompts.map(prompt => (
+              <button 
+                key={prompt}
+                onClick={() => processSend(prompt)}
+                className="status-badge"
+                style={{ 
+                  background: 'var(--bg-tertiary)', 
+                  border: '1px solid var(--border-color)', 
+                  padding: '0.4rem 0.8rem', 
+                  borderRadius: '16px', 
+                  fontSize: '0.75rem', 
+                  whiteSpace: 'nowrap', 
+                  cursor: 'pointer',
+                  color: 'var(--text-primary)'
+                }}
+              >
+                {prompt}
+              </button>
+            ))}
+          </div>
+
           <form onSubmit={handleSend} style={{ padding: '1rem', borderTop: '1px solid var(--border-color)', display: 'flex', gap: '0.5rem', backgroundColor: 'var(--bg-secondary)' }}>
             <input 
               type="text" 
               className="input-field" 
               value={input}
               onChange={e => setInput(e.target.value)}
-              placeholder="Ask about expenses, stock..." 
+              placeholder="Ask me anything..." 
               style={{ marginBottom: 0, flex: 1, borderRadius: '20px' }}
             />
-            <button type="submit" className="btn btn-primary" style={{ borderRadius: '50%', width: '40px', height: '40px', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }} disabled={isTyping}>
+            <button type="submit" className="btn btn-primary" style={{ borderRadius: '50%', width: '40px', height: '40px', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }} disabled={isTyping}>
               <Send size={18} />
             </button>
           </form>
