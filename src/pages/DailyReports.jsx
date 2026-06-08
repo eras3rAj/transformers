@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useDailyReports } from '../context/DailyReportContext';
 import { usePO } from '../context/POContext';
 import { useTasks } from '../context/TaskContext';
-import { Save, Check, FileText, AlertTriangle, Image as ImageIcon, Link } from 'lucide-react';
+import { Save, Check, FileText, Link } from 'lucide-react';
 import '../components/layout/Layout.css';
 
 const DailyReports = () => {
