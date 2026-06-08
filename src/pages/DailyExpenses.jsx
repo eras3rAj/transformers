@@ -197,14 +197,14 @@ const DailyExpenses = () => {
                 <th style={{ padding: '1rem', fontSize: '0.85rem', color: 'var(--text-muted)' }}>PAYABLE TO</th>
                 <th style={{ padding: '1rem', fontSize: '0.85rem', color: 'var(--text-muted)' }}>SUBMITTED BY</th>
                 <th style={{ padding: '1rem', fontSize: '0.85rem', color: 'var(--text-muted)' }}>STATUS</th>
-                {isApprover && <th style={{ padding: '1rem', fontSize: '0.85rem', color: 'var(--text-muted)', textAlign: 'right' }}>ACTIONS</th>}
+                <th style={{ padding: '1rem', fontSize: '0.85rem', color: 'var(--text-muted)', textAlign: 'right' }}>ACTIONS</th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan={isApprover ? 7 : 6} style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)' }}>Loading expenses...</td></tr>
+                <tr><td colSpan={7} style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)' }}>Loading expenses...</td></tr>
               ) : visibleExpenses.length === 0 ? (
-                <tr><td colSpan={isApprover ? 7 : 6} style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)' }}>No expenses logged yet.</td></tr>
+                <tr><td colSpan={7} style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)' }}>No expenses logged yet.</td></tr>
               ) : (
                 visibleExpenses.map(exp => (
                   <tr key={exp.id} style={{ borderBottom: '1px solid var(--border-color)' }}>
@@ -219,26 +219,32 @@ const DailyExpenses = () => {
                         {exp.approved_by && <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>by {exp.approved_by}</span>}
                       </div>
                     </td>
-                    {isApprover && (
-                      <td style={{ padding: '1rem', textAlign: 'right', whiteSpace: 'nowrap' }}>
-                        {exp.status === 'Pending' ? (
-                          canApproveExpense(exp) ? (
-                            <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
+                    <td style={{ padding: '1rem', textAlign: 'right', whiteSpace: 'nowrap' }}>
+                      {exp.status === 'Pending' ? (
+                        <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
+                          {canApproveExpense(exp) ? (
+                            <>
                               <button className="icon-btn" style={{ color: 'var(--success)', border: '1px solid var(--success)', borderRadius: '4px', width: '28px', height: '28px' }} onClick={() => setActionModal({ isOpen: true, type: 'approve', expenseId: exp.id })} title="Approve">
                                 <CheckCircle size={14} />
                               </button>
                               <button className="icon-btn" style={{ color: 'var(--danger)', border: '1px solid var(--danger)', borderRadius: '4px', width: '28px', height: '28px' }} onClick={() => setActionModal({ isOpen: true, type: 'reject', expenseId: exp.id })} title="Reject">
                                 <XCircle size={14} />
                               </button>
-                            </div>
+                            </>
                           ) : (
-                            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Awaiting Superadmin</span>
-                          )
-                        ) : (
-                          <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Actioned</span>
-                        )}
-                      </td>
-                    )}
+                            exp.submitted_by === currentUser?.name ? (
+                              <button className="icon-btn" style={{ color: 'var(--danger)', border: '1px solid var(--danger)', borderRadius: '4px', width: 'auto', height: '28px', padding: '0 8px' }} onClick={() => setActionModal({ isOpen: true, type: 'reject', expenseId: exp.id })} title="Cancel/Reject Own Request">
+                                <XCircle size={14} style={{ marginRight: '4px' }}/> Cancel
+                              </button>
+                            ) : (
+                              <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Awaiting Superadmin</span>
+                            )
+                          )}
+                        </div>
+                      ) : (
+                        <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Actioned</span>
+                      )}
+                    </td>
                   </tr>
                 ))
               )}
