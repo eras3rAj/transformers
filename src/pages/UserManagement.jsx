@@ -20,7 +20,8 @@ export const AVAILABLE_MODULES = [
   { id: 'expenses', name: 'Daily Expenses' },
   { id: 'eod-summary', name: 'Daily Summary' },
   { id: 'bg-lc', name: 'Bank Guarantee & LC' },
-  { id: 'custom-duty', name: 'Custom Duty' }
+  { id: 'custom-duty', name: 'Custom Duty' },
+  { id: 'daily-reports', name: 'Daily Reports' }
 ];
 
 const UserManagement = () => {
