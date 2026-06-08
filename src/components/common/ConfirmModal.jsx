@@ -1,8 +1,17 @@
 import { createPortal } from 'react-dom';
 import { AlertTriangle } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
 import '../layout/Layout.css';
 
-const ConfirmModal = ({ isOpen, title, message, onConfirm, onCancel, confirmText = 'Confirm', confirmType = 'danger' }) => {
+const ConfirmModal = ({ isOpen, title, message, onConfirm, onCancel, confirmText = 'Confirm', confirmType = 'danger', showInput = false, inputPlaceholder = 'Enter optional comment...' }) => {
+  const [inputValue, setInputValue] = useState('');
+
+  useEffect(() => {
+    if (isOpen) {
+      setInputValue('');
+    }
+  }, [isOpen]);
+
   if (!isOpen) return null;
 
   const modalContent = (
@@ -22,9 +31,22 @@ const ConfirmModal = ({ isOpen, title, message, onConfirm, onCancel, confirmText
         </div>
         
         <h3 style={{ marginTop: 0, marginBottom: '1rem' }}>{title}</h3>
-        <p style={{ fontSize: '0.95rem', color: 'var(--text-secondary)', marginBottom: '2rem', lineHeight: '1.5' }}>
+        <p style={{ fontSize: '0.95rem', color: 'var(--text-secondary)', marginBottom: showInput ? '1rem' : '2rem', lineHeight: '1.5' }}>
           {message}
         </p>
+
+        {showInput && (
+          <div style={{ marginBottom: '2rem', textAlign: 'left' }}>
+            <textarea 
+              className="input-field" 
+              placeholder={inputPlaceholder}
+              value={inputValue}
+              onChange={(e) => setInputValue(e.target.value)}
+              rows="3"
+              style={{ resize: 'none' }}
+            />
+          </div>
+        )}
         
         <div style={{ display: 'flex', justifyContent: 'center', gap: '1rem' }}>
           {onCancel && (
@@ -39,7 +61,7 @@ const ConfirmModal = ({ isOpen, title, message, onConfirm, onCancel, confirmText
               backgroundColor: confirmType === 'danger' ? 'var(--danger)' : 'var(--accent-primary)',
               borderColor: confirmType === 'danger' ? 'var(--danger)' : 'var(--accent-primary)'
             }}
-            onClick={onConfirm}
+            onClick={() => onConfirm(inputValue)}
           >
             {confirmText}
           </button>

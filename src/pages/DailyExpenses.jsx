@@ -74,9 +74,10 @@ const DailyExpenses = () => {
     }
   };
 
-  const confirmAction = async (expenseId, type) => {
+  const confirmAction = async (comment) => {
+    const { expenseId, type } = actionModal;
     const status = type === 'approve' ? 'Approved' : 'Rejected';
-    const res = await updateExpenseStatus(expenseId, status, currentUser.name);
+    const res = await updateExpenseStatus(expenseId, status, currentUser.name, comment);
     
     if (res.success) {
       addLog({
@@ -86,7 +87,8 @@ const DailyExpenses = () => {
         user: currentUser.name,
         changes: [
           { field: 'Expense ID', oldValue: '', newValue: expenseId },
-          { field: 'Status', oldValue: 'Pending', newValue: status }
+          { field: 'Status', oldValue: 'Pending', newValue: status },
+          ...(comment ? [{ field: 'Approver Comment', oldValue: '', newValue: comment }] : [])
         ]
       });
     }
@@ -217,6 +219,7 @@ const DailyExpenses = () => {
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                         {renderStatusBadge(exp.status)}
                         {exp.approved_by && <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>by {exp.approved_by}</span>}
+                        {exp.approver_comment && <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>"{exp.approver_comment}"</span>}
                       </div>
                     </td>
                     <td style={{ padding: '1rem', textAlign: 'right', whiteSpace: 'nowrap' }}>
@@ -297,7 +300,9 @@ const DailyExpenses = () => {
         message={`Are you sure you want to ${actionModal.type} this expense request?`}
         confirmText={actionModal.type === 'approve' ? 'Approve' : 'Reject'}
         confirmType={actionModal.type === 'approve' ? 'primary' : 'danger'}
-        onConfirm={() => confirmAction(actionModal.expenseId, actionModal.type)}
+        showInput={true}
+        inputPlaceholder="Add an optional comment..."
+        onConfirm={(comment) => confirmAction(comment)}
         onCancel={() => setActionModal({ isOpen: false, type: '', expenseId: null })}
       />
     </div>

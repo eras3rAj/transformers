@@ -16,10 +16,11 @@ export const ExpenseProvider = ({ children }) => {
     return await insert(expenseData);
   };
 
-  const updateExpenseStatus = async (id, status, approvedBy) => {
+  const updateExpenseStatus = async (id, status, approvedBy, comment = '') => {
     return await update(id, {
       status,
       approved_by: approvedBy,
+      approver_comment: comment,
       approved_at: new Date().toISOString()
     });
   };
