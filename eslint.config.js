@@ -24,11 +24,8 @@ export default defineConfig([
     },
     rules: {
       'no-unused-vars': 'off',
-      'unused-imports/no-unused-imports': 'warn',
-      'unused-imports/no-unused-vars': [
-        'warn',
-        { vars: 'all', varsIgnorePattern: '^_', args: 'after-used', argsIgnorePattern: '^_' },
-      ],
+      'unused-imports/no-unused-imports': 'off',
+      'unused-imports/no-unused-vars': 'off',
       'react-refresh/only-export-components': 'off',
       'react-hooks/purity': 'off',
       'react-hooks/set-state-in-effect': 'off',
