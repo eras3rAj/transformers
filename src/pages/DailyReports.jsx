@@ -868,8 +868,6 @@ const DailyReports = () => {
               </div>
             ) : <span style={{ color: 'var(--text-muted)' }}>No tanks recorded.</span>}
           </div>
-          </div>
-
           {/* Loading / Unloading */}
           <div style={{ padding: '1.2rem', background: 'var(--bg-secondary)', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
             <h4 style={{ margin: '0 0 12px 0', color: 'var(--accent-primary)', display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--border-color)', paddingBottom: '8px' }}>
