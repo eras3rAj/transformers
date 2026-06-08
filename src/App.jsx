@@ -18,6 +18,7 @@ import { MilestoneProvider } from './context/MilestoneContext';
 import { BgLcProvider } from './context/BgLcContext';
 import { CustomDutyProvider } from './context/CustomDutyContext';
 import { NotificationProvider } from './context/NotificationContext';
+import { DailyReportProvider } from './context/DailyReportContext';
 
 // Lazy loaded page components for Code Splitting
 const Dashboard = React.lazy(() => import('./pages/Dashboard'));
@@ -39,6 +40,7 @@ const Milestones = React.lazy(() => import('./pages/Milestones'));
 const EodSummary = React.lazy(() => import('./pages/EodSummary'));
 const BankGuaranteeLC = React.lazy(() => import('./pages/BankGuaranteeLC'));
 const CustomDuty = React.lazy(() => import('./pages/CustomDuty'));
+const DailyReports = React.lazy(() => import('./pages/DailyReports'));
 
 // Protected Route Wrapper
 const ProtectedRoute = ({ children, requireSuperAdmin }) => {
@@ -74,6 +76,7 @@ function App() {
                               <MilestoneProvider>
                                 <BgLcProvider>
                                   <CustomDutyProvider>
+                                    <DailyReportProvider>
       <Router>
           {/* Theme toggle button */}
           <button className="theme-toggle btn btn-secondary" onClick={() => {
@@ -102,6 +105,7 @@ function App() {
               <Route path="eod-summary" element={<EodSummary />} />
               <Route path="bg-lc" element={<BankGuaranteeLC />} />
               <Route path="custom-duty" element={<CustomDuty />} />
+              <Route path="daily-reports" element={<DailyReports />} />
               <Route path="profile" element={<ProfileSettings />} />
               <Route path="users" element={<ProtectedRoute requireSuperAdmin={true}><UserManagement /></ProtectedRoute>} />
               <Route path="logs" element={<ProtectedRoute requireSuperAdmin={true}><SystemLogs /></ProtectedRoute>} />
@@ -109,6 +113,7 @@ function App() {
           </Routes>
         </Suspense>
       </Router>
+                                    </DailyReportProvider>
                                   </CustomDutyProvider>
                                 </BgLcProvider>
                               </MilestoneProvider>
