@@ -255,3 +255,70 @@ a:hover {
 .supplier-row:hover {
   background-color: var(--bg-primary);
 }
+
+/* Report Tables */
+.report-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  margin-top: 10px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.report-table th,
+.report-table td {
+  border-bottom: 1px solid var(--border-color);
+  border-right: 1px solid var(--border-color);
+}
+
+.report-table th {
+  padding: 12px 16px;
+  background-color: var(--bg-tertiary);
+  font-weight: 600;
+  text-align: left;
+  color: var(--text-secondary);
+}
+
+.report-table td {
+  background-color: var(--bg-secondary);
+  color: var(--text-primary);
+}
+
+.report-table tr:last-child td {
+  border-bottom: none;
+}
+
+.report-table td:last-child,
+.report-table th:last-child {
+  border-right: none;
+}
+
+/* Seamless inputs inside report tables */
+.report-table td:has(input),
+.report-table td:has(select) {
+  padding: 0;
+}
+
+.report-table td:not(:has(input)):not(:has(select)) {
+  padding: 12px 16px;
+}
+
+.report-table input,
+.report-table select {
+  width: 100%;
+  padding: 12px 16px;
+  background: transparent;
+  border: none;
+  color: var(--text-primary);
+  font-family: inherit;
+  font-size: 0.95rem;
+  box-sizing: border-box;
+}
+
+.report-table input:focus,
+.report-table select:focus {
+  outline: none;
+  background: rgba(255, 255, 255, 0.05);
+}

@@ -22,7 +22,11 @@ const DailyReports = () => {
     'Box-up': { mainTable: [{qty: '', rating: ''}], oven1: [], oven2: [], machineProblem: false, machineProblemDesc: '', materialShortage: false, materialShortageDesc: '', remarks: '' },
     'CCA': { mainTable: [{qty: '', rating: ''}], oven1: [], oven2: [], machineProblem: false, machineProblemDesc: '', materialShortage: false, materialShortageDesc: '', remarks: '' },
     'Winding Section': { ltWinders: '', htWinders: '', ratingsTable: [], machineProblem: false, machineProblemDesc: '', materialShortage: false, materialShortageDesc: '', remarks: '' },
-    'Core Cutting': { ratingInOven: '', openingTime: '', cuttingRating: '', nextOvenTime: '', testingTable: [], machineProblem: false, machineProblemDesc: '', materialShortage: false, materialShortageDesc: '', remarks: '' },
+    'Core Cutting': { 
+      ratingInOven: '', openingTime: '', cuttingRating: '', nextOvenTime: '', testingTable: [], 
+      ribbonStock: { '142.2mm': { available: '', incoming: '' }, '170.2mm': { available: '', incoming: '' }, '213.4mm': { available: '', incoming: '' } },
+      machineProblem: false, machineProblemDesc: '', materialShortage: false, materialShortageDesc: '', remarks: '' 
+    },
     'Tank Fabrication': { weldersPresent: '', ratingsTable: [{rating: '', qty: ''}], machineProblem: false, machineProblemDesc: '', materialShortage: false, materialShortageDesc: '', remarks: '' }
   };
 
@@ -87,6 +91,27 @@ const DailyReports = () => {
       if (!table[index]) table[index] = {};
       table[index][colField] = value;
       const updated = { ...prev, [section]: { ...prev[section], [tableField]: table } };
+      localStorage.setItem(`draft_report_${selectedDate}_${selectedShift}`, JSON.stringify(updated));
+      return updated;
+    });
+    setSaveSuccess(false);
+  };
+
+  const handleRibbonStockChange = (size, field, value) => {
+    setFormData(prev => {
+      const updated = {
+        ...prev,
+        'Core Cutting': {
+          ...prev['Core Cutting'],
+          ribbonStock: {
+            ...prev['Core Cutting'].ribbonStock,
+            [size]: {
+              ...(prev['Core Cutting'].ribbonStock?.[size] || { available: '', incoming: '' }),
+              [field]: value
+            }
+          }
+        }
+      };
       localStorage.setItem(`draft_report_${selectedDate}_${selectedShift}`, JSON.stringify(updated));
       return updated;
     });
@@ -249,9 +274,9 @@ const DailyReports = () => {
           <tbody>
             {(formData['Box-up'].mainTable || []).map((row, i) => (
               <tr key={i}>
-                <td><input type="number" style={{width:'100%', padding:'4px'}} value={row.qty||''} onChange={e=>handleTableChange('Box-up','mainTable',i,'qty',e.target.value)}/></td>
+                <td><input type="number"  value={row.qty||''} onChange={e=>handleTableChange('Box-up','mainTable',i,'qty',e.target.value)}/></td>
                 <td>
-                  <input type="text" list="capacities-list" style={{width:'100%', padding:'4px'}} placeholder="Select or type..." value={row.rating||''} onChange={e=>handleTableChange('Box-up','mainTable',i,'rating',e.target.value)}/>
+                  <input type="text" list="capacities-list"  placeholder="Select or type..." value={row.rating||''} onChange={e=>handleTableChange('Box-up','mainTable',i,'rating',e.target.value)}/>
                 </td>
               </tr>
             ))}
@@ -270,9 +295,9 @@ const DailyReports = () => {
             <tbody>
               {formData['Box-up'].oven1.map((row, i) => (
                 <tr key={i}>
-                  <td><input type="number" style={{width:'100%', padding:'4px'}} value={row.qty||''} onChange={e=>handleTableChange('Box-up','oven1',i,'qty',e.target.value)}/></td>
+                  <td><input type="number"  value={row.qty||''} onChange={e=>handleTableChange('Box-up','oven1',i,'qty',e.target.value)}/></td>
                   <td>
-                    <input type="text" list="capacities-list" style={{width:'100%', padding:'4px'}} placeholder="Select or type..." value={row.rating||''} onChange={e=>handleTableChange('Box-up','oven1',i,'rating',e.target.value)}/>
+                    <input type="text" list="capacities-list"  placeholder="Select or type..." value={row.rating||''} onChange={e=>handleTableChange('Box-up','oven1',i,'rating',e.target.value)}/>
                   </td>
                 </tr>
               ))}
@@ -290,9 +315,9 @@ const DailyReports = () => {
             <tbody>
               {formData['Box-up'].oven2.map((row, i) => (
                 <tr key={i}>
-                  <td><input type="number" style={{width:'100%', padding:'4px'}} value={row.qty||''} onChange={e=>handleTableChange('Box-up','oven2',i,'qty',e.target.value)}/></td>
+                  <td><input type="number"  value={row.qty||''} onChange={e=>handleTableChange('Box-up','oven2',i,'qty',e.target.value)}/></td>
                   <td>
-                    <input type="text" list="capacities-list" style={{width:'100%', padding:'4px'}} placeholder="Select or type..." value={row.rating||''} onChange={e=>handleTableChange('Box-up','oven2',i,'rating',e.target.value)}/>
+                    <input type="text" list="capacities-list"  placeholder="Select or type..." value={row.rating||''} onChange={e=>handleTableChange('Box-up','oven2',i,'rating',e.target.value)}/>
                   </td>
                 </tr>
               ))}
@@ -316,9 +341,9 @@ const DailyReports = () => {
           <tbody>
             {(formData['CCA'].mainTable || []).map((row, i) => (
               <tr key={i}>
-                <td><input type="number" style={{width:'100%', padding:'4px'}} value={row.qty||''} onChange={e=>handleTableChange('CCA','mainTable',i,'qty',e.target.value)}/></td>
+                <td><input type="number"  value={row.qty||''} onChange={e=>handleTableChange('CCA','mainTable',i,'qty',e.target.value)}/></td>
                 <td>
-                  <input type="text" list="capacities-list" style={{width:'100%', padding:'4px'}} placeholder="Select or type..." value={row.rating||''} onChange={e=>handleTableChange('CCA','mainTable',i,'rating',e.target.value)}/>
+                  <input type="text" list="capacities-list"  placeholder="Select or type..." value={row.rating||''} onChange={e=>handleTableChange('CCA','mainTable',i,'rating',e.target.value)}/>
                 </td>
               </tr>
             ))}
@@ -337,8 +362,8 @@ const DailyReports = () => {
             <tbody>
               {formData['CCA'].oven1.map((row, i) => (
                 <tr key={i}>
-                  <td><input type="text" style={{width:'100%', padding:'4px'}} value={row.material||''} onChange={e=>handleTableChange('CCA','oven1',i,'material',e.target.value)}/></td>
-                  <td><input type="time" style={{width:'100%', padding:'4px'}} value={row.time||''} onChange={e=>handleTableChange('CCA','oven1',i,'time',e.target.value)}/></td>
+                  <td><input type="text"  value={row.material||''} onChange={e=>handleTableChange('CCA','oven1',i,'material',e.target.value)}/></td>
+                  <td><input type="time"  value={row.time||''} onChange={e=>handleTableChange('CCA','oven1',i,'time',e.target.value)}/></td>
                 </tr>
               ))}
             </tbody>
@@ -354,8 +379,8 @@ const DailyReports = () => {
             <tbody>
               {formData['CCA'].oven2.map((row, i) => (
                 <tr key={i}>
-                  <td><input type="text" style={{width:'100%', padding:'4px'}} value={row.material||''} onChange={e=>handleTableChange('CCA','oven2',i,'material',e.target.value)}/></td>
-                  <td><input type="time" style={{width:'100%', padding:'4px'}} value={row.time||''} onChange={e=>handleTableChange('CCA','oven2',i,'time',e.target.value)}/></td>
+                  <td><input type="text"  value={row.material||''} onChange={e=>handleTableChange('CCA','oven2',i,'material',e.target.value)}/></td>
+                  <td><input type="time"  value={row.time||''} onChange={e=>handleTableChange('CCA','oven2',i,'time',e.target.value)}/></td>
                 </tr>
               ))}
             </tbody>
@@ -393,9 +418,9 @@ const DailyReports = () => {
             {formData['Winding Section'].ratingsTable.map((row, i) => (
               <tr key={i}>
                 <td>
-                  <input type="text" list="capacities-list" style={{width:'100%', padding:'4px'}} placeholder="Select or type..." value={row.rating||''} onChange={e=>handleTableChange('Winding Section','ratingsTable',i,'rating',e.target.value)}/>
+                  <input type="text" list="capacities-list"  placeholder="Select or type..." value={row.rating||''} onChange={e=>handleTableChange('Winding Section','ratingsTable',i,'rating',e.target.value)}/>
                 </td>
-                <td><input type="number" style={{width:'100%', padding:'4px'}} value={row.count||''} onChange={e=>handleTableChange('Winding Section','ratingsTable',i,'count',e.target.value)}/></td>
+                <td><input type="number"  value={row.count||''} onChange={e=>handleTableChange('Winding Section','ratingsTable',i,'count',e.target.value)}/></td>
               </tr>
             ))}
           </tbody>
@@ -440,9 +465,25 @@ const DailyReports = () => {
             {formData['Core Cutting'].testingTable.map((row, i) => (
               <tr key={i}>
                 <td>
-                  <input type="text" list="capacities-list" style={{width:'100%', padding:'4px'}} placeholder="Select or type..." value={row.rating||''} onChange={e=>handleTableChange('Core Cutting','testingTable',i,'rating',e.target.value)}/>
+                  <input type="text" list="capacities-list"  placeholder="Select or type..." value={row.rating||''} onChange={e=>handleTableChange('Core Cutting','testingTable',i,'rating',e.target.value)}/>
                 </td>
-                <td><input type="text" style={{width:'100%', padding:'4px'}} value={row.srNo||''} onChange={e=>handleTableChange('Core Cutting','testingTable',i,'srNo',e.target.value)}/></td>
+                <td><input type="text"  value={row.srNo||''} onChange={e=>handleTableChange('Core Cutting','testingTable',i,'srNo',e.target.value)}/></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      <div className="card" style={{ marginTop: '20px' }}>
+        <h3>Amorphous Ribbon Stock</h3>
+        <table className="report-table" style={{ width: '100%', marginTop: '10px' }}>
+          <thead><tr><th>Ribbon Size</th><th>Available Coils</th><th>Incoming Coils</th></tr></thead>
+          <tbody>
+            {['142.2mm', '170.2mm', '213.4mm'].map((size) => (
+              <tr key={size}>
+                <td style={{ fontWeight: '500', padding: '12px 16px' }}>{size}</td>
+                <td><input type="number" placeholder="0" value={formData['Core Cutting'].ribbonStock?.[size]?.available || ''} onChange={e => handleRibbonStockChange(size, 'available', e.target.value)} /></td>
+                <td><input type="number" placeholder="0" value={formData['Core Cutting'].ribbonStock?.[size]?.incoming || ''} onChange={e => handleRibbonStockChange(size, 'incoming', e.target.value)} /></td>
               </tr>
             ))}
           </tbody>
@@ -475,9 +516,9 @@ const DailyReports = () => {
             {(formData['Tank Fabrication'].ratingsTable || []).map((row, i) => (
               <tr key={i}>
                 <td>
-                  <input type="text" list="capacities-list" style={{width:'100%', padding:'4px'}} placeholder="Select or type..." value={row.rating||''} onChange={e=>handleTableChange('Tank Fabrication','ratingsTable',i,'rating',e.target.value)}/>
+                  <input type="text" list="capacities-list"  placeholder="Select or type..." value={row.rating||''} onChange={e=>handleTableChange('Tank Fabrication','ratingsTable',i,'rating',e.target.value)}/>
                 </td>
-                <td><input type="number" style={{width:'100%', padding:'4px'}} value={row.qty||''} onChange={e=>handleTableChange('Tank Fabrication','ratingsTable',i,'qty',e.target.value)}/></td>
+                <td><input type="number"  value={row.qty||''} onChange={e=>handleTableChange('Tank Fabrication','ratingsTable',i,'qty',e.target.value)}/></td>
               </tr>
             ))}
           </tbody>
