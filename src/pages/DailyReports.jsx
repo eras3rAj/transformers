@@ -15,7 +15,8 @@ const DailyReports = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
 
-  const tabs = ['Box-up', 'CCA', 'Winding Section', 'Core Cutting', 'Tank Fabrication', 'Daily Summary'];
+  const tabs = ['Box-up', 'CCA', 'Winding Section', 'Core Cutting', 'Tank Fabrication'];
+  const [mainTab, setMainTab] = useState('Daily Report');
 
   // Default empty structure
   const emptyReport = {
@@ -609,60 +610,21 @@ const DailyReports = () => {
             Daily Reports
           </h1>
           <p style={{ color: 'var(--text-muted)', marginTop: '0.5rem' }}>
-            Submit reports for Morning, Afternoon, and Evening shifts. Data automatically carries over.
+            Submit daily production reports or view date summaries.
           </p>
         </div>
-        <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-          <button className="btn btn-primary" onClick={handleSave} disabled={isSaving}>
-            {isSaving ? 'Saving...' : <><Save size={18} /> Save Report</>}
-          </button>
-          {saveSuccess && <span style={{ color: 'var(--success)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}><Check size={18} /> Saved!</span>}
-        </div>
       </div>
 
-      <div className="card" style={{ marginBottom: '2rem' }}>
-        <div className="grid-2">
-          <div className="input-group">
-            <label className="input-label">Report Date</label>
-            <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-              <input 
-                type="date" 
-                style={{ position: 'absolute', opacity: 0, width: '100%', height: '100%', cursor: 'pointer', zIndex: 2 }}
-                value={selectedDate} 
-                onChange={(e) => setSelectedDate(e.target.value)} 
-              />
-              <input 
-                type="text" 
-                className="input-field" 
-                value={selectedDate ? `${String(new Date(selectedDate).getDate()).padStart(2, '0')}-${["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"][new Date(selectedDate).getMonth()]}-${new Date(selectedDate).getFullYear()}` : ''}
-                readOnly
-                style={{ pointerEvents: 'none', backgroundColor: 'var(--bg-secondary)' }}
-              />
-            </div>
-          </div>
-          <div className="input-group">
-            <label className="input-label">Shift Timing</label>
-            <select className="input-field" value={selectedShift} onChange={(e) => setSelectedShift(e.target.value)}>
-              <option value="morning">Morning (9-10 AM)</option>
-              <option value="afternoon">Afternoon (2-3 PM)</option>
-              <option value="evening">Evening (5-6 PM)</option>
-            </select>
-          </div>
-        </div>
-        {loading && <p style={{ color: 'var(--text-muted)' }}>Loading report data...</p>}
-      </div>
-
-      <div className="tabs" style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem', overflowX: 'auto' }}>
-        {tabs.map(t => (
+      <div className="tabs" style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem' }}>
+        {['Daily Report', 'Daily Summary'].map(t => (
           <button 
             key={t}
-            onClick={() => setActiveTab(t)}
+            onClick={() => setMainTab(t)}
             style={{
               background: 'none', border: 'none', padding: '0.5rem 1rem', cursor: 'pointer',
-              color: activeTab === t ? 'var(--accent-primary)' : 'var(--text-secondary)',
-              borderBottom: activeTab === t ? '2px solid var(--accent-primary)' : '2px solid transparent',
-              fontWeight: activeTab === t ? '600' : '500',
-              whiteSpace: 'nowrap'
+              color: mainTab === t ? 'var(--accent-primary)' : 'var(--text-secondary)',
+              borderBottom: mainTab === t ? '2px solid var(--accent-primary)' : '2px solid transparent',
+              fontWeight: mainTab === t ? '600' : '500'
             }}
           >
             {t}
@@ -670,14 +632,102 @@ const DailyReports = () => {
         ))}
       </div>
 
-      <div className="tab-content">
-        {activeTab === 'Box-up' && renderBoxUp()}
-        {activeTab === 'CCA' && renderCCA()}
-        {activeTab === 'Winding Section' && renderWinding()}
-        {activeTab === 'Core Cutting' && renderCoreCutting()}
-        {activeTab === 'Tank Fabrication' && renderTankFab()}
-        {activeTab === 'Daily Summary' && renderSummary()}
-      </div>
+      {mainTab === 'Daily Report' ? (
+        <div className="animate-fade-in">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+            <h2 style={{ fontSize: '1.2rem', margin: 0 }}>Data Entry</h2>
+            <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+              <button className="btn btn-primary" onClick={handleSave} disabled={isSaving}>
+                {isSaving ? 'Saving...' : <><Save size={18} /> Save Report</>}
+              </button>
+              {saveSuccess && <span style={{ color: 'var(--success)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}><Check size={18} /> Saved!</span>}
+            </div>
+          </div>
+
+          <div className="card" style={{ marginBottom: '2rem' }}>
+            <div className="grid-2">
+              <div className="input-group">
+                <label className="input-label">Report Date</label>
+                <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                  <input 
+                    type="date" 
+                    style={{ position: 'absolute', opacity: 0, width: '100%', height: '100%', cursor: 'pointer', zIndex: 2 }}
+                    value={selectedDate} 
+                    onChange={(e) => setSelectedDate(e.target.value)} 
+                  />
+                  <input 
+                    type="text" 
+                    className="input-field" 
+                    value={selectedDate ? `${String(new Date(selectedDate).getDate()).padStart(2, '0')}-${["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"][new Date(selectedDate).getMonth()]}-${new Date(selectedDate).getFullYear()}` : ''}
+                    readOnly
+                    style={{ pointerEvents: 'none', backgroundColor: 'var(--bg-secondary)' }}
+                  />
+                </div>
+              </div>
+              <div className="input-group">
+                <label className="input-label">Shift Timing</label>
+                <select className="input-field" value={selectedShift} onChange={(e) => setSelectedShift(e.target.value)}>
+                  <option value="morning">Morning (9-10 AM)</option>
+                  <option value="afternoon">Afternoon (2-3 PM)</option>
+                  <option value="evening">Evening (5-6 PM)</option>
+                </select>
+              </div>
+            </div>
+            {loading && <p style={{ color: 'var(--text-muted)' }}>Loading report data...</p>}
+          </div>
+
+          <div className="tabs" style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem', overflowX: 'auto' }}>
+            {tabs.map(t => (
+              <button 
+                key={t}
+                onClick={() => setActiveTab(t)}
+                style={{
+                  background: 'none', border: 'none', padding: '0.5rem 1rem', cursor: 'pointer',
+                  color: activeTab === t ? 'var(--accent-primary)' : 'var(--text-secondary)',
+                  borderBottom: activeTab === t ? '2px solid var(--accent-primary)' : '2px solid transparent',
+                  fontWeight: activeTab === t ? '600' : '500',
+                  whiteSpace: 'nowrap'
+                }}
+              >
+                {t}
+              </button>
+            ))}
+          </div>
+
+          <div className="tab-content">
+            {activeTab === 'Box-up' && renderBoxUp()}
+            {activeTab === 'CCA' && renderCCA()}
+            {activeTab === 'Winding Section' && renderWinding()}
+            {activeTab === 'Core Cutting' && renderCoreCutting()}
+            {activeTab === 'Tank Fabrication' && renderTankFab()}
+          </div>
+        </div>
+      ) : (
+        <div className="animate-fade-in">
+          <div className="card" style={{ marginBottom: '2rem' }}>
+            <div className="input-group" style={{ maxWidth: '300px' }}>
+              <label className="input-label">Select Date to View Summary</label>
+              <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                <input 
+                  type="date" 
+                  style={{ position: 'absolute', opacity: 0, width: '100%', height: '100%', cursor: 'pointer', zIndex: 2 }}
+                  value={selectedDate} 
+                  onChange={(e) => setSelectedDate(e.target.value)} 
+                />
+                <input 
+                  type="text" 
+                  className="input-field" 
+                  value={selectedDate ? `${String(new Date(selectedDate).getDate()).padStart(2, '0')}-${["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"][new Date(selectedDate).getMonth()]}-${new Date(selectedDate).getFullYear()}` : ''}
+                  readOnly
+                  style={{ pointerEvents: 'none', backgroundColor: 'var(--bg-secondary)' }}
+                />
+              </div>
+            </div>
+            {loading && <p style={{ color: 'var(--text-muted)' }}>Loading summary data...</p>}
+          </div>
+          {renderSummary()}
+        </div>
+      )}
     </div>
   );
 };
