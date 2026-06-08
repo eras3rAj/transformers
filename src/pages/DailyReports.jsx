@@ -541,6 +541,13 @@ const DailyReports = () => {
        if (latestData[sec]?.materialShortage) issues.push({ section: sec, type: 'Material Shortage', desc: latestData[sec].materialShortageDesc });
     });
 
+    const maxWelders = Math.max(
+      Number(eveningReport?.['Tank Fabrication']?.weldersPresent || 0),
+      Number(afternoonReport?.['Tank Fabrication']?.weldersPresent || 0),
+      Number(morningReport?.['Tank Fabrication']?.weldersPresent || 0),
+      Number(formData['Tank Fabrication']?.weldersPresent || 0)
+    );
+
     return (
       <div className="animate-fade-in card">
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -549,30 +556,109 @@ const DailyReports = () => {
         </div>
         <p style={{ color: 'var(--text-muted)' }}>This summary aggregates data from the latest available shift for this date.</p>
         
-        <div className="grid-3" style={{ marginTop: '20px' }}>
-          <div className="card" style={{ background: 'var(--bg-secondary)', textAlign: 'center' }}>
-            <h4 style={{ margin: '0 0 10px 0', color: 'var(--text-secondary)' }}>Total Box-up</h4>
-            <p style={{ fontSize: '2.5rem', margin: 0, fontWeight: 'bold', color: 'var(--accent-primary)' }}>
-              {latestData['Box-up']?.mainTable?.reduce((sum, r) => sum + (Number(r.qty) || 0), 0) || 0}
-            </p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', marginTop: '20px' }}>
+          
+          {/* Box-up */}
+          <div style={{ padding: '1.2rem', background: 'var(--bg-secondary)', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+            <h4 style={{ margin: '0 0 12px 0', color: 'var(--accent-primary)', display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--border-color)', paddingBottom: '8px' }}>
+              <span>📦 Box-up Activity</span>
+              <span style={{ color: 'var(--text-secondary)' }}>Total Qty: <strong style={{ color: 'var(--text-primary)' }}>{latestData['Box-up']?.mainTable?.reduce((sum, r) => sum + (Number(r.qty) || 0), 0) || 0}</strong></span>
+            </h4>
+            {latestData['Box-up']?.mainTable?.some(r => r.qty || r.rating) ? (
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem' }}>
+                {latestData['Box-up'].mainTable.filter(r => r.qty || r.rating).map((r, i) => (
+                  <span key={i} className="badge" style={{ background: 'var(--bg-tertiary)', padding: '0.4rem 0.8rem', fontSize: '0.9rem', border: '1px solid var(--border-color)' }}>
+                    {r.rating || 'Unknown'}: <strong style={{ color: 'var(--accent-primary)', marginLeft: '6px' }}>{r.qty || 0}</strong>
+                  </span>
+                ))}
+              </div>
+            ) : <span style={{ color: 'var(--text-muted)' }}>No box-up activity recorded.</span>}
           </div>
-          <div className="card" style={{ background: 'var(--bg-secondary)', textAlign: 'center' }}>
-            <h4 style={{ margin: '0 0 10px 0', color: 'var(--text-secondary)' }}>Total CCA</h4>
-            <p style={{ fontSize: '2.5rem', margin: 0, fontWeight: 'bold', color: 'var(--accent-primary)' }}>
-              {latestData['CCA']?.mainTable?.reduce((sum, r) => sum + (Number(r.qty) || 0), 0) || 0}
-            </p>
+
+          {/* CCA */}
+          <div style={{ padding: '1.2rem', background: 'var(--bg-secondary)', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+            <h4 style={{ margin: '0 0 12px 0', color: 'var(--accent-primary)', display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--border-color)', paddingBottom: '8px' }}>
+              <span>⚙️ CCA Activity</span>
+              <span style={{ color: 'var(--text-secondary)' }}>Total Qty: <strong style={{ color: 'var(--text-primary)' }}>{latestData['CCA']?.mainTable?.reduce((sum, r) => sum + (Number(r.qty) || 0), 0) || 0}</strong></span>
+            </h4>
+            {latestData['CCA']?.mainTable?.some(r => r.qty || r.rating) ? (
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem' }}>
+                {latestData['CCA'].mainTable.filter(r => r.qty || r.rating).map((r, i) => (
+                  <span key={i} className="badge" style={{ background: 'var(--bg-tertiary)', padding: '0.4rem 0.8rem', fontSize: '0.9rem', border: '1px solid var(--border-color)' }}>
+                    {r.rating || 'Unknown'}: <strong style={{ color: 'var(--accent-primary)', marginLeft: '6px' }}>{r.qty || 0}</strong>
+                  </span>
+                ))}
+              </div>
+            ) : <span style={{ color: 'var(--text-muted)' }}>No CCA activity recorded.</span>}
           </div>
-          <div className="card" style={{ background: 'var(--bg-secondary)', textAlign: 'center' }}>
-            <h4 style={{ margin: '0 0 10px 0', color: 'var(--text-secondary)' }}>Max Welders</h4>
-            <p style={{ fontSize: '2.5rem', margin: 0, fontWeight: 'bold', color: 'var(--accent-primary)' }}>
-               {Math.max(
-                 Number(eveningReport?.['Tank Fabrication']?.weldersPresent || 0),
-                 Number(afternoonReport?.['Tank Fabrication']?.weldersPresent || 0),
-                 Number(morningReport?.['Tank Fabrication']?.weldersPresent || 0),
-                 Number(formData['Tank Fabrication']?.weldersPresent || 0)
-               )}
-            </p>
+
+          {/* Winding Section */}
+          <div style={{ padding: '1.2rem', background: 'var(--bg-secondary)', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+            <h4 style={{ margin: '0 0 12px 0', color: 'var(--accent-primary)', display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--border-color)', paddingBottom: '8px' }}>
+              <span>🧵 Winding Section</span>
+              <span style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>LT Winders: <strong style={{ color: 'var(--text-primary)' }}>{latestData['Winding Section']?.ltWinders || 0}</strong> | HT Winders: <strong style={{ color: 'var(--text-primary)' }}>{latestData['Winding Section']?.htWinders || 0}</strong></span>
+            </h4>
+            {latestData['Winding Section']?.ratingsTable?.length > 0 ? (
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem' }}>
+                {latestData['Winding Section'].ratingsTable.filter(r => r.count || r.rating).map((r, i) => (
+                  <span key={i} className="badge" style={{ background: 'var(--bg-tertiary)', padding: '0.4rem 0.8rem', fontSize: '0.9rem', border: '1px solid var(--border-color)' }}>
+                    {r.rating || 'Unknown'} (Winders): <strong style={{ color: 'var(--accent-primary)', marginLeft: '6px' }}>{r.count || 0}</strong>
+                  </span>
+                ))}
+              </div>
+            ) : <span style={{ color: 'var(--text-muted)' }}>No winding ratings recorded.</span>}
           </div>
+
+          {/* Core Cutting */}
+          <div style={{ padding: '1.2rem', background: 'var(--bg-secondary)', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+            <h4 style={{ margin: '0 0 12px 0', color: 'var(--accent-primary)', borderBottom: '1px solid var(--border-color)', paddingBottom: '8px' }}>
+              <span>✂️ Core Cutting & Ribbon Stock</span>
+            </h4>
+            <div className="grid-2">
+              <div>
+                <strong style={{ color: 'var(--text-secondary)' }}>Tested Ratings:</strong>
+                {latestData['Core Cutting']?.testingTable?.length > 0 ? (
+                  <ul style={{ margin: '8px 0 0 20px', color: 'var(--text-primary)' }}>
+                    {latestData['Core Cutting'].testingTable.filter(r => r.rating || r.srNo).map((r, i) => (
+                      <li key={i} style={{ marginBottom: '4px' }}>{r.rating || 'Unknown'} - Till Sr. No: <strong>{r.srNo || 'N/A'}</strong></li>
+                    ))}
+                  </ul>
+                ) : <div style={{ color: 'var(--text-muted)', marginTop: '8px' }}>No testing recorded.</div>}
+              </div>
+              <div>
+                <strong style={{ color: 'var(--text-secondary)' }}>Amorphous Ribbon Stock:</strong>
+                <ul style={{ margin: '8px 0 0 20px', color: 'var(--text-primary)' }}>
+                  {['142.2mm', '170.2mm', '213.4mm'].map(size => {
+                    const av = latestData['Core Cutting']?.ribbonStock?.[size]?.available;
+                    const inc = latestData['Core Cutting']?.ribbonStock?.[size]?.incoming;
+                    if (!av && !inc) return null;
+                    return <li key={size} style={{ marginBottom: '4px' }}>{size}: Available: <strong style={{ color: 'var(--accent-primary)' }}>{av||0}</strong> | Incoming: <strong style={{ color: 'var(--success)' }}>{inc||0}</strong></li>;
+                  })}
+                  {(!latestData['Core Cutting']?.ribbonStock || !Object.values(latestData['Core Cutting'].ribbonStock).some(s => s.available || s.incoming)) && (
+                    <li style={{ color: 'var(--text-muted)', listStyle: 'none', marginLeft: '-20px' }}>No stock data recorded.</li>
+                  )}
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          {/* Tank Fabrication */}
+          <div style={{ padding: '1.2rem', background: 'var(--bg-secondary)', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+            <h4 style={{ margin: '0 0 12px 0', color: 'var(--accent-primary)', display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--border-color)', paddingBottom: '8px' }}>
+              <span>🏗️ Tank Fabrication</span>
+              <span style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>Max Welders Present: <strong style={{ color: 'var(--text-primary)' }}>{maxWelders}</strong></span>
+            </h4>
+            {latestData['Tank Fabrication']?.ratingsTable?.some(r => r.qty || r.rating) ? (
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem' }}>
+                {latestData['Tank Fabrication'].ratingsTable.filter(r => r.qty || r.rating).map((r, i) => (
+                  <span key={i} className="badge" style={{ background: 'var(--bg-tertiary)', padding: '0.4rem 0.8rem', fontSize: '0.9rem', border: '1px solid var(--border-color)' }}>
+                    {r.rating || 'Unknown'}: <strong style={{ color: 'var(--accent-primary)', marginLeft: '6px' }}>{r.qty || 0}</strong>
+                  </span>
+                ))}
+              </div>
+            ) : <span style={{ color: 'var(--text-muted)' }}>No tanks recorded.</span>}
+          </div>
+          
         </div>
 
         <h4 style={{ marginTop: '30px', borderBottom: '1px solid var(--border-color)', paddingBottom: '10px' }}>Reported Issues</h4>
