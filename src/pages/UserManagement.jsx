@@ -24,6 +24,30 @@ export const AVAILABLE_MODULES = [
   { id: 'daily-reports', name: 'Daily Reports' }
 ];
 
+const MODULE_CATEGORIES = [
+  {
+    category: 'Operations',
+    modules: ['production', 'inspections', 'inventory', 'expenses']
+  },
+  {
+    category: 'Purchasing & Finance',
+    modules: ['purchase-orders', 'vendor-purchasing', 'price-variation', 'warranty']
+  },
+  {
+    category: 'HR & Management',
+    modules: ['employees', 'pending-tasks', 'milestones']
+  },
+  {
+    category: 'Daily Reporting',
+    modules: ['eod-summary', 'daily-reports']
+  },
+  {
+    category: 'Miscellaneous',
+    modules: ['bg-lc', 'custom-duty']
+  }
+];
+
+
 const UserManagement = () => {
   const { users, addUser, toggleUserStatus, updateUser } = useUsers();
   const { currentUser } = useAuth();
@@ -321,13 +345,24 @@ const UserManagement = () => {
               {formData.role !== 'superadmin' && (
                 <div style={{ marginBottom: '2rem' }}>
                   <label className="input-label">Accessible Modules</label>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.5rem' }}>
-                    {AVAILABLE_MODULES.map(module => (
-                      <div key={module.id} onClick={() => handleModuleToggle(module.id)} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.6rem 0.8rem', borderRadius: '6px', border: `1px solid ${formData.modules.includes(module.id) ? 'var(--accent-primary)' : 'var(--border-color)'}`, backgroundColor: formData.modules.includes(module.id) ? 'rgba(59, 130, 246, 0.1)' : 'var(--bg-tertiary)', cursor: 'pointer', transition: 'var(--transition)' }}>
-                        <div style={{ width: '16px', height: '16px', borderRadius: '4px', border: `1px solid ${formData.modules.includes(module.id) ? 'var(--accent-primary)' : 'var(--text-muted)'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: formData.modules.includes(module.id) ? 'var(--accent-primary)' : 'transparent' }}>
-                          {formData.modules.includes(module.id) && <Check size={12} color="white" />}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                    {MODULE_CATEGORIES.map(cat => (
+                      <div key={cat.category}>
+                        <h4 style={{ margin: '0 0 10px 0', fontSize: '0.85rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{cat.category}</h4>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.5rem' }}>
+                          {cat.modules.map(modId => {
+                            const module = AVAILABLE_MODULES.find(m => m.id === modId);
+                            if (!module) return null;
+                            return (
+                              <div key={module.id} onClick={() => handleModuleToggle(module.id)} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.6rem 0.8rem', borderRadius: '6px', border: `1px solid ${formData.modules.includes(module.id) ? 'var(--accent-primary)' : 'var(--border-color)'}`, backgroundColor: formData.modules.includes(module.id) ? 'rgba(59, 130, 246, 0.1)' : 'var(--bg-tertiary)', cursor: 'pointer', transition: 'var(--transition)' }}>
+                                <div style={{ width: '16px', height: '16px', borderRadius: '4px', border: `1px solid ${formData.modules.includes(module.id) ? 'var(--accent-primary)' : 'var(--text-muted)'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: formData.modules.includes(module.id) ? 'var(--accent-primary)' : 'transparent' }}>
+                                  {formData.modules.includes(module.id) && <Check size={12} color="white" />}
+                                </div>
+                                <span style={{ fontSize: '0.85rem', fontWeight: formData.modules.includes(module.id) ? '600' : '400', color: formData.modules.includes(module.id) ? 'var(--text-primary)' : 'var(--text-secondary)' }}>{module.name}</span>
+                              </div>
+                            );
+                          })}
                         </div>
-                        <span style={{ fontSize: '0.85rem', fontWeight: formData.modules.includes(module.id) ? '600' : '400', color: formData.modules.includes(module.id) ? 'var(--text-primary)' : 'var(--text-secondary)' }}>{module.name}</span>
                       </div>
                     ))}
                   </div>
@@ -352,13 +387,24 @@ const UserManagement = () => {
             
             <div style={{ marginBottom: '2rem' }}>
               <label className="input-label">Accessible Modules</label>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.5rem' }}>
-                {AVAILABLE_MODULES.map(module => (
-                  <div key={module.id} onClick={() => handleModuleToggle(module.id, true)} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.6rem 0.8rem', borderRadius: '6px', border: `1px solid ${editModulesModal.modules.includes(module.id) ? 'var(--accent-primary)' : 'var(--border-color)'}`, backgroundColor: editModulesModal.modules.includes(module.id) ? 'rgba(59, 130, 246, 0.1)' : 'var(--bg-tertiary)', cursor: 'pointer', transition: 'var(--transition)' }}>
-                    <div style={{ width: '16px', height: '16px', borderRadius: '4px', border: `1px solid ${editModulesModal.modules.includes(module.id) ? 'var(--accent-primary)' : 'var(--text-muted)'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: editModulesModal.modules.includes(module.id) ? 'var(--accent-primary)' : 'transparent' }}>
-                      {editModulesModal.modules.includes(module.id) && <Check size={12} color="white" />}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                {MODULE_CATEGORIES.map(cat => (
+                  <div key={cat.category}>
+                    <h4 style={{ margin: '0 0 10px 0', fontSize: '0.85rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{cat.category}</h4>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.5rem' }}>
+                      {cat.modules.map(modId => {
+                        const module = AVAILABLE_MODULES.find(m => m.id === modId);
+                        if (!module) return null;
+                        return (
+                          <div key={module.id} onClick={() => handleModuleToggle(module.id, true)} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.6rem 0.8rem', borderRadius: '6px', border: `1px solid ${editModulesModal.modules.includes(module.id) ? 'var(--accent-primary)' : 'var(--border-color)'}`, backgroundColor: editModulesModal.modules.includes(module.id) ? 'rgba(59, 130, 246, 0.1)' : 'var(--bg-tertiary)', cursor: 'pointer', transition: 'var(--transition)' }}>
+                            <div style={{ width: '16px', height: '16px', borderRadius: '4px', border: `1px solid ${editModulesModal.modules.includes(module.id) ? 'var(--accent-primary)' : 'var(--text-muted)'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: editModulesModal.modules.includes(module.id) ? 'var(--accent-primary)' : 'transparent' }}>
+                              {editModulesModal.modules.includes(module.id) && <Check size={12} color="white" />}
+                            </div>
+                            <span style={{ fontSize: '0.85rem', fontWeight: editModulesModal.modules.includes(module.id) ? '600' : '400', color: editModulesModal.modules.includes(module.id) ? 'var(--text-primary)' : 'var(--text-secondary)' }}>{module.name}</span>
+                          </div>
+                        );
+                      })}
                     </div>
-                    <span style={{ fontSize: '0.85rem', fontWeight: editModulesModal.modules.includes(module.id) ? '600' : '400', color: editModulesModal.modules.includes(module.id) ? 'var(--text-primary)' : 'var(--text-secondary)' }}>{module.name}</span>
                   </div>
                 ))}
               </div>
