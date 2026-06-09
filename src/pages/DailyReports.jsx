@@ -76,8 +76,11 @@ const DailyReports = () => {
     },
     'Tank Fabrication': { weldersPresent: '', ratingsTable: [{rating: '', qty: ''}], ...defaultIssues },
     'Loading / Unloading': {
-      unloadingExpected: '', unloadingCompleted: '',
-      loadingTanks: [{ rating: '', qty: '' }], loadingPOs: [{ poNumber: '', qty: '' }], loadingPlanned: '',
+      expectedUnloading: [{ material: '', qty: '' }],
+      completedUnloading: [{ material: '', qty: '' }],
+      loadingTanks: [{ rating: '', qty: '' }],
+      loadingPOs: [{ poNumber: '', rating: '', qty: '' }],
+      plannedLoading: [{ poNumber: '', rating: '', qty: '' }],
       ...defaultIssues
     }
   };
@@ -134,11 +137,10 @@ const DailyReports = () => {
           });
 
           if (cloned['Loading / Unloading']) {
-             // Reset completed lists, carry over expected targets
-             cloned['Loading / Unloading'].unloadingCompleted = '';
-             cloned['Loading / Unloading'].loadingTanks = [{ rating: '', qty: '' }];
-             cloned['Loading / Unloading'].loadingPOs = [{ poNumber: '', qty: '' }];
-          }
+             cloned['Loading / Unloading'].expectedUnloading = [{ material: '', qty: '' }];
+             cloned['Loading / Unloading'].completedUnloading = [{ material: '', qty: '' }];
+             cloned['Loading / Unloading'].loadingPOs = [{ poNumber: '', rating: '', qty: '' }];
+             cloned['Loading / Unloading'].plannedLoading = [{ poNumber: '', rating: '', qty: '' }];}
 
           setFormData(cloned);
         } else {
@@ -750,47 +752,97 @@ const DailyReports = () => {
 
   const renderLoadingUnloading = () => (
     <div className="animate-fade-in">
-      <div className="card">
-        <h3>Unloading Details</h3>
-        <div className="grid-2">
-          <div className="input-group">
-            <label className="input-label">Expected un-loading of material</label>
-            <textarea className="input-field" rows="2" placeholder="Describe expected material..." value={formData['Loading / Unloading']?.unloadingExpected || ''} onChange={(e) => handleDataChange('Loading / Unloading', 'unloadingExpected', e.target.value)}></textarea>
+      <div className="grid-2">
+        <div className="card">
+          <div style={{ display:'flex', justifyContent:'space-between' }}>
+            <h3>Expected Unloading</h3>
+            <button className="btn btn-secondary" onClick={() => addTableRow('Loading / Unloading', 'expectedUnloading', {material:'', qty:''})} style={{ padding:'0.2rem 0.5rem', fontSize:'0.8rem' }}>+ Add Row</button>
           </div>
-          <div className="input-group">
-            <label className="input-label">Material unloaded till report was filed</label>
-            <textarea className="input-field" rows="2" placeholder="List unloaded material..." value={formData['Loading / Unloading']?.unloadingCompleted || ''} onChange={(e) => handleDataChange('Loading / Unloading', 'unloadingCompleted', e.target.value)}></textarea>
+          <table className="report-table" style={{ width: '100%', marginTop: '10px' }}>
+            <thead><tr><th>Material / Item</th><th>Quantity</th><th style={{width: '40px'}}></th></tr></thead>
+            <tbody>
+              {(formData['Loading / Unloading']?.expectedUnloading || []).map((row, i) => (
+                <tr key={i}>
+                  <td><input type="text" placeholder="e.g. Copper Wire" value={row.material||''} onChange={e=>handleTableChange('Loading / Unloading','expectedUnloading',i,'material',e.target.value)}/></td>
+                  <td><input type="text" placeholder="e.g. 500 kg" value={row.qty||''} onChange={e=>handleTableChange('Loading / Unloading','expectedUnloading',i,'qty',e.target.value)}/></td>
+                  <td><button type="button" className="icon-btn-small" style={{color: 'var(--danger)'}} onClick={() => removeTableRow('Loading / Unloading', 'expectedUnloading', i)} title="Remove Row"><Trash2 size={16} /></button></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        <div className="card">
+          <div style={{ display:'flex', justifyContent:'space-between' }}>
+            <h3>Completed Unloading</h3>
+            <button className="btn btn-secondary" onClick={() => addTableRow('Loading / Unloading', 'completedUnloading', {material:'', qty:''})} style={{ padding:'0.2rem 0.5rem', fontSize:'0.8rem' }}>+ Add Row</button>
           </div>
+          <table className="report-table" style={{ width: '100%', marginTop: '10px' }}>
+            <thead><tr><th>Material / Item</th><th>Quantity</th><th style={{width: '40px'}}></th></tr></thead>
+            <tbody>
+              {(formData['Loading / Unloading']?.completedUnloading || []).map((row, i) => (
+                <tr key={i}>
+                  <td><input type="text" placeholder="e.g. Copper Wire" value={row.material||''} onChange={e=>handleTableChange('Loading / Unloading','completedUnloading',i,'material',e.target.value)}/></td>
+                  <td><input type="text" placeholder="e.g. 500 kg" value={row.qty||''} onChange={e=>handleTableChange('Loading / Unloading','completedUnloading',i,'qty',e.target.value)}/></td>
+                  <td><button type="button" className="icon-btn-small" style={{color: 'var(--danger)'}} onClick={() => removeTableRow('Loading / Unloading', 'completedUnloading', i)} title="Remove Row"><Trash2 size={16} /></button></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       </div>
 
-      <div className="card" style={{ marginTop: '20px' }}>
-        <div style={{ display:'flex', justifyContent:'space-between' }}>
-          <h3>Transformers Loaded (PO & Rating)</h3>
-          <button className="btn btn-secondary" onClick={() => addTableRow('Loading / Unloading', 'loadingPOs', {poNumber:'', rating: '', qty:''})} style={{ padding:'0.2rem 0.5rem', fontSize:'0.8rem' }}>+ Add Row</button>
+      <div className="grid-2" style={{ marginTop: '20px' }}>
+        <div className="card">
+          <div style={{ display:'flex', justifyContent:'space-between' }}>
+            <h3>Planned Loading</h3>
+            <button className="btn btn-secondary" onClick={() => addTableRow('Loading / Unloading', 'plannedLoading', {poNumber:'', rating: '', qty:''})} style={{ padding:'0.2rem 0.5rem', fontSize:'0.8rem' }}>+ Add Row</button>
+          </div>
+          <table className="report-table" style={{ width: '100%', marginTop: '10px' }}>
+            <thead><tr><th>PO Number / Client</th><th>Rating</th><th>Quantity</th><th style={{width: '40px'}}></th></tr></thead>
+            <tbody>
+              {(formData['Loading / Unloading']?.plannedLoading || []).map((row, i) => (
+                <tr key={i}>
+                  <td>
+                    <select className="input-field" style={{ marginBottom: 0 }} value={row.poNumber||''} onChange={e=>handleTableChange('Loading / Unloading','plannedLoading',i,'poNumber',e.target.value)}>
+                      <option value="">Select PO...</option>
+                      {pos?.map(po => <option key={po.id || po.poNo} value={po.poNo}>{po.poNo} ({po.companyName})</option>)}
+                      <option value="Other">Other / Stock</option>
+                    </select>
+                  </td>
+                  <td><input type="text" list="capacities-list" placeholder="Rating" value={row.rating||''} onChange={e=>handleTableChange('Loading / Unloading','plannedLoading',i,'rating',e.target.value)}/></td>
+                  <td><input type="number" placeholder="Qty" value={row.qty||''} onChange={e=>handleTableChange('Loading / Unloading','plannedLoading',i,'qty',e.target.value)}/></td>
+                  <td><button type="button" className="icon-btn-small" style={{color: 'var(--danger)'}} onClick={() => removeTableRow('Loading / Unloading', 'plannedLoading', i)} title="Remove Row"><Trash2 size={16} /></button></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
-        <table className="report-table" style={{ width: '100%', marginTop: '10px' }}>
-          <thead><tr><th>PO Number</th><th>Rating</th><th>Quantity</th><th style={{width: '40px'}}></th></tr></thead>
-          <tbody>
-            {(formData['Loading / Unloading']?.loadingPOs || []).map((row, i) => (
-              <tr key={i}>
-                <td>
-                  <select className="input-field" style={{ marginBottom: 0 }} value={row.poNumber||''} onChange={e=>handleTableChange('Loading / Unloading','loadingPOs',i,'poNumber',e.target.value)}>
-                    <option value="">Select PO Number...</option>
-                    {pos?.map(po => <option key={po.id || po.poNo} value={po.poNo}>{po.poNo} ({po.companyName})</option>)}
-                  </select>
-                </td>
-                <td><input type="text" list="capacities-list" placeholder="Select or type..." value={row.rating||''} onChange={e=>handleTableChange('Loading / Unloading','loadingPOs',i,'rating',e.target.value)}/></td>
-                <td><input type="number" value={row.qty||''} onChange={e=>handleTableChange('Loading / Unloading','loadingPOs',i,'qty',e.target.value)}/></td><td><button type="button" className="icon-btn-small" style={{color: 'var(--danger)'}} onClick={() => removeTableRow('Loading / Unloading', 'loadingPOs', i)} title="Remove Row"><Trash2 size={16} /></button></td></tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
 
-      <div className="card" style={{ marginTop: '20px' }}>
-        <div className="input-group">
-          <label className="input-label">Loading planned for the day</label>
-          <textarea className="input-field" rows="2" placeholder="Describe planned loading..." value={formData['Loading / Unloading']?.loadingPlanned || ''} onChange={(e) => handleDataChange('Loading / Unloading', 'loadingPlanned', e.target.value)}></textarea>
+        <div className="card">
+          <div style={{ display:'flex', justifyContent:'space-between' }}>
+            <h3>Transformers Loaded</h3>
+            <button className="btn btn-secondary" onClick={() => addTableRow('Loading / Unloading', 'loadingPOs', {poNumber:'', rating: '', qty:''})} style={{ padding:'0.2rem 0.5rem', fontSize:'0.8rem' }}>+ Add Row</button>
+          </div>
+          <table className="report-table" style={{ width: '100%', marginTop: '10px' }}>
+            <thead><tr><th>PO Number / Client</th><th>Rating</th><th>Quantity</th><th style={{width: '40px'}}></th></tr></thead>
+            <tbody>
+              {(formData['Loading / Unloading']?.loadingPOs || []).map((row, i) => (
+                <tr key={i}>
+                  <td>
+                    <select className="input-field" style={{ marginBottom: 0 }} value={row.poNumber||''} onChange={e=>handleTableChange('Loading / Unloading','loadingPOs',i,'poNumber',e.target.value)}>
+                      <option value="">Select PO...</option>
+                      {pos?.map(po => <option key={po.id || po.poNo} value={po.poNo}>{po.poNo} ({po.companyName})</option>)}
+                      <option value="Other">Other / Stock</option>
+                    </select>
+                  </td>
+                  <td><input type="text" list="capacities-list" placeholder="Rating" value={row.rating||''} onChange={e=>handleTableChange('Loading / Unloading','loadingPOs',i,'rating',e.target.value)}/></td>
+                  <td><input type="number" placeholder="Qty" value={row.qty||''} onChange={e=>handleTableChange('Loading / Unloading','loadingPOs',i,'qty',e.target.value)}/></td>
+                  <td><button type="button" className="icon-btn-small" style={{color: 'var(--danger)'}} onClick={() => removeTableRow('Loading / Unloading', 'loadingPOs', i)} title="Remove Row"><Trash2 size={16} /></button></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       </div>
       
@@ -972,23 +1024,42 @@ const DailyReports = () => {
             </h4>
             <div className="grid-2">
               <div>
-                <strong style={{ color: 'var(--text-secondary)' }}>Unloading:</strong>
-                <ul style={{ margin: '8px 0 0 20px', color: 'var(--text-primary)' }}>
-                  <li style={{ marginBottom: '4px' }}>Expected: <strong>{latestData['Loading / Unloading']?.unloadingExpected || 'None'}</strong></li>
-                  <li style={{ marginBottom: '4px' }}>Completed: <strong>{latestData['Loading / Unloading']?.unloadingCompleted || 'None'}</strong></li>
-                </ul>
+                <strong style={{ color: 'var(--text-secondary)' }}>Expected Unloading:</strong>
+                {latestData['Loading / Unloading']?.expectedUnloading?.filter(r => r.material || r.qty).length > 0 ? (
+                  <ul style={{ margin: '4px 0 12px 20px', color: 'var(--text-primary)' }}>
+                    {latestData['Loading / Unloading'].expectedUnloading.filter(r => r.material || r.qty).map((r, i) => (
+                      <li key={i}>{r.material || 'Unknown'} - <strong>{r.qty || '0'}</strong></li>
+                    ))}
+                  </ul>
+                ) : <div style={{ color: 'var(--text-muted)', marginBottom: '12px' }}>None planned.</div>}
+
+                <strong style={{ color: 'var(--text-secondary)' }}>Completed Unloading:</strong>
+                {latestData['Loading / Unloading']?.completedUnloading?.filter(r => r.material || r.qty).length > 0 ? (
+                  <ul style={{ margin: '4px 0 0 20px', color: 'var(--text-primary)' }}>
+                    {latestData['Loading / Unloading'].completedUnloading.filter(r => r.material || r.qty).map((r, i) => (
+                      <li key={i}>{r.material || 'Unknown'} - <strong>{r.qty || '0'}</strong></li>
+                    ))}
+                  </ul>
+                ) : <div style={{ color: 'var(--text-muted)' }}>None completed.</div>}
               </div>
               <div>
-                <strong style={{ color: 'var(--text-secondary)' }}>Loading:</strong>
-                <ul style={{ margin: '8px 0 0 20px', color: 'var(--text-primary)' }}>
-                  <li style={{ marginBottom: '4px' }}>Planned: <strong>{latestData['Loading / Unloading']?.loadingPlanned || 'None'}</strong></li>
-                  <li style={{ marginBottom: '4px' }}>
-                    Tanks Loaded: <strong>{latestData['Loading / Unloading']?.loadingTanks?.reduce((sum, r) => sum + (Number(r.qty) || 0), 0) || 0}</strong>
-                  </li>
-                  <li style={{ marginBottom: '4px' }}>
-                    POs Loaded: <strong>{latestData['Loading / Unloading']?.loadingPOs?.reduce((sum, r) => sum + (Number(r.qty) || 0), 0) || 0}</strong>
-                  </li>
-                </ul>
+                <strong style={{ color: 'var(--text-secondary)' }}>Planned Loading:</strong>
+                {latestData['Loading / Unloading']?.plannedLoading?.filter(r => r.poNumber || r.qty).length > 0 ? (
+                  <ul style={{ margin: '4px 0 12px 20px', color: 'var(--text-primary)' }}>
+                    {latestData['Loading / Unloading'].plannedLoading.filter(r => r.poNumber || r.qty).map((r, i) => (
+                      <li key={i}>{r.poNumber || 'Unknown'} {r.rating && `(${r.rating})`} - <strong>{r.qty || '0'}</strong></li>
+                    ))}
+                  </ul>
+                ) : <div style={{ color: 'var(--text-muted)', marginBottom: '12px' }}>None planned.</div>}
+
+                <strong style={{ color: 'var(--text-secondary)' }}>Completed Loading:</strong>
+                {latestData['Loading / Unloading']?.loadingPOs?.filter(r => r.poNumber || r.qty).length > 0 ? (
+                  <ul style={{ margin: '4px 0 0 20px', color: 'var(--text-primary)' }}>
+                    {latestData['Loading / Unloading'].loadingPOs.filter(r => r.poNumber || r.qty).map((r, i) => (
+                      <li key={i}>{r.poNumber || 'Unknown'} {r.rating && `(${r.rating})`} - <strong>{r.qty || '0'}</strong></li>
+                    ))}
+                  </ul>
+                ) : <div style={{ color: 'var(--text-muted)' }}>None completed.</div>}
               </div>
             </div>
           </div>
