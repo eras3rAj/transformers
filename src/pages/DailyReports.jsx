@@ -1232,7 +1232,7 @@ const DailyReports = () => {
               <div className="input-group" style={{ maxWidth: '300px' }}>
                 <label className="input-label">Select Shift</label>
                 <select className="input-field" value={summaryShift} onChange={(e) => setSummaryShift(e.target.value)}>
-                  <option value="Latest">Latest Available</option>
+                  <option value="Latest">Latest Available {reports.some(r => r.shift === 'evening') ? '(Evening)' : reports.some(r => r.shift === 'afternoon') ? '(Afternoon)' : reports.some(r => r.shift === 'morning') ? '(Morning)' : ''}</option>
                   <option value="Morning">Morning (9-10 AM)</option>
                   <option value="Afternoon">Afternoon (2-3 PM)</option>
                   <option value="Evening">Evening (5-6 PM)</option>
