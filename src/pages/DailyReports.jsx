@@ -16,14 +16,51 @@ const DailyReports = () => {
   
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
+  const [lastSaved, setLastSaved] = useState(null);
+
+  const saveDraftToLocal = (data) => {
+    localStorage.setItem(`draft_report_${selectedDate}_${selectedShift}`, JSON.stringify(data));
+    setLastSaved(new Date());
+  };
 
   const tabs = ['Box-up', 'CCA', 'Winding Section', 'Core Cutting', 'Tank Fabrication', 'Loading / Unloading'];
   const [mainTab, setMainTab] = useState('Daily Summary');
   const [summaryShift, setSummaryShift] = useState('Latest');
 
+  const normalizeDraft = (data) => {
+    const newData = JSON.parse(JSON.stringify(data));
+    tabs.forEach(tab => {
+      const sec = newData[tab];
+      if (!sec) return;
+      if (sec.machineProblems === undefined) {
+        sec.machineProblems = [];
+        if (sec.machineProblem) {
+          sec.machineProblems.push({ desc: sec.machineProblemDesc||'', action: sec.machineProblemAction||'', eta: sec.machineProblemETA||'', taskId: sec.machineProblemTaskId||null });
+        }
+        delete sec.machineProblem; delete sec.machineProblemDesc; delete sec.machineProblemAction; delete sec.machineProblemETA; delete sec.machineProblemTaskId;
+      }
+      if (sec.materialShortages === undefined) {
+        sec.materialShortages = [];
+        if (sec.materialShortage) {
+          sec.materialShortages.push({ desc: sec.materialShortageDesc||'', action: sec.materialShortageAction||'', eta: sec.materialShortageETA||'', taskId: sec.materialShortageTaskId||null });
+        }
+        delete sec.materialShortage; delete sec.materialShortageDesc; delete sec.materialShortageAction; delete sec.materialShortageETA; delete sec.materialShortageTaskId;
+      }
+      if (tab === 'Winding Section' && sec.ratingsTable) {
+        sec.ratingsTable = sec.ratingsTable.map(r => {
+          if (r.count !== undefined && r.ltCount === undefined && r.htCount === undefined) {
+            return { rating: r.rating, ltCount: r.count, htCount: '' };
+          }
+          return r;
+        });
+      }
+    });
+    return newData;
+  };
+
   const defaultIssues = { 
-    machineProblem: false, machineProblemDesc: '', machineProblemAction: '', machineProblemETA: '', machineProblemTaskId: null,
-    materialShortage: false, materialShortageDesc: '', materialShortageAction: '', materialShortageETA: '', materialShortageTaskId: null,
+    machineProblems: [],
+    materialShortages: [],
     remarks: '' 
   };
 
@@ -52,7 +89,7 @@ const DailyReports = () => {
     const draft = localStorage.getItem(`draft_report_${selectedDate}_${selectedShift}`);
     if (draft) {
       try {
-        setFormData({ ...JSON.parse(JSON.stringify(emptyReport)), ...JSON.parse(draft) });
+        setFormData(normalizeDraft({ ...JSON.parse(JSON.stringify(emptyReport)), ...JSON.parse(draft) }));
       } catch(e) {}
     }
   }, [selectedDate, selectedShift]);
@@ -66,7 +103,7 @@ const DailyReports = () => {
   useEffect(() => {
     const currentReport = reports.find(r => r.shift === selectedShift);
     if (currentReport && Object.keys(currentReport.data).length > 0) {
-      setFormData({ ...JSON.parse(JSON.stringify(emptyReport)), ...currentReport.data });
+      setFormData(normalizeDraft({ ...JSON.parse(JSON.stringify(emptyReport)), ...currentReport.data }));
     } else {
       // If empty, try to auto-populate from previous shift today
       const prevShift = selectedShift === 'evening' ? 'afternoon' : (selectedShift === 'afternoon' ? 'morning' : null);
@@ -74,31 +111,25 @@ const DailyReports = () => {
         const prevReport = reports.find(r => r.shift === prevShift);
         if (prevReport && Object.keys(prevReport.data).length > 0) {
           // Clone it so they have fewest changes possible
-          let cloned = { ...JSON.parse(JSON.stringify(emptyReport)), ...JSON.parse(JSON.stringify(prevReport.data)) };
+          let cloned = normalizeDraft({ ...JSON.parse(JSON.stringify(emptyReport)), ...JSON.parse(JSON.stringify(prevReport.data)) });
           
           // SMART CARRY-OVER Logic:
           tabs.forEach(tab => {
             if (!cloned[tab]) return;
             // Check Task Status
-            if (cloned[tab].machineProblemTaskId) {
-              const t = tasks.find(tsk => tsk.id === cloned[tab].machineProblemTaskId);
-              if (t && t.status === 'Completed') {
-                cloned[tab].machineProblem = false;
-                cloned[tab].machineProblemDesc = '';
-                cloned[tab].machineProblemAction = '';
-                cloned[tab].machineProblemETA = '';
-                cloned[tab].machineProblemTaskId = null;
-              }
+            if (cloned[tab].machineProblems) {
+              cloned[tab].machineProblems = cloned[tab].machineProblems.filter(mp => {
+                if (!mp.taskId) return true;
+                const t = tasks.find(tsk => tsk.id === mp.taskId);
+                return !(t && t.status === 'Completed');
+              });
             }
-            if (cloned[tab].materialShortageTaskId) {
-              const t = tasks.find(tsk => tsk.id === cloned[tab].materialShortageTaskId);
-              if (t && t.status === 'Completed') {
-                cloned[tab].materialShortage = false;
-                cloned[tab].materialShortageDesc = '';
-                cloned[tab].materialShortageAction = '';
-                cloned[tab].materialShortageETA = '';
-                cloned[tab].materialShortageTaskId = null;
-              }
+            if (cloned[tab].materialShortages) {
+              cloned[tab].materialShortages = cloned[tab].materialShortages.filter(ms => {
+                if (!ms.taskId) return true;
+                const t = tasks.find(tsk => tsk.id === ms.taskId);
+                return !(t && t.status === 'Completed');
+              });
             }
           });
 
@@ -129,7 +160,7 @@ const DailyReports = () => {
           [field]: value
         }
       };
-      localStorage.setItem(`draft_report_${selectedDate}_${selectedShift}`, JSON.stringify(updated));
+      saveDraftToLocal(updated);
       return updated;
     });
     setSaveSuccess(false);
@@ -141,7 +172,7 @@ const DailyReports = () => {
       if (!table[index]) table[index] = {};
       table[index][colField] = value;
       const updated = { ...prev, [section]: { ...prev[section], [tableField]: table } };
-      localStorage.setItem(`draft_report_${selectedDate}_${selectedShift}`, JSON.stringify(updated));
+      saveDraftToLocal(updated);
       return updated;
     });
     setSaveSuccess(false);
@@ -162,7 +193,7 @@ const DailyReports = () => {
           }
         }
       };
-      localStorage.setItem(`draft_report_${selectedDate}_${selectedShift}`, JSON.stringify(updated));
+      saveDraftToLocal(updated);
       return updated;
     });
     setSaveSuccess(false);
@@ -175,38 +206,89 @@ const DailyReports = () => {
     });
   };
 
+  const handleProblemChange = (section, type, index, field, value) => {
+    setFormData(prev => {
+      const updated = { ...prev };
+      const arr = [...(updated[section][type] || [])];
+      if (!arr[index]) arr[index] = {};
+      arr[index] = { ...arr[index], [field]: value };
+      updated[section][type] = arr;
+      saveDraftToLocal(updated);
+      return updated;
+    });
+    setSaveSuccess(false);
+  };
+
+  const addProblem = (section, type) => {
+    setFormData(prev => {
+      const updated = { ...prev };
+      updated[section][type] = [...(updated[section][type] || []), { desc: '', action: '', eta: '', taskId: null }];
+      return updated;
+    });
+  };
+
+  const removeProblem = (section, type, index) => {
+    setFormData(prev => {
+      const updated = { ...prev };
+      const arr = [...(updated[section][type] || [])];
+      arr.splice(index, 1);
+      updated[section][type] = arr;
+      saveDraftToLocal(updated);
+      return updated;
+    });
+  };
+
   const [validationError, setValidationError] = useState('');
+  const [invalidFields, setInvalidFields] = useState([]);
 
   const validateSection = (section) => {
     const data = formData[section];
+    let err = null;
+    let fields = [];
     if (section === 'Box-up' || section === 'CCA') {
       const hasMain = data.mainTable && data.mainTable.length > 0 && data.mainTable[0].qty !== '' && data.mainTable[0].rating !== '';
-      if (!hasMain) return `Please fill the primary Quantity and Rating in ${section} (enter 0 if none).`;
+      if (!hasMain) {
+        err = `Please fill the primary Quantity and Rating in ${section} (enter 0 if none).`;
+        fields = [`${section}_qty`, `${section}_rating`];
+      }
     }
     if (section === 'Winding Section') {
-      if (data.ltWinders === '' || data.htWinders === '') return 'Please enter the number of LT and HT winders.';
+      if (data.ltWinders === '' || data.htWinders === '') {
+        err = 'Please enter the number of LT and HT winders.';
+        if (data.ltWinders === '') fields.push('ltWinders');
+        if (data.htWinders === '') fields.push('htWinders');
+      }
     }
     if (section === 'Core Cutting') {
       if (!data.ratingInOven || !data.openingTime || !data.cuttingRating || !data.nextOvenTime) {
-        return 'Please fill all primary Core Cutting details (Rating, Opening Time, Next Oven Time).';
+        err = 'Please fill all primary Core Cutting details (Rating, Opening Time, Next Oven Time).';
+        if (!data.ratingInOven) fields.push('ratingInOven');
+        if (!data.openingTime) fields.push('openingTime');
+        if (!data.cuttingRating) fields.push('cuttingRating');
+        if (!data.nextOvenTime) fields.push('nextOvenTime');
       }
     }
     if (section === 'Tank Fabrication') {
-      if (data.weldersPresent === '') return 'Please enter the number of Welders present.';
+      if (data.weldersPresent === '') {
+        err = 'Please enter the number of Welders present.';
+        fields.push('weldersPresent');
+      }
     }
-    return null; // valid
+    return { error: err, fields };
   };
 
   const handleNextSection = (currentSection) => {
-    const error = validateSection(currentSection);
+    const { error, fields } = validateSection(currentSection);
     if (error) {
       setValidationError(error);
+      setInvalidFields(fields);
       return;
     }
     setValidationError('');
+    setInvalidFields([]);
     
     // Auto-save draft on next
-    localStorage.setItem(`draft_report_${selectedDate}_${selectedShift}`, JSON.stringify(formData));
+    saveDraftToLocal(formData);
     
     const currentIndex = tabs.indexOf(currentSection);
     if (currentIndex < tabs.length - 1) {
@@ -219,14 +301,16 @@ const DailyReports = () => {
   const handleSave = async () => {
     // Validate all
     for (const t of tabs) {
-      const err = validateSection(t);
-      if (err) {
+      const { error, fields } = validateSection(t);
+      if (error) {
         setActiveTab(t);
-        setValidationError(err);
+        setValidationError(error);
+        setInvalidFields(fields);
         return;
       }
     }
     setValidationError('');
+    setInvalidFields([]);
     setIsSaving(true);
 
     // Deep clone formData to mutate with task IDs before saving
@@ -238,43 +322,47 @@ const DailyReports = () => {
       
       const secData = dataToSave[t];
       
-      // Machine Problem Task
-      if (secData.machineProblem) {
-        if (!secData.machineProblemTaskId) {
-          const res = await addTask({
-            task_title: `[System: Daily Report] Machine Problem in ${t}`,
-            task_desc: `Issue: ${secData.machineProblemDesc}\nAction Taken: ${secData.machineProblemAction || 'None'}\nETA: ${secData.machineProblemETA || 'Unknown'}`,
-            priority: 'High',
-            deadline: secData.machineProblemETA || new Date().toISOString().split('T')[0],
-            status: 'In Progress',
-            assigned_to: 'Admin',
-            department: 'Production'
-          });
-          if (res.success && res.data) {
-            secData.machineProblemTaskId = res.data[0].id;
+      // Machine Problem Tasks
+      if (secData.machineProblems && secData.machineProblems.length > 0) {
+        for (const mp of secData.machineProblems) {
+          if (!mp.taskId) {
+            const res = await addTask({
+              task_title: `[System: Daily Report] Machine Problem in ${t}`,
+              task_desc: `Issue: ${mp.desc}\nAction Taken: ${mp.action || 'None'}\nETA: ${mp.eta || 'Unknown'}`,
+              priority: 'High',
+              deadline: mp.eta || new Date().toISOString().split('T')[0],
+              status: 'In Progress',
+              assigned_to: 'Admin',
+              department: 'Production'
+            });
+            if (res.success && res.data) {
+              mp.taskId = res.data[0].id;
+            }
+          } else {
+            await addLatestUpdate(mp.taskId, `Shift ${selectedShift}: Action Taken - ${mp.action || 'None'}`);
           }
-        } else {
-          await addLatestUpdate(secData.machineProblemTaskId, `Shift ${selectedShift}: Action Taken - ${secData.machineProblemAction || 'None'}`);
         }
       }
 
-      // Material Shortage Task
-      if (secData.materialShortage) {
-        if (!secData.materialShortageTaskId) {
-          const res = await addTask({
-            task_title: `[System: Daily Report] Material Shortage in ${t}`,
-            task_desc: `Issue: ${secData.materialShortageDesc}\nAction Taken: ${secData.materialShortageAction || 'None'}\nETA: ${secData.materialShortageETA || 'Unknown'}`,
-            priority: 'High',
-            deadline: secData.materialShortageETA || new Date().toISOString().split('T')[0],
-            status: 'In Progress',
-            assigned_to: 'Admin', 
-            department: 'Inventory'
-          });
-          if (res.success && res.data) {
-            secData.materialShortageTaskId = res.data[0].id;
+      // Material Shortage Tasks
+      if (secData.materialShortages && secData.materialShortages.length > 0) {
+        for (const ms of secData.materialShortages) {
+          if (!ms.taskId) {
+            const res = await addTask({
+              task_title: `[System: Daily Report] Material Shortage in ${t}`,
+              task_desc: `Issue: ${ms.desc}\nAction Taken: ${ms.action || 'None'}\nETA: ${ms.eta || 'Unknown'}`,
+              priority: 'High',
+              deadline: ms.eta || new Date().toISOString().split('T')[0],
+              status: 'In Progress',
+              assigned_to: 'Admin', 
+              department: 'Inventory'
+            });
+            if (res.success && res.data) {
+              ms.taskId = res.data[0].id;
+            }
+          } else {
+            await addLatestUpdate(ms.taskId, `Shift ${selectedShift}: Action Taken - ${ms.action || 'None'}`);
           }
-        } else {
-          await addLatestUpdate(secData.materialShortageTaskId, `Shift ${selectedShift}: Action Taken - ${secData.materialShortageAction || 'None'}`);
         }
       }
     }
@@ -303,75 +391,73 @@ const DailyReports = () => {
     <div className="report-section card" style={{ marginTop: '20px' }}>
       <h3>Issues & Remarks</h3>
       <div className="grid-2">
-        <div className="input-group">
-          <label className="input-label">Any Machine Problem?</label>
-          <select 
-            className="input-field" 
-            value={formData[section].machineProblem ? 'Yes' : 'No'} 
-            onChange={(e) => handleDataChange(section, 'machineProblem', e.target.value === 'Yes')}
-          >
-            <option value="No">No</option>
-            <option value="Yes">Yes</option>
-          </select>
-        </div>
-        {formData[section].machineProblem && (
-          <div style={{ gridColumn: '1 / -1', background: 'var(--bg-tertiary)', padding: '1rem', borderRadius: '8px', borderLeft: '4px solid var(--danger)' }}>
-            <div className="grid-3" style={{ marginBottom: '0.5rem' }}>
-              <div className="input-group">
-                <label className="input-label">Specify Machine Problem</label>
-                <input type="text" className="input-field" placeholder="Describe issue..." value={formData[section].machineProblemDesc || ''} onChange={(e) => handleDataChange(section, 'machineProblemDesc', e.target.value)} />
-              </div>
-              <div className="input-group">
-                <label className="input-label">Action Taken</label>
-                <input type="text" className="input-field" placeholder="What has been done?" value={formData[section].machineProblemAction || ''} onChange={(e) => handleDataChange(section, 'machineProblemAction', e.target.value)} />
-              </div>
-              <div className="input-group">
-                <label className="input-label">Expected Resolution Date</label>
-                <input type="date" className="input-field" value={formData[section].machineProblemETA || ''} onChange={(e) => handleDataChange(section, 'machineProblemETA', e.target.value)} />
-              </div>
-            </div>
-            {formData[section].machineProblemTaskId && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-                <Link size={14} /> Linked to Pending Task #{formData[section].machineProblemTaskId}
-              </div>
-            )}
+        <div className="input-group" style={{ gridColumn: '1 / -1' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <label className="input-label" style={{ marginBottom: 0 }}>Machine Problems</label>
+            <button className="btn btn-secondary" onClick={() => addProblem(section, 'machineProblems')} style={{ padding: '0.2rem 0.5rem', fontSize: '0.8rem' }}>+ Add Machine Problem</button>
           </div>
-        )}
+          {(formData[section].machineProblems || []).map((mp, i) => (
+            <div key={i} style={{ background: 'var(--bg-tertiary)', padding: '1rem', borderRadius: '8px', borderLeft: '4px solid var(--danger)', marginTop: '10px' }}>
+              <div style={{ display: 'flex', justifyContent: 'flex-end' }}><button onClick={() => removeProblem(section, 'machineProblems', i)} style={{ color: 'var(--danger)', background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.2rem' }}>&times;</button></div>
+              <div className="grid-3" style={{ marginBottom: '0.5rem' }}>
+                <div className="input-group">
+                  <label className="input-label">Specify Machine Problem</label>
+                  <input type="text" className="input-field" placeholder="Describe issue..." value={mp.desc || ''} onChange={(e) => handleProblemChange(section, 'machineProblems', i, 'desc', e.target.value)} />
+                </div>
+                <div className="input-group">
+                  <label className="input-label">Action Taken</label>
+                  <input type="text" className="input-field" placeholder="What has been done?" value={mp.action || ''} onChange={(e) => handleProblemChange(section, 'machineProblems', i, 'action', e.target.value)} />
+                </div>
+                <div className="input-group">
+                  <label className="input-label">Expected Resolution Date</label>
+                  <input type="date" className="input-field" value={mp.eta || ''} onChange={(e) => handleProblemChange(section, 'machineProblems', i, 'eta', e.target.value)} />
+                </div>
+              </div>
+              {mp.taskId && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+                  <Link size={14} /> Linked to Pending Task #{mp.taskId}
+                </div>
+              )}
+            </div>
+          ))}
+          {(!formData[section].machineProblems || formData[section].machineProblems.length === 0) && (
+            <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginTop: '5px' }}>No machine problems reported.</p>
+          )}
+        </div>
         
-        <div className="input-group">
-          <label className="input-label">Any Material Shortage?</label>
-          <select 
-            className="input-field" 
-            value={formData[section].materialShortage ? 'Yes' : 'No'} 
-            onChange={(e) => handleDataChange(section, 'materialShortage', e.target.value === 'Yes')}
-          >
-            <option value="No">No</option>
-            <option value="Yes">Yes</option>
-          </select>
-        </div>
-        {formData[section].materialShortage && (
-          <div style={{ gridColumn: '1 / -1', background: 'var(--bg-tertiary)', padding: '1rem', borderRadius: '8px', borderLeft: '4px solid var(--warning)' }}>
-            <div className="grid-3" style={{ marginBottom: '0.5rem' }}>
-              <div className="input-group">
-                <label className="input-label">Specify Material Shortage</label>
-                <input type="text" className="input-field" placeholder="Describe shortage..." value={formData[section].materialShortageDesc || ''} onChange={(e) => handleDataChange(section, 'materialShortageDesc', e.target.value)} />
-              </div>
-              <div className="input-group">
-                <label className="input-label">Action Taken</label>
-                <input type="text" className="input-field" placeholder="What has been done?" value={formData[section].materialShortageAction || ''} onChange={(e) => handleDataChange(section, 'materialShortageAction', e.target.value)} />
-              </div>
-              <div className="input-group">
-                <label className="input-label">Expected Resolution Date</label>
-                <input type="date" className="input-field" value={formData[section].materialShortageETA || ''} onChange={(e) => handleDataChange(section, 'materialShortageETA', e.target.value)} />
-              </div>
-            </div>
-            {formData[section].materialShortageTaskId && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-                <Link size={14} /> Linked to Pending Task #{formData[section].materialShortageTaskId}
-              </div>
-            )}
+        <div className="input-group" style={{ gridColumn: '1 / -1', marginTop: '10px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <label className="input-label" style={{ marginBottom: 0 }}>Material Shortages</label>
+            <button className="btn btn-secondary" onClick={() => addProblem(section, 'materialShortages')} style={{ padding: '0.2rem 0.5rem', fontSize: '0.8rem' }}>+ Add Material Shortage</button>
           </div>
-        )}
+          {(formData[section].materialShortages || []).map((ms, i) => (
+            <div key={i} style={{ background: 'var(--bg-tertiary)', padding: '1rem', borderRadius: '8px', borderLeft: '4px solid var(--warning)', marginTop: '10px' }}>
+              <div style={{ display: 'flex', justifyContent: 'flex-end' }}><button onClick={() => removeProblem(section, 'materialShortages', i)} style={{ color: 'var(--danger)', background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.2rem' }}>&times;</button></div>
+              <div className="grid-3" style={{ marginBottom: '0.5rem' }}>
+                <div className="input-group">
+                  <label className="input-label">Specify Material Shortage</label>
+                  <input type="text" className="input-field" placeholder="Describe shortage..." value={ms.desc || ''} onChange={(e) => handleProblemChange(section, 'materialShortages', i, 'desc', e.target.value)} />
+                </div>
+                <div className="input-group">
+                  <label className="input-label">Action Taken</label>
+                  <input type="text" className="input-field" placeholder="What has been done?" value={ms.action || ''} onChange={(e) => handleProblemChange(section, 'materialShortages', i, 'action', e.target.value)} />
+                </div>
+                <div className="input-group">
+                  <label className="input-label">Expected Resolution Date</label>
+                  <input type="date" className="input-field" value={ms.eta || ''} onChange={(e) => handleProblemChange(section, 'materialShortages', i, 'eta', e.target.value)} />
+                </div>
+              </div>
+              {ms.taskId && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+                  <Link size={14} /> Linked to Pending Task #{ms.taskId}
+                </div>
+              )}
+            </div>
+          ))}
+          {(!formData[section].materialShortages || formData[section].materialShortages.length === 0) && (
+            <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginTop: '5px' }}>No material shortages reported.</p>
+          )}
+        </div>
       </div>
       <div className="input-group" style={{ marginTop: '10px' }}>
         <label className="input-label">Remarks (If any)</label>
@@ -515,44 +601,51 @@ const DailyReports = () => {
     </div>
   );
 
-  const renderWinding = () => (
-    <div className="animate-fade-in">
-      <div className="card">
-        <h3>Winding Personnel</h3>
-        <div className="grid-2">
-          <div className="input-group">
-            <label className="input-label">No. of LT Winders Present</label>
-            <input type="number" className="input-field" value={formData['Winding Section'].ltWinders} onChange={(e) => handleDataChange('Winding Section', 'ltWinders', e.target.value)} />
+  const renderWinding = () => {
+    const totalWinders = (Number(formData['Winding Section'].ltWinders) || 0) + (Number(formData['Winding Section'].htWinders) || 0);
+    return (
+      <div className="animate-fade-in">
+        <div className="card">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <h3>Winding Personnel</h3>
+            <span style={{ fontSize: '1.1rem', fontWeight: '500', color: 'var(--accent-primary)', background: 'var(--bg-tertiary)', padding: '0.4rem 0.8rem', borderRadius: '8px' }}>Total Winders Present: {totalWinders}</span>
           </div>
-          <div className="input-group">
-            <label className="input-label">No. of HT Winders Present</label>
-            <input type="number" className="input-field" value={formData['Winding Section'].htWinders} onChange={(e) => handleDataChange('Winding Section', 'htWinders', e.target.value)} />
+          <div className="grid-2" style={{ marginTop: '10px' }}>
+            <div className="input-group">
+              <label className="input-label">No. of LT Winders Present</label>
+              <input type="number" className="input-field" value={formData['Winding Section'].ltWinders} onChange={(e) => handleDataChange('Winding Section', 'ltWinders', e.target.value)} />
+            </div>
+            <div className="input-group">
+              <label className="input-label">No. of HT Winders Present</label>
+              <input type="number" className="input-field" value={formData['Winding Section'].htWinders} onChange={(e) => handleDataChange('Winding Section', 'htWinders', e.target.value)} />
+            </div>
           </div>
         </div>
-      </div>
 
-      <div className="card" style={{ marginTop: '20px' }}>
-        <div style={{ display:'flex', justifyContent:'space-between' }}>
-          <h3>Winders per Rating</h3>
-          <button className="btn btn-secondary" onClick={() => addTableRow('Winding Section', 'ratingsTable', {rating:'', count:''})} style={{ padding:'0.2rem 0.5rem', fontSize:'0.8rem' }}>+ Add Row</button>
+        <div className="card" style={{ marginTop: '20px' }}>
+          <div style={{ display:'flex', justifyContent:'space-between' }}>
+            <h3>Winders per Rating</h3>
+            <button className="btn btn-secondary" onClick={() => addTableRow('Winding Section', 'ratingsTable', {rating:'', ltCount:'', htCount:''})} style={{ padding:'0.2rem 0.5rem', fontSize:'0.8rem' }}>+ Add Row</button>
+          </div>
+          <table className="report-table" style={{ width: '100%', marginTop: '10px' }}>
+            <thead><tr><th>Rating</th><th>LT Winders Count</th><th>HT Winders Count</th></tr></thead>
+            <tbody>
+              {formData['Winding Section'].ratingsTable.map((row, i) => (
+                <tr key={i}>
+                  <td>
+                    <input type="text" list="capacities-list"  placeholder="Select or type..." value={row.rating||''} onChange={e=>handleTableChange('Winding Section','ratingsTable',i,'rating',e.target.value)}/>
+                  </td>
+                  <td><input type="number"  placeholder="0" value={row.ltCount||''} onChange={e=>handleTableChange('Winding Section','ratingsTable',i,'ltCount',e.target.value)}/></td>
+                  <td><input type="number"  placeholder="0" value={row.htCount||''} onChange={e=>handleTableChange('Winding Section','ratingsTable',i,'htCount',e.target.value)}/></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
-        <table className="report-table" style={{ width: '100%', marginTop: '10px' }}>
-          <thead><tr><th>Rating</th><th>Number of Winders</th></tr></thead>
-          <tbody>
-            {formData['Winding Section'].ratingsTable.map((row, i) => (
-              <tr key={i}>
-                <td>
-                  <input type="text" list="capacities-list"  placeholder="Select or type..." value={row.rating||''} onChange={e=>handleTableChange('Winding Section','ratingsTable',i,'rating',e.target.value)}/>
-                </td>
-                <td><input type="number"  value={row.count||''} onChange={e=>handleTableChange('Winding Section','ratingsTable',i,'count',e.target.value)}/></td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        {renderCommonFields('Winding Section')}
       </div>
-      {renderCommonFields('Winding Section')}
-    </div>
-  );
+    );
+  };
 
   const renderCoreCutting = () => (
     <div className="animate-fade-in">
@@ -738,8 +831,16 @@ const DailyReports = () => {
 
     const issues = [];
     ['Box-up', 'CCA', 'Winding Section', 'Core Cutting', 'Tank Fabrication', 'Loading / Unloading'].forEach(sec => {
-       if (latestData[sec]?.machineProblem) issues.push({ section: sec, type: 'Machine Problem', desc: latestData[sec].machineProblemDesc });
-       if (latestData[sec]?.materialShortage) issues.push({ section: sec, type: 'Material Shortage', desc: latestData[sec].materialShortageDesc });
+       if (latestData[sec]?.machineProblems) {
+         latestData[sec].machineProblems.forEach(mp => {
+           if (mp.desc || mp.action) issues.push({ section: sec, type: 'Machine Problem', desc: mp.desc || 'N/A' });
+         });
+       }
+       if (latestData[sec]?.materialShortages) {
+         latestData[sec].materialShortages.forEach(ms => {
+           if (ms.desc || ms.action) issues.push({ section: sec, type: 'Material Shortage', desc: ms.desc || 'N/A' });
+         });
+       }
     });
 
     const maxWelders = Math.max(
@@ -810,9 +911,9 @@ const DailyReports = () => {
             </h4>
             {latestData['Winding Section']?.ratingsTable?.length > 0 ? (
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem' }}>
-                {latestData['Winding Section'].ratingsTable.filter(r => r.count || r.rating).map((r, i) => (
+                {latestData['Winding Section'].ratingsTable.filter(r => r.ltCount || r.htCount || r.rating).map((r, i) => (
                   <span key={i} className="status-badge" style={{ background: 'var(--bg-tertiary)', padding: '0.4rem 0.8rem', fontSize: '0.9rem', border: '1px solid var(--border-color)' }}>
-                    {r.rating || 'Unknown'} (Winders): <strong style={{ color: 'var(--accent-primary)', marginLeft: '6px' }}>{r.count || 0}</strong>
+                    {r.rating || 'Unknown'}: <strong style={{ color: 'var(--accent-primary)', marginLeft: '6px' }}>{r.ltCount || 0} LT / {r.htCount || 0} HT</strong>
                   </span>
                 ))}
               </div>
@@ -960,6 +1061,7 @@ const DailyReports = () => {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
             <h2 style={{ fontSize: '1.2rem', margin: 0 }}>Data Entry</h2>
             <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+              {lastSaved && <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>Draft auto-saved at {lastSaved.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>}
               <button className="btn btn-primary" onClick={handleSave} disabled={isSaving}>
                 {isSaving ? 'Saving...' : <><Save size={18} /> Save Report</>}
               </button>
@@ -1000,22 +1102,32 @@ const DailyReports = () => {
             {loading && <p style={{ color: 'var(--text-muted)' }}>Loading report data...</p>}
           </div>
 
-          <div className="tabs" style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '1.5rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem' }}>
-            {tabs.map(t => (
-              <button 
-                key={t}
-                onClick={() => setActiveTab(t)}
-                style={{
-                  background: 'none', border: 'none', padding: '0.5rem 0.8rem', cursor: 'pointer',
-                  color: activeTab === t ? 'var(--accent-primary)' : 'var(--text-secondary)',
-                  borderBottom: activeTab === t ? '2px solid var(--accent-primary)' : '2px solid transparent',
-                  fontWeight: activeTab === t ? '600' : '500',
-                  fontSize: '0.9rem'
-                }}
-              >
-                {t}
-              </button>
-            ))}
+          <div className="tabs wizard-tabs" style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '1.5rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem', alignItems: 'center' }}>
+            {tabs.map((t, idx) => {
+              const { error } = validateSection(t);
+              const isCompleted = !error;
+              return (
+                <React.Fragment key={t}>
+                  <button 
+                    onClick={() => setActiveTab(t)}
+                    style={{
+                      background: activeTab === t ? 'var(--accent-primary)' : (isCompleted ? 'var(--bg-tertiary)' : 'var(--bg-secondary)'),
+                      border: activeTab === t ? '1px solid var(--accent-primary)' : '1px solid var(--border-color)',
+                      padding: '0.5rem 1rem', cursor: 'pointer',
+                      color: activeTab === t ? '#fff' : 'var(--text-primary)',
+                      borderRadius: '20px',
+                      fontWeight: activeTab === t ? '600' : '500',
+                      fontSize: '0.9rem',
+                      display: 'flex', alignItems: 'center', gap: '0.4rem'
+                    }}
+                  >
+                    {isCompleted && activeTab !== t && <Check size={14} color="var(--success)" />}
+                    {t}
+                  </button>
+                  {idx < tabs.length - 1 && <div style={{ height: '2px', width: '20px', background: 'var(--border-color)' }} />}
+                </React.Fragment>
+              )
+            })}
           </div>
 
           <div className="tab-content">

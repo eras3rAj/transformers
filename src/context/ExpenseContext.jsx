@@ -13,6 +13,13 @@ export const ExpenseProvider = ({ children }) => {
   }, [fetchAll]);
 
   const addExpense = async (expenseData) => {
+    if (expenseData.payable_to) {
+      expenseData.payable_to = expenseData.payable_to
+        .toLowerCase()
+        .split(' ')
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(' ');
+    }
     return await insert(expenseData);
   };
 

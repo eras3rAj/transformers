@@ -117,13 +117,7 @@ const PurchaseOrders = () => {
                     <div style={{ display: 'inline-block', backgroundColor: 'var(--bg-tertiary)', color: 'var(--text-secondary)', padding: '2px 8px', borderRadius: '4px', fontSize: '0.75rem', fontWeight: '600', border: '1px solid var(--border-color)' }}>
                       {po.companyName}
                     </div>
-                    {pendingQty === 0 ? (
-                      <span style={{ fontSize: '0.7rem', padding: '2px 8px', borderRadius: '12px', backgroundColor: 'rgba(16,185,129,0.1)', color: 'var(--success)', fontWeight: 'bold' }}>COMPLETED</span>
-                    ) : totalAccepted > 0 ? (
-                      <span style={{ fontSize: '0.7rem', padding: '2px 8px', borderRadius: '12px', backgroundColor: 'rgba(234,179,8,0.1)', color: 'var(--warning)', fontWeight: 'bold' }}>PARTIAL</span>
-                    ) : (
-                      <span style={{ fontSize: '0.7rem', padding: '2px 8px', borderRadius: '12px', backgroundColor: 'rgba(59,130,246,0.1)', color: 'var(--accent-primary)', fontWeight: 'bold' }}>PENDING</span>
-                    )}
+                    {/* Status badge removed for now as per user request */}
                   </div>
                   <div style={{ fontWeight: '600', color: 'var(--accent-primary)', fontSize: '1.05rem', marginBottom: '0.2rem' }}>{po.poNo}</div>
                   <div style={{ fontWeight: '500' }}>{po.utilityBoard} - {po.capacity} {po.noOfPhases === '3-Phase' ? '(3-Phase)' : ''}</div>
@@ -156,7 +150,7 @@ const PurchaseOrders = () => {
                       </div>
                     </td>
                     <td style={{ padding: '1rem' }}>
-                      <div style={{ fontSize: '1.1rem', fontWeight: '600', color: pendingQty > 0 ? 'var(--warning)' : 'var(--success)' }}>
+                      <div style={{ fontSize: '1.1rem', fontWeight: '600', color: pendingQty > 0 ? '#f97316' : 'var(--success)' }}>
                         {formatCurrency(pendingValue)}
                       </div>
                       <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
@@ -198,8 +192,8 @@ const PurchaseOrders = () => {
               <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>{globalSummary.totalQuantity} total units ordered</div>
             </div>
             <div>
-              <div style={{ fontSize: '0.85rem', color: 'var(--warning)', fontWeight: '600', letterSpacing: '0.5px', marginBottom: '0.3rem' }}>PENDING ORDERS (IN HAND)</div>
-              <div style={{ fontSize: '1.6rem', fontWeight: 'bold', color: 'var(--warning)', display: 'flex', alignItems: 'baseline', gap: '0.5rem' }}>
+              <div style={{ fontSize: '0.85rem', color: '#f97316', fontWeight: '600', letterSpacing: '0.5px', marginBottom: '0.3rem' }}>PENDING ORDERS (IN HAND)</div>
+              <div style={{ fontSize: '1.6rem', fontWeight: 'bold', color: '#f97316', display: 'flex', alignItems: 'baseline', gap: '0.5rem' }}>
                 {formatCurrency(globalSummary.totalPendingValue)}
               </div>
               <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>{globalSummary.totalPendingQuantity} units pending dispatch</div>
