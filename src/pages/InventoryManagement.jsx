@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
-import { PackageSearch, Search, Plus, MapPin, Database, Archive, Settings, FilePlus, LogIn, LogOut, Trash2, Building2, Edit } from 'lucide-react';
+import { PackageSearch, Search, Plus, MapPin, Database, Archive, Settings, FilePlus, LogIn, LogOut, Trash2, Building2, Edit, FileText } from 'lucide-react';
+import { generateTransactionPDF, generateBatchIssuePDF } from '../utils/pdfGenerator';
 import { useInventory } from '../context/InventoryContext';
 import { useAuth } from '../context/AuthContext';
 import ConfirmModal from '../components/common/ConfirmModal';
@@ -300,8 +301,9 @@ const InventoryManagement = () => {
 
     const success = await logBatchTransactions(txnsToLog);
     if (success) {
+      generateBatchIssuePDF(issueCart, activeTab);
       setIssueCart([]);
-      setAlert({ isOpen: true, message: `Successfully issued ${txnsToLog.length} items.` });
+      setAlert({ isOpen: true, message: `Successfully issued ${txnsToLog.length} items. Slip downloading.` });
     } else {
       setAlert({ isOpen: true, message: 'Failed to log batch transactions.' });
     }
@@ -676,7 +678,7 @@ const InventoryManagement = () => {
                 <th style={{ padding: '0.8rem', color: 'var(--text-muted)' }}>QUANTITY</th>
                 <th style={{ padding: '0.8rem', color: 'var(--text-muted)' }}>LOGGED BY</th>
                 <th style={{ padding: '0.8rem', color: 'var(--text-muted)' }}>REMARKS</th>
-                {isSuperAdmin && <th style={{ padding: '0.8rem', color: 'var(--text-muted)', textAlign: 'center' }}>ACTIONS</th>}
+                <th style={{ padding: '0.8rem', color: 'var(--text-muted)', textAlign: 'right' }}>ACTIONS</th>
               </tr>
             </thead>
             <tbody>
@@ -697,13 +699,16 @@ const InventoryManagement = () => {
                   <td style={{ padding: '0.8rem', fontWeight: '600', whiteSpace: 'nowrap' }}>{txn.type === 'IN' ? '+' : '-'}{txn.qty}</td>
                   <td style={{ padding: '0.8rem', color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>{txn.user}</td>
                   <td style={{ padding: '0.8rem', color: 'var(--text-muted)' }}>{txn.remarks}</td>
-                  {isSuperAdmin && (
-                    <td style={{ padding: '0.8rem', textAlign: 'center' }}>
+                  <td style={{ padding: '0.8rem', textAlign: 'right' }}>
+                    <button onClick={() => generateTransactionPDF(txn)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--accent-primary)', opacity: 0.8, transition: 'opacity 0.2s', marginRight: isSuperAdmin ? '0.8rem' : '0' }} title="Download PDF Receipt" onMouseEnter={e => e.target.style.opacity = 1} onMouseLeave={e => e.target.style.opacity = 0.8}>
+                      <FileText size={15} />
+                    </button>
+                    {isSuperAdmin && (
                       <button onClick={() => setDeleteConfirm({ isOpen: true, txnId: txn.id })} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--danger)', opacity: 0.7, transition: 'opacity 0.2s' }} title="Delete Transaction" onMouseEnter={e => e.target.style.opacity = 1} onMouseLeave={e => e.target.style.opacity = 0.7}>
                         <Trash2 size={15} />
                       </button>
-                    </td>
-                  )}
+                    )}
+                  </td>
                 </tr>
               ))}
             </tbody>
