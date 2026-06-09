@@ -7,7 +7,7 @@ import '../components/layout/Layout.css';
 
 const DailyReports = () => {
   const { reports, fetchReportsForDate, saveReport, loading } = useDailyReports();
-  const { capacities } = usePO();
+  const { pos, capacities } = usePO();
   const { tasks, addTask, addLatestUpdate } = useTasks();
   
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
@@ -789,7 +789,12 @@ const DailyReports = () => {
           <tbody>
             {(formData['Loading / Unloading']?.loadingPOs || []).map((row, i) => (
               <tr key={i}>
-                <td><input type="text" placeholder="Enter PO Number..." value={row.poNumber||''} onChange={e=>handleTableChange('Loading / Unloading','loadingPOs',i,'poNumber',e.target.value)}/></td>
+                <td>
+                  <select className="input-field" style={{ marginBottom: 0 }} value={row.poNumber||''} onChange={e=>handleTableChange('Loading / Unloading','loadingPOs',i,'poNumber',e.target.value)}>
+                    <option value="">Select PO Number...</option>
+                    {pos?.map(po => <option key={po.id || po.poNo} value={po.poNo}>{po.poNo} ({po.companyName})</option>)}
+                  </select>
+                </td>
                 <td><input type="number" value={row.qty||''} onChange={e=>handleTableChange('Loading / Unloading','loadingPOs',i,'qty',e.target.value)}/></td>
               </tr>
             ))}
