@@ -763,29 +763,11 @@ const DailyReports = () => {
 
       <div className="card" style={{ marginTop: '20px' }}>
         <div style={{ display:'flex', justifyContent:'space-between' }}>
-          <h3>Transformers Loaded by Rating</h3>
-          <button className="btn btn-secondary" onClick={() => addTableRow('Loading / Unloading', 'loadingTanks', {rating:'', qty:''})} style={{ padding:'0.2rem 0.5rem', fontSize:'0.8rem' }}>+ Add Row</button>
+          <h3>Transformers Loaded (PO & Rating)</h3>
+          <button className="btn btn-secondary" onClick={() => addTableRow('Loading / Unloading', 'loadingPOs', {poNumber:'', rating: '', qty:''})} style={{ padding:'0.2rem 0.5rem', fontSize:'0.8rem' }}>+ Add Row</button>
         </div>
         <table className="report-table" style={{ width: '100%', marginTop: '10px' }}>
-          <thead><tr><th>Rating</th><th>Quantity</th></tr></thead>
-          <tbody>
-            {(formData['Loading / Unloading']?.loadingTanks || []).map((row, i) => (
-              <tr key={i}>
-                <td><input type="text" list="capacities-list" placeholder="Select or type..." value={row.rating||''} onChange={e=>handleTableChange('Loading / Unloading','loadingTanks',i,'rating',e.target.value)}/></td>
-                <td><input type="number" value={row.qty||''} onChange={e=>handleTableChange('Loading / Unloading','loadingTanks',i,'qty',e.target.value)}/></td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      <div className="card" style={{ marginTop: '20px' }}>
-        <div style={{ display:'flex', justifyContent:'space-between' }}>
-          <h3>Transformers Loaded by PO</h3>
-          <button className="btn btn-secondary" onClick={() => addTableRow('Loading / Unloading', 'loadingPOs', {poNumber:'', qty:''})} style={{ padding:'0.2rem 0.5rem', fontSize:'0.8rem' }}>+ Add Row</button>
-        </div>
-        <table className="report-table" style={{ width: '100%', marginTop: '10px' }}>
-          <thead><tr><th>PO Number</th><th>Quantity</th></tr></thead>
+          <thead><tr><th>PO Number</th><th>Rating</th><th>Quantity</th></tr></thead>
           <tbody>
             {(formData['Loading / Unloading']?.loadingPOs || []).map((row, i) => (
               <tr key={i}>
@@ -795,6 +777,7 @@ const DailyReports = () => {
                     {pos?.map(po => <option key={po.id || po.poNo} value={po.poNo}>{po.poNo} ({po.companyName})</option>)}
                   </select>
                 </td>
+                <td><input type="text" list="capacities-list" placeholder="Select or type..." value={row.rating||''} onChange={e=>handleTableChange('Loading / Unloading','loadingPOs',i,'rating',e.target.value)}/></td>
                 <td><input type="number" value={row.qty||''} onChange={e=>handleTableChange('Loading / Unloading','loadingPOs',i,'qty',e.target.value)}/></td>
               </tr>
             ))}
