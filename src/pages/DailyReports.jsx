@@ -199,6 +199,14 @@ const DailyReports = () => {
     setSaveSuccess(false);
   };
 
+  const removeTableRow = (section, tableField, index) => {
+    setFormData(prev => {
+      const table = [...(prev[section][tableField] || [])];
+      table.splice(index, 1);
+      return { ...prev, [section]: { ...prev[section], [tableField]: table } };
+    });
+  };
+
   const addTableRow = (section, tableField, emptyRow) => {
     setFormData(prev => {
       const table = [...(prev[section][tableField] || []), emptyRow];
@@ -480,7 +488,7 @@ const DailyReports = () => {
           <button className="btn btn-secondary" onClick={() => addTableRow('Box-up', 'mainTable', {qty:'', rating:''})} style={{ padding:'0.2rem 0.5rem', fontSize:'0.8rem' }}>+ Add Row</button>
         </div>
         <table className="report-table" style={{ width: '100%', marginTop: '10px' }}>
-          <thead><tr><th>Quantity being boxed up</th><th>Rating</th></tr></thead>
+          <thead><tr><th>Quantity being boxed up</th><th>Rating</th><th style={{width: '40px'}}></th></tr></thead>
           <tbody>
             {(formData['Box-up'].mainTable || []).map((row, i) => (
               <tr key={i}>
@@ -501,7 +509,7 @@ const DailyReports = () => {
             <button className="btn btn-secondary" onClick={() => addTableRow('Box-up', 'oven1', {qty:'', rating:''})} style={{ padding:'0.2rem 0.5rem', fontSize:'0.8rem' }}>+ Add Row</button>
           </div>
           <table className="report-table" style={{ width: '100%', marginTop: '10px' }}>
-            <thead><tr><th>Qty</th><th>Rating</th></tr></thead>
+            <thead><tr><th>Qty</th><th>Rating</th><th style={{width: '40px'}}></th></tr></thead>
             <tbody>
               {formData['Box-up'].oven1.map((row, i) => (
                 <tr key={i}>
@@ -521,7 +529,7 @@ const DailyReports = () => {
             <button className="btn btn-secondary" onClick={() => addTableRow('Box-up', 'oven2', {qty:'', rating:''})} style={{ padding:'0.2rem 0.5rem', fontSize:'0.8rem' }}>+ Add Row</button>
           </div>
           <table className="report-table" style={{ width: '100%', marginTop: '10px' }}>
-            <thead><tr><th>Qty</th><th>Rating</th></tr></thead>
+            <thead><tr><th>Qty</th><th>Rating</th><th style={{width: '40px'}}></th></tr></thead>
             <tbody>
               {formData['Box-up'].oven2.map((row, i) => (
                 <tr key={i}>
@@ -547,7 +555,7 @@ const DailyReports = () => {
           <button className="btn btn-secondary" onClick={() => addTableRow('CCA', 'mainTable', {qty:'', rating:''})} style={{ padding:'0.2rem 0.5rem', fontSize:'0.8rem' }}>+ Add Row</button>
         </div>
         <table className="report-table" style={{ width: '100%', marginTop: '10px' }}>
-          <thead><tr><th>Quantity of Assembly</th><th>Rating</th></tr></thead>
+          <thead><tr><th>Quantity of Assembly</th><th>Rating</th><th style={{width: '40px'}}></th></tr></thead>
           <tbody>
             {(formData['CCA'].mainTable || []).map((row, i) => (
               <tr key={i}>
@@ -568,13 +576,12 @@ const DailyReports = () => {
             <button className="btn btn-secondary" onClick={() => addTableRow('CCA', 'oven1', {material:'', time:''})} style={{ padding:'0.2rem 0.5rem', fontSize:'0.8rem' }}>+ Add</button>
           </div>
           <table className="report-table" style={{ width: '100%', marginTop: '10px' }}>
-            <thead><tr><th>Material to Load</th><th>Time</th></tr></thead>
+            <thead><tr><th>Material to Load</th><th>Time</th><th style={{width: '40px'}}></th></tr></thead>
             <tbody>
               {formData['CCA'].oven1.map((row, i) => (
                 <tr key={i}>
                   <td><input type="text"  value={row.material||''} onChange={e=>handleTableChange('CCA','oven1',i,'material',e.target.value)}/></td>
-                  <td><input type="time"  value={row.time||''} onChange={e=>handleTableChange('CCA','oven1',i,'time',e.target.value)}/></td>
-                </tr>
+                  <td><input type="time"  value={row.time||''} onChange={e=>handleTableChange('CCA','oven1',i,'time',e.target.value)}/></td><td><button type="button" className="icon-btn-small" style={{color: 'var(--danger)'}} onClick={() => removeTableRow('CCA', 'oven1', i)} title="Remove Row"><Trash2 size={16} /></button></td></tr>
               ))}
             </tbody>
           </table>
@@ -585,13 +592,12 @@ const DailyReports = () => {
             <button className="btn btn-secondary" onClick={() => addTableRow('CCA', 'oven2', {material:'', time:''})} style={{ padding:'0.2rem 0.5rem', fontSize:'0.8rem' }}>+ Add</button>
           </div>
           <table className="report-table" style={{ width: '100%', marginTop: '10px' }}>
-            <thead><tr><th>Material to Load</th><th>Time</th></tr></thead>
+            <thead><tr><th>Material to Load</th><th>Time</th><th style={{width: '40px'}}></th></tr></thead>
             <tbody>
               {formData['CCA'].oven2.map((row, i) => (
                 <tr key={i}>
                   <td><input type="text"  value={row.material||''} onChange={e=>handleTableChange('CCA','oven2',i,'material',e.target.value)}/></td>
-                  <td><input type="time"  value={row.time||''} onChange={e=>handleTableChange('CCA','oven2',i,'time',e.target.value)}/></td>
-                </tr>
+                  <td><input type="time"  value={row.time||''} onChange={e=>handleTableChange('CCA','oven2',i,'time',e.target.value)}/></td><td><button type="button" className="icon-btn-small" style={{color: 'var(--danger)'}} onClick={() => removeTableRow('CCA', 'oven2', i)} title="Remove Row"><Trash2 size={16} /></button></td></tr>
               ))}
             </tbody>
           </table>
@@ -628,7 +634,7 @@ const DailyReports = () => {
             <button className="btn btn-secondary" onClick={() => addTableRow('Winding Section', 'ratingsTable', {rating:'', ltCount:'', htCount:''})} style={{ padding:'0.2rem 0.5rem', fontSize:'0.8rem' }}>+ Add Row</button>
           </div>
           <table className="report-table" style={{ width: '100%', marginTop: '10px' }}>
-            <thead><tr><th>Rating</th><th>LT Winders Count</th><th>HT Winders Count</th></tr></thead>
+            <thead><tr><th>Rating</th><th>LT Winders Count</th><th>HT Winders Count</th><th style={{width: '40px'}}></th></tr></thead>
             <tbody>
               {formData['Winding Section'].ratingsTable.map((row, i) => (
                 <tr key={i}>
@@ -636,8 +642,7 @@ const DailyReports = () => {
                     <input type="text" list="capacities-list"  placeholder="Select or type..." value={row.rating||''} onChange={e=>handleTableChange('Winding Section','ratingsTable',i,'rating',e.target.value)}/>
                   </td>
                   <td><input type="number"  placeholder="0" value={row.ltCount||''} onChange={e=>handleTableChange('Winding Section','ratingsTable',i,'ltCount',e.target.value)}/></td>
-                  <td><input type="number"  placeholder="0" value={row.htCount||''} onChange={e=>handleTableChange('Winding Section','ratingsTable',i,'htCount',e.target.value)}/></td>
-                </tr>
+                  <td><input type="number"  placeholder="0" value={row.htCount||''} onChange={e=>handleTableChange('Winding Section','ratingsTable',i,'htCount',e.target.value)}/></td><td><button type="button" className="icon-btn-small" style={{color: 'var(--danger)'}} onClick={() => removeTableRow('Winding Section', 'ratingsTable', i)} title="Remove Row"><Trash2 size={16} /></button></td></tr>
               ))}
             </tbody>
           </table>
@@ -677,15 +682,14 @@ const DailyReports = () => {
           <button className="btn btn-secondary" onClick={() => addTableRow('Core Cutting', 'testingTable', {rating:'', srNo:''})} style={{ padding:'0.2rem 0.5rem', fontSize:'0.8rem' }}>+ Add Row</button>
         </div>
         <table className="report-table" style={{ width: '100%', marginTop: '10px' }}>
-          <thead><tr><th>Rating</th><th>Testing Done Till Sr. No.</th></tr></thead>
+          <thead><tr><th>Rating</th><th>Testing Done Till Sr. No.</th><th style={{width: '40px'}}></th></tr></thead>
           <tbody>
             {formData['Core Cutting'].testingTable.map((row, i) => (
               <tr key={i}>
                 <td>
                   <input type="text" list="capacities-list"  placeholder="Select or type..." value={row.rating||''} onChange={e=>handleTableChange('Core Cutting','testingTable',i,'rating',e.target.value)}/>
                 </td>
-                <td><input type="text"  value={row.srNo||''} onChange={e=>handleTableChange('Core Cutting','testingTable',i,'srNo',e.target.value)}/></td>
-              </tr>
+                <td><input type="text"  value={row.srNo||''} onChange={e=>handleTableChange('Core Cutting','testingTable',i,'srNo',e.target.value)}/></td><td><button type="button" className="icon-btn-small" style={{color: 'var(--danger)'}} onClick={() => removeTableRow('Core Cutting', 'testingTable', i)} title="Remove Row"><Trash2 size={16} /></button></td></tr>
             ))}
           </tbody>
         </table>
@@ -694,7 +698,7 @@ const DailyReports = () => {
       <div className="card" style={{ marginTop: '20px' }}>
         <h3>Amorphous Ribbon Stock</h3>
         <table className="report-table" style={{ width: '100%', marginTop: '10px' }}>
-          <thead><tr><th>Ribbon Size</th><th>Available Coils</th><th>Incoming Coils</th></tr></thead>
+          <thead><tr><th>Ribbon Size</th><th>Available Coils</th><th>Incoming Coils</th><th style={{width: '40px'}}></th></tr></thead>
           <tbody>
             {['142.2mm', '170.2mm', '213.4mm'].map((size) => (
               <tr key={size}>
@@ -728,15 +732,14 @@ const DailyReports = () => {
           <button className="btn btn-secondary" onClick={() => addTableRow('Tank Fabrication', 'ratingsTable', {rating:'', qty:''})} style={{ padding:'0.2rem 0.5rem', fontSize:'0.8rem' }}>+ Add Rating</button>
         </div>
         <table className="report-table" style={{ width: '100%', marginTop: '10px' }}>
-          <thead><tr><th>Rating</th><th>Quantity (Optional)</th></tr></thead>
+          <thead><tr><th>Rating</th><th>Quantity (Optional)</th><th style={{width: '40px'}}></th></tr></thead>
           <tbody>
             {(formData['Tank Fabrication'].ratingsTable || []).map((row, i) => (
               <tr key={i}>
                 <td>
                   <input type="text" list="capacities-list"  placeholder="Select or type..." value={row.rating||''} onChange={e=>handleTableChange('Tank Fabrication','ratingsTable',i,'rating',e.target.value)}/>
                 </td>
-                <td><input type="number"  value={row.qty||''} onChange={e=>handleTableChange('Tank Fabrication','ratingsTable',i,'qty',e.target.value)}/></td>
-              </tr>
+                <td><input type="number"  value={row.qty||''} onChange={e=>handleTableChange('Tank Fabrication','ratingsTable',i,'qty',e.target.value)}/></td><td><button type="button" className="icon-btn-small" style={{color: 'var(--danger)'}} onClick={() => removeTableRow('Tank Fabrication', 'ratingsTable', i)} title="Remove Row"><Trash2 size={16} /></button></td></tr>
             ))}
           </tbody>
         </table>
@@ -767,7 +770,7 @@ const DailyReports = () => {
           <button className="btn btn-secondary" onClick={() => addTableRow('Loading / Unloading', 'loadingPOs', {poNumber:'', rating: '', qty:''})} style={{ padding:'0.2rem 0.5rem', fontSize:'0.8rem' }}>+ Add Row</button>
         </div>
         <table className="report-table" style={{ width: '100%', marginTop: '10px' }}>
-          <thead><tr><th>PO Number</th><th>Rating</th><th>Quantity</th></tr></thead>
+          <thead><tr><th>PO Number</th><th>Rating</th><th>Quantity</th><th style={{width: '40px'}}></th></tr></thead>
           <tbody>
             {(formData['Loading / Unloading']?.loadingPOs || []).map((row, i) => (
               <tr key={i}>
@@ -778,8 +781,7 @@ const DailyReports = () => {
                   </select>
                 </td>
                 <td><input type="text" list="capacities-list" placeholder="Select or type..." value={row.rating||''} onChange={e=>handleTableChange('Loading / Unloading','loadingPOs',i,'rating',e.target.value)}/></td>
-                <td><input type="number" value={row.qty||''} onChange={e=>handleTableChange('Loading / Unloading','loadingPOs',i,'qty',e.target.value)}/></td>
-              </tr>
+                <td><input type="number" value={row.qty||''} onChange={e=>handleTableChange('Loading / Unloading','loadingPOs',i,'qty',e.target.value)}/></td><td><button type="button" className="icon-btn-small" style={{color: 'var(--danger)'}} onClick={() => removeTableRow('Loading / Unloading', 'loadingPOs', i)} title="Remove Row"><Trash2 size={16} /></button></td></tr>
             ))}
           </tbody>
         </table>
@@ -913,6 +915,12 @@ const DailyReports = () => {
             <h4 style={{ margin: '0 0 12px 0', color: 'var(--accent-primary)', borderBottom: '1px solid var(--border-color)', paddingBottom: '8px' }}>
               <span>✂️ Core Cutting & Ribbon Stock</span>
             </h4>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '1rem', background: 'var(--bg-primary)', padding: '1rem', borderRadius: '8px' }}>
+              <div><strong style={{ color: 'var(--text-secondary)' }}>Rating in Oven:</strong> <span style={{ color: 'var(--text-primary)' }}>{latestData['Core Cutting']?.ratingInOven || 'N/A'}</span></div>
+              <div><strong style={{ color: 'var(--text-secondary)' }}>Oven Opening:</strong> <span style={{ color: 'var(--text-primary)' }}>{latestData['Core Cutting']?.openingTime ? new Date(`1970-01-01T${latestData['Core Cutting'].openingTime}`).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : 'N/A'}</span></div>
+              <div><strong style={{ color: 'var(--text-secondary)' }}>Cutting Rating:</strong> <span style={{ color: 'var(--text-primary)' }}>{latestData['Core Cutting']?.cuttingRating || 'N/A'}</span></div>
+              <div><strong style={{ color: 'var(--text-secondary)' }}>Next Oven Time:</strong> <span style={{ color: 'var(--text-primary)' }}>{latestData['Core Cutting']?.nextOvenTime ? new Date(`1970-01-01T${latestData['Core Cutting'].nextOvenTime}`).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : 'N/A'}</span></div>
+            </div>
             <div className="grid-2">
               <div>
                 <strong style={{ color: 'var(--text-secondary)' }}>Tested Ratings:</strong>
@@ -990,7 +998,7 @@ const DailyReports = () => {
         <h4 style={{ marginTop: '30px', borderBottom: '1px solid var(--border-color)', paddingBottom: '10px' }}>Reported Issues</h4>
         {issues.length > 0 ? (
           <table className="report-table" style={{ width: '100%', marginTop: '10px' }}>
-            <thead><tr><th style={{ textAlign: 'left' }}>Section</th><th style={{ textAlign: 'left' }}>Issue Type</th><th style={{ textAlign: 'left' }}>Description</th></tr></thead>
+            <thead><tr><th style={{ textAlign: 'left' }}>Section</th><th style={{ textAlign: 'left' }}>Issue Type</th><th style={{ textAlign: 'left' }}>Description</th><th style={{width: '40px'}}></th></tr></thead>
             <tbody>
               {issues.map((iss, i) => (
                 <tr key={i}>
