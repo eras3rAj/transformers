@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useDailyReports } from '../context/DailyReportContext';
 import { usePO } from '../context/POContext';
 import { useTasks } from '../context/TaskContext';
-import { Save, Check, FileText, Link, Trash2 } from 'lucide-react';
+import { Save, Check, FileText, Link, Trash2, Copy } from 'lucide-react';
+import { supabase } from '../lib/supabase';
 import '../components/layout/Layout.css';
 
 const DailyReports = () => {
@@ -1110,7 +1111,12 @@ const DailyReports = () => {
         {['Daily Summary', 'Daily Report'].map(t => (
           <button 
             key={t}
-            onClick={() => setMainTab(t)}
+            onClick={() => {
+              setMainTab(t);
+              if (t === 'Daily Report') {
+                setSelectedDate(new Date().toISOString().split('T')[0]);
+              }
+            }}
             style={{
               background: 'none', border: 'none', padding: '0.5rem 1rem', cursor: 'pointer',
               color: mainTab === t ? 'var(--accent-primary)' : 'var(--text-secondary)',
@@ -1142,18 +1148,11 @@ const DailyReports = () => {
                 <label className="input-label">Report Date</label>
                 <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
                   <input 
-                    type="date" 
-                    className="date-overlay"
-                    style={{ position: 'absolute', opacity: 0, width: '100%', height: '100%', cursor: 'pointer', zIndex: 2 }}
-                    value={selectedDate} 
-                    onChange={(e) => setSelectedDate(e.target.value)} 
-                  />
-                  <input 
                     type="text" 
                     className="input-field" 
                     value={selectedDate ? `${String(new Date(selectedDate).getDate()).padStart(2, '0')}-${["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"][new Date(selectedDate).getMonth()]}-${new Date(selectedDate).getFullYear()}` : ''}
                     readOnly
-                    style={{ pointerEvents: 'none', backgroundColor: 'var(--bg-secondary)' }}
+                    style={{ backgroundColor: 'var(--bg-secondary)', color: 'var(--text-muted)' }}
                   />
                 </div>
               </div>

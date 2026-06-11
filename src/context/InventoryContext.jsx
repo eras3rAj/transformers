@@ -165,18 +165,18 @@ export const InventoryProvider = ({ children }) => {
     return false;
   };
 
-  const addItem = async (name, unit, category = 'Uncategorized', suppliers = [], minStockLevels = {}) => {
+  const addItem = async (name, unit, category = 'Uncategorized', suppliers = [], minStockLevels = {}, secondaryUnit = '', conversionFactor = '') => {
     if (items.find(i => i.name.toLowerCase() === name.toLowerCase() && (i.category || 'Uncategorized').toLowerCase() === category.toLowerCase())) return false; // duplicate
 
     const dbRecord = {
       action: 'inv_item',
       user_name: currentUser?.name || 'System',
       claim_id: 'SYSTEM',
-      changes: { name, unit, category, suppliers, minStockLevels }
+      changes: { name, unit, category, suppliers, minStockLevels, secondaryUnit, conversionFactor }
     };
     const { data, error } = await supabase.from('system_logs').insert([dbRecord]).select();
     if (!error && data) {
-      setItems(prev => [...prev, { id: data[0].id, name, unit, category, suppliers, minStockLevels }]);
+      setItems(prev => [...prev, { id: data[0].id, name, unit, category, suppliers, minStockLevels, secondaryUnit, conversionFactor }]);
       addLog({
         id: Date.now().toString(),
         timestamp: new Date().toISOString(),
@@ -371,7 +371,7 @@ export const InventoryProvider = ({ children }) => {
 
     let changes = { name: newName };
     if (type === 'inv_company') changes = { name: newName, address: extraData.address, mobile: extraData.mobile, poc: extraData.poc, gst: extraData.gst };
-    if (type === 'inv_item') changes = { name: newName, unit: extraData.unit, category: extraData.category, suppliers: extraData.suppliers, minStockLevels: extraData.minStockLevels };
+    if (type === 'inv_item') changes = { name: newName, unit: extraData.unit, category: extraData.category, suppliers: extraData.suppliers, minStockLevels: extraData.minStockLevels, secondaryUnit: extraData.secondaryUnit, conversionFactor: extraData.conversionFactor };
     if (type === 'inv_category') changes = { name: newName, suppliers: extraData.suppliers };
 
     const { error } = await supabase.from('system_logs').update({ changes }).eq('id', id);
@@ -381,7 +381,7 @@ export const InventoryProvider = ({ children }) => {
     if (type === 'inv_unit') setUnits(prev => prev.map(u => u.id === id ? { ...u, name: newName } : u));
     if (type === 'inv_company') setCompanies(prev => prev.map(c => c.id === id ? { ...c, name: newName, address: extraData.address, mobile: extraData.mobile, poc: extraData.poc, gst: extraData.gst } : c));
     if (type === 'inv_category') setCategories(prev => prev.map(c => c.id === id ? { ...c, name: newName, suppliers: extraData.suppliers } : c));
-    if (type === 'inv_item') setItems(prev => prev.map(i => i.id === id ? { ...i, name: newName, unit: extraData.unit, category: extraData.category, suppliers: extraData.suppliers, minStockLevels: extraData.minStockLevels } : i));
+    if (type === 'inv_item') setItems(prev => prev.map(i => i.id === id ? { ...i, name: newName, unit: extraData.unit, category: extraData.category, suppliers: extraData.suppliers, minStockLevels: extraData.minStockLevels, secondaryUnit: extraData.secondaryUnit, conversionFactor: extraData.conversionFactor } : i));
     if (type === 'inv_department') setDepartments(prev => prev.map(d => d.id === id ? { ...d, name: newName } : d));
 
     // Cascading updates for name changes

@@ -45,8 +45,8 @@ const InventoryManagement = () => {
   const [companyData, setCompanyData] = useState({ name: '', address: '', mobile: '', poc: '', gst: '' });
   const [departmentFormName, setDepartmentFormName] = useState('');
   const [categoryData, setCategoryData] = useState({ name: '', suppliers: [] });
-  const [itemData, setItemData] = useState({ name: '', unit: '', category: '', isNewCategory: false, suppliers: [], minStockLevels: {} });
-  const [txnData, setTxnData] = useState({ qty: '', remarks: '', date: new Date().toISOString().split('T')[0], companyName: '', billNo: '', receivingDate: '', billDate: '', unitPrice: '', usageType: 'INTERNAL', department: '' });
+  const [itemData, setItemData] = useState({ name: '', unit: '', category: '', isNewCategory: false, suppliers: [], minStockLevels: {}, secondaryUnit: '', conversionFactor: '' });
+  const [txnData, setTxnData] = useState({ qty: '', remarks: '', date: new Date().toISOString().split('T')[0], companyName: '', billNo: '', receivingDate: '', billDate: '', unitPrice: '', usageType: 'INTERNAL', department: '', selectedUnit: 'primary', generatePdf: true });
   
   const [companySearch, setCompanySearch] = useState('');
   const [companyDropdownOpen, setCompanyDropdownOpen] = useState(false);
@@ -178,15 +178,15 @@ const InventoryManagement = () => {
     if (!itemData.name.trim() || !itemData.unit || !itemData.category.trim()) return;
     let success;
     if (editingMaster) {
-      const res = await editEntity(editingMaster.type, editingMaster.id, editingMaster.oldName, itemData.name.trim(), { unit: itemData.unit, category: itemData.category, suppliers: itemData.suppliers, minStockLevels: itemData.minStockLevels });
+      const res = await editEntity(editingMaster.type, editingMaster.id, editingMaster.oldName, itemData.name.trim(), { unit: itemData.unit, category: itemData.category, suppliers: itemData.suppliers, minStockLevels: itemData.minStockLevels, secondaryUnit: itemData.secondaryUnit, conversionFactor: itemData.conversionFactor });
       success = res.success;
       if (!success) setAlert({ isOpen: true, message: res.message });
     } else {
-      success = await addItem(itemData.name.trim(), itemData.unit, itemData.category, itemData.suppliers, itemData.minStockLevels);
+      success = await addItem(itemData.name.trim(), itemData.unit, itemData.category, itemData.suppliers, itemData.minStockLevels, itemData.secondaryUnit, itemData.conversionFactor);
       if (!success) setAlert({ isOpen: true, message: "Item already exists!" });
     }
     if (success) {
-      setItemData({ name: '', unit: '', category: '', isNewCategory: false, suppliers: [], minStockLevels: {} });
+      setItemData({ name: '', unit: '', category: '', isNewCategory: false, suppliers: [], minStockLevels: {}, secondaryUnit: '', conversionFactor: '' });
       setShowItemModal(false);
       setEditingMaster(null);
     }
@@ -209,10 +209,17 @@ const InventoryManagement = () => {
     e.preventDefault();
     if (!txnData.qty || Number(txnData.qty) <= 0) return;
     
+    const targetItem = items.find(i => i.name === showTxnModal.item);
+    let finalQty = Number(txnData.qty);
+    if (txnData.selectedUnit === 'secondary' && targetItem?.conversionFactor) {
+      finalQty = finalQty * Number(targetItem.conversionFactor);
+      finalQty = Number(finalQty.toFixed(4));
+    }
+
     // Validate OUT transactions
     if (showTxnModal.type === 'OUT') {
       const currentStock = getStockAtLocation(showTxnModal.item, activeTab);
-      if (Number(txnData.qty) > currentStock) {
+      if (finalQty > currentStock) {
         setAlert({ isOpen: true, message: `Insufficient stock! Only ${currentStock} available at ${activeTab}.` });
         return;
       }
@@ -222,7 +229,7 @@ const InventoryManagement = () => {
       location: activeTab,
       item: showTxnModal.item,
       type: showTxnModal.type,
-      qty: Number(txnData.qty),
+      qty: finalQty,
       date: txnData.date,
       remarks: txnData.remarks,
       companyName: txnData.companyName,
@@ -235,7 +242,12 @@ const InventoryManagement = () => {
     };
 
     await logTransaction(payload);
-    setTxnData({ qty: '', remarks: '', date: new Date().toISOString().split('T')[0], companyName: '', billNo: '', receivingDate: '', billDate: '', unitPrice: '', usageType: 'INTERNAL', department: '' });
+    
+    if (txnData.generatePdf) {
+      generateTransactionPDF({ ...payload, id: Date.now() });
+    }
+
+    setTxnData({ qty: '', remarks: '', date: new Date().toISOString().split('T')[0], companyName: '', billNo: '', receivingDate: '', billDate: '', unitPrice: '', usageType: 'INTERNAL', department: '', selectedUnit: 'primary', generatePdf: true });
     setShowTxnModal({ isOpen: false, type: 'IN', item: null });
   };
 
@@ -264,13 +276,19 @@ const InventoryManagement = () => {
     for (const cartItem of issueCart) {
       const validation = validateAndCalculateQuantity(cartItem.qtyStr);
       if (!validation.valid) {
-        setAlert({ isOpen: true, message: `Invalid quantity for ${cartItem.item.name}: ${validation.message}` });
+        setAlert({ isOpen: true, message: `Invalid quantity for ${cartItem.item.name}: ${validation.message || 'Check input format'}` });
         return;
+      }
+
+      let finalQty = validation.total;
+      if (cartItem.selectedUnit === 'secondary' && cartItem.item.conversionFactor) {
+        finalQty = finalQty * Number(cartItem.item.conversionFactor);
+        finalQty = Number(finalQty.toFixed(4));
       }
       
       const currentStock = getStockAtLocation(cartItem.item.name, activeTab);
-      if (validation.total > currentStock) {
-        setAlert({ isOpen: true, message: `Insufficient stock for ${cartItem.item.name}! Only ${currentStock} available.` });
+      if (finalQty > currentStock) {
+        setAlert({ isOpen: true, message: `Insufficient stock for ${cartItem.item.name}! Only ${currentStock} available at ${activeTab}.` });
         return;
       }
 
@@ -281,7 +299,7 @@ const InventoryManagement = () => {
         location: activeTab,
         item: cartItem.item.name,
         type: 'OUT',
-        qty: validation.total,
+        qty: finalQty,
         date: new Date().toISOString().split('T')[0],
         remarks: remarksPrefix + (cartItem.remarks || ''),
         companyName: '',
@@ -311,7 +329,7 @@ const InventoryManagement = () => {
 
   const addToCart = (item) => {
     if (!issueCart.find(c => c.item.name === item.name)) {
-      setIssueCart([...issueCart, { item, qtyStr: '', remarks: '' }]);
+      setIssueCart([...issueCart, { item, qtyStr: '', remarks: '', selectedUnit: 'primary' }]);
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   };
@@ -445,7 +463,33 @@ const InventoryManagement = () => {
                     const val = validateAndCalculateQuantity(cartItem.qtyStr);
                     return (
                       <tr key={idx} style={{ borderBottom: '1px solid var(--border-color)' }}>
-                        <td style={{ padding: '0.5rem', fontWeight: '600' }}>{cartItem.item.name} <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>({cartItem.item.unit})</span></td>
+                        <td style={{ padding: '0.5rem', fontWeight: '600' }}>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                            <span>{cartItem.item.name}</span>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                              <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                                Unit:
+                              </span>
+                              {cartItem.item.secondaryUnit ? (
+                                <select 
+                                  className="input-field"
+                                  style={{ padding: '0.1rem 0.3rem', fontSize: '0.75rem', marginBottom: 0, width: 'auto', display: 'inline-block' }}
+                                  value={cartItem.selectedUnit || 'primary'}
+                                  onChange={(e) => {
+                                    const newCart = [...issueCart];
+                                    newCart[idx].selectedUnit = e.target.value;
+                                    setIssueCart(newCart);
+                                  }}
+                                >
+                                  <option value="primary">{cartItem.item.unit}</option>
+                                  <option value="secondary">{cartItem.item.secondaryUnit}</option>
+                                </select>
+                              ) : (
+                                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{cartItem.item.unit}</span>
+                              )}
+                            </div>
+                          </div>
+                        </td>
                         <td style={{ padding: '0.5rem' }}>
                           <div style={{ display: 'flex', flexDirection: 'column' }}>
                             <input 
@@ -975,7 +1019,7 @@ const InventoryManagement = () => {
           <span>Master Items List</span>
           <button className="icon-btn" onClick={() => {
             setEditingMaster(null);
-            setItemData({ name: '', unit: '', category: '', isNewCategory: false, suppliers: [], minStockLevels: {} });
+            setItemData({ name: '', unit: '', category: '', isNewCategory: false, suppliers: [], minStockLevels: {}, secondaryUnit: '', conversionFactor: '' });
             setSupplierSearch('');
             setShowItemModal(true);
           }}><Plus size={18} /></button>
@@ -1022,7 +1066,7 @@ const InventoryManagement = () => {
                           <div style={{ display: 'flex', gap: '0.3rem' }}>
                             <button className="icon-btn-small" onClick={() => {
                               setEditingMaster({ type: 'inv_item', id: item.id, oldName: item.name });
-                              setItemData({ name: item.name, unit: item.unit, category: item.category, isNewCategory: false, suppliers: item.suppliers || [], minStockLevels: item.minStockLevels || {} });
+                              setItemData({ name: item.name, unit: item.unit, category: item.category, isNewCategory: false, suppliers: item.suppliers || [], minStockLevels: item.minStockLevels || {}, secondaryUnit: item.secondaryUnit || '', conversionFactor: item.conversionFactor || '' });
                               setSupplierSearch('');
                               setShowItemModal(true);
                             }} title="Edit Item"><Edit size={14} color="var(--accent-primary)" /></button>
@@ -1229,11 +1273,27 @@ const InventoryManagement = () => {
               </div>
 
               <div style={{ marginBottom: '1.5rem' }}>
-                <label className="input-label">Unit of Measure</label>
+                <label className="input-label">Primary Unit of Measure</label>
                 <select className="input-field" value={itemData.unit} onChange={e => setItemData({ ...itemData, unit: e.target.value })} required>
                   <option value="">Select a Unit...</option>
                   {sortedUnits.map(u => <option key={u.id} value={u.name}>{u.name}</option>)}
                 </select>
+              </div>
+
+              <div style={{ marginBottom: '1.5rem', display: 'flex', gap: '1rem' }}>
+                <div style={{ flex: 1 }}>
+                  <label className="input-label">Secondary Unit (Optional)</label>
+                  <select className="input-field" value={itemData.secondaryUnit || ''} onChange={e => setItemData({ ...itemData, secondaryUnit: e.target.value })}>
+                    <option value="">None</option>
+                    {sortedUnits.filter(u => u.name !== itemData.unit).map(u => <option key={u.id} value={u.name}>{u.name}</option>)}
+                  </select>
+                </div>
+                {itemData.secondaryUnit && (
+                  <div style={{ flex: 1 }}>
+                    <label className="input-label">Factor (1 {itemData.secondaryUnit} = ? {itemData.unit})</label>
+                    <input type="number" step="0.0001" className="input-field" value={itemData.conversionFactor || ''} onChange={e => setItemData({ ...itemData, conversionFactor: e.target.value })} placeholder={`e.g. 0.2`} required />
+                  </div>
+                )}
               </div>
 
               <div style={{ marginBottom: '2rem' }}>
@@ -1617,10 +1677,41 @@ const InventoryManagement = () => {
                   <input type="date" className="input-field" value={txnData.receivingDate} onChange={e => setTxnData({ ...txnData, receivingDate: e.target.value })} />
                 </div>
               </div>
-              <div style={{ marginBottom: '1.5rem' }}>
-                <label className="input-label">Quantity ({items.find(i => i.name === showTxnModal.item)?.unit})</label>
-                <input type="number" min="0.01" step="0.01" className="input-field" value={txnData.qty} onChange={e => setTxnData({ ...txnData, qty: e.target.value })} placeholder="Enter quantity" autoFocus required />
-              </div>
+              {(() => {
+                const targetItem = items.find(i => i.name === showTxnModal.item);
+                const hasSecondary = targetItem?.secondaryUnit && targetItem?.conversionFactor;
+                
+                return (
+                  <div style={{ marginBottom: '1.5rem' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                      <label className="input-label" style={{ marginBottom: 0 }}>
+                        Quantity ({txnData.selectedUnit === 'primary' ? targetItem?.unit : targetItem?.secondaryUnit})
+                      </label>
+                      {hasSecondary && (
+                        <div style={{ display: 'flex', gap: '1rem' }}>
+                          <label style={{ fontSize: '0.85rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.3rem', color: 'var(--text-primary)' }}>
+                            <input type="radio" name="selectedUnit" value="primary" checked={txnData.selectedUnit === 'primary'} onChange={() => setTxnData({ ...txnData, selectedUnit: 'primary' })} />
+                            {targetItem.unit}
+                          </label>
+                          <label style={{ fontSize: '0.85rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.3rem', color: 'var(--text-primary)' }}>
+                            <input type="radio" name="selectedUnit" value="secondary" checked={txnData.selectedUnit === 'secondary'} onChange={() => setTxnData({ ...txnData, selectedUnit: 'secondary' })} />
+                            {targetItem.secondaryUnit}
+                          </label>
+                        </div>
+                      )}
+                    </div>
+                    <input type="number" min="0.0001" step="0.0001" className="input-field" value={txnData.qty} onChange={e => setTxnData({ ...txnData, qty: e.target.value })} placeholder={`Enter quantity in ${txnData.selectedUnit === 'primary' ? targetItem?.unit : targetItem?.secondaryUnit}`} autoFocus required />
+                    {hasSecondary && txnData.qty && (
+                      <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.4rem' }}>
+                        {txnData.selectedUnit === 'primary' 
+                          ? `≈ ${Number((Number(txnData.qty) / Number(targetItem.conversionFactor)).toFixed(4))} ${targetItem.secondaryUnit}`
+                          : `≈ ${Number((Number(txnData.qty) * Number(targetItem.conversionFactor)).toFixed(4))} ${targetItem.unit}`
+                        }
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
               {showTxnModal.type === 'IN' && (
                 <div style={{ marginBottom: '1.5rem' }}>
                   <label className="input-label">Unit Price ₹ (Optional)</label>
@@ -1635,6 +1726,10 @@ const InventoryManagement = () => {
               <div style={{ marginBottom: '2rem' }}>
                 <label className="input-label">Remarks (Optional)</label>
                 <input type="text" className="input-field" value={txnData.remarks} onChange={e => setTxnData({ ...txnData, remarks: e.target.value })} placeholder="E.g. Consumed in Job #44" />
+              </div>
+              <div style={{ marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <input type="checkbox" id="generatePdfCb" checked={txnData.generatePdf} onChange={e => setTxnData({ ...txnData, generatePdf: e.target.checked })} style={{ width: '16px', height: '16px', cursor: 'pointer' }} />
+                <label htmlFor="generatePdfCb" style={{ fontSize: '0.9rem', cursor: 'pointer', color: 'var(--text-primary)' }}>Generate PDF Receipt</label>
               </div>
               <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end' }}>
                 <button type="button" className="btn btn-secondary" onClick={() => setShowTxnModal({ isOpen: false, type: 'IN', item: null })}>Cancel</button>

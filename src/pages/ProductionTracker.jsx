@@ -4,7 +4,7 @@ import { usePO } from '../context/POContext';
 import { useInspection } from '../context/InspectionContext';
 import { useEmployees } from '../context/EmployeeContext';
 import { useInventory } from '../context/InventoryContext';
-import { Calendar, Save, Check, Layers, Settings, Plus, X, ListFilter, UserCheck, Trash2 } from 'lucide-react';
+import { Calendar, Save, Check, Layers, Settings, Plus, X, ListFilter, UserCheck, Trash2, Copy, AlertCircle } from 'lucide-react';
 import '../components/layout/Layout.css';
 
 const ProductionTracker = () => {
@@ -117,7 +117,28 @@ const ProductionTracker = () => {
       setSaveSuccess(true);
       setTimeout(() => setSaveSuccess(false), 3000);
     }
-    setIsSaving(false);
+  const handleCopyFromYesterday = () => {
+    const currentSelected = new Date(selectedDate);
+    currentSelected.setDate(currentSelected.getDate() - 1);
+    const yesterdayStr = currentSelected.toISOString().split('T')[0];
+    
+    const existingLog = productionLogs.find(l => l.date === yesterdayStr);
+    const loadedGrid = {};
+    
+    const effectiveLine = activeTab === 'tank' ? 'JM-IGC' : selectedLine;
+
+    if (existingLog && existingLog.batches) {
+      existingLog.batches.forEach(b => {
+        if (b.line === effectiveLine) {
+          if (!loadedGrid[b.capacity]) loadedGrid[b.capacity] = {};
+          loadedGrid[b.capacity][b.component] = b.quantity;
+        }
+      });
+      setGridData(loadedGrid);
+      setSaveSuccess(false);
+    } else {
+      alert(`No data found for the previous day (${yesterdayStr}) on this line.`);
+    }
   };
 
   const handleClearGrid = () => {
@@ -294,7 +315,14 @@ const ProductionTracker = () => {
             </div>
           </div>
           
-          <div style={{ display: 'flex', gap: '1rem' }}>
+          <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+            <button 
+              className="btn btn-secondary" 
+              onClick={handleCopyFromYesterday} 
+              style={{ padding: '0.6rem 1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+            >
+              <Copy size={18} /> Copy Last Date
+            </button>
             <button 
               className="btn btn-secondary" 
               onClick={handleClearGrid} 
