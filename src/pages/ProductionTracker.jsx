@@ -117,6 +117,9 @@ const ProductionTracker = () => {
       setSaveSuccess(true);
       setTimeout(() => setSaveSuccess(false), 3000);
     }
+    setIsSaving(false);
+  };
+
   const handleCopyFromYesterday = () => {
     const currentSelected = new Date(selectedDate);
     currentSelected.setDate(currentSelected.getDate() - 1);
