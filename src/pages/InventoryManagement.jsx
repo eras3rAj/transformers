@@ -727,7 +727,7 @@ const InventoryManagement = () => {
               </tr>
             </thead>
             <tbody>
-              {transactions.filter(t => t.location === locName).sort((a,b) => new Date(b.timestamp) - new Date(a.timestamp)).map((txn, idx) => (
+              {transactions.filter(t => t.location === locName).sort((a,b) => new Date(b.timestamp) - new Date(a.timestamp)).slice(0, 25).map((txn, idx) => (
                 <tr key={idx} style={{ borderBottom: '1px solid var(--border-color)' }}>
                   <td style={{ padding: '0.8rem', color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>{formatDate(txn.date)}</td>
                   <td style={{ padding: '0.8rem', fontWeight: '500', whiteSpace: 'nowrap' }}>

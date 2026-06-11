@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { ListTodo, Plus } from 'lucide-react';
 import { useTasks } from '../context/TaskContext';
 import { useAuth } from '../context/AuthContext';
+import SkeletonLoader from '../components/common/SkeletonLoader';
 import '../components/layout/Layout.css';
 
 const PendingTasks = () => {
