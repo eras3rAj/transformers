@@ -5,6 +5,8 @@ import { generateTransactionPDF, generateBatchIssuePDF } from '../utils/pdfGener
 import { useInventory } from '../context/InventoryContext';
 import { useAuth } from '../context/AuthContext';
 import ConfirmModal from '../components/common/ConfirmModal';
+import ItemDetailsModal from '../components/inventory/ItemDetailsModal';
+
 import { calculateInventoryInsights } from '../utils/predictiveAnalytics';
 import { LineChart, AlertCircle } from 'lucide-react';
 import '../components/layout/Layout.css';
@@ -27,6 +29,7 @@ const InventoryManagement = () => {
   }, [items, searchQuery]);
   
   // Modal States
+  const [selectedItemDetails, setSelectedItemDetails] = useState(null);
   const [showLocationModal, setShowLocationModal] = useState(false);
   const [showUnitModal, setShowUnitModal] = useState(false);
   const [showItemModal, setShowItemModal] = useState(false);
