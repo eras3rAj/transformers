@@ -1,3 +1,4 @@
+import { formatDate } from '../utils/dateUtils';
 import { useState, useEffect, useMemo } from 'react';
 import { useProduction } from '../context/ProductionContext';
 import { usePO } from '../context/POContext';
@@ -475,7 +476,7 @@ const ProductionTracker = () => {
         {/* Daily Summary (All Lines) */}
         <div style={{ marginTop: '2rem' }}>
           <h3 style={{ margin: '0 0 1.5rem 0', fontSize: '1.1rem', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <ListFilter size={20} color="var(--accent-primary)" /> Global Production Summary ({new Date(selectedDate).toLocaleDateString()}) - All Lines
+            <ListFilter size={20} color="var(--accent-primary)" /> Global Production Summary ({formatDate(selectedDate)}) - All Lines
           </h3>
           
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem' }}>

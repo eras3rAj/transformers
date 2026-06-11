@@ -1,3 +1,4 @@
+import { formatDate } from '../utils/dateUtils';
 import { useState } from 'react';
 import { Target, Plus, CheckCircle, Clock, Calendar, Building2, Trash2 } from 'lucide-react';
 import { useMilestones } from '../context/MilestoneContext';
@@ -86,7 +87,7 @@ const Milestones = () => {
               
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '1.5rem', flex: 1 }}>
                 <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><Building2 size={14} /> {milestone.company}</span>
-                {milestone.target_date && <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><Calendar size={14} /> {new Date(milestone.target_date).toLocaleDateString()}</span>}
+                {milestone.target_date && <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><Calendar size={14} /> {formatDate(milestone.target_date)}</span>}
               </div>
 
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 'auto', paddingTop: '1rem', borderTop: '1px solid var(--border-color)' }}>

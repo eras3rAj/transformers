@@ -1,3 +1,4 @@
+import { formatDate } from '../utils/dateUtils';
 import { useState, useMemo } from 'react';
 import { Plus, Edit, Trash2, FileText, DollarSign, Award, Shield, CheckCircle, Clock } from 'lucide-react';
 import { useBgLc } from '../context/BgLcContext';
@@ -44,7 +45,7 @@ const BankGuaranteeLC = () => {
   const formatDate = (dateStr) => {
     if (!dateStr) return '';
     const date = new Date(dateStr);
-    return date.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+    return formatDate(date);
   };
 
   // Date dynamic computations

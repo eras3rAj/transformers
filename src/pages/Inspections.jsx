@@ -1,3 +1,4 @@
+import { formatDate } from '../utils/dateUtils';
 import { useState, useMemo, useRef, useEffect } from 'react';
 import { usePO } from '../context/POContext';
 import { useInspection } from '../context/InspectionContext';
@@ -363,7 +364,7 @@ const Inspections = () => {
                     <td style={{ padding: '1rem', textAlign: 'right' }}>
                       {summary.nextSchedule ? (
                         <div>
-                          <div style={{ fontWeight: '600', color: 'var(--warning)' }}>{new Date(summary.nextSchedule.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}</div>
+                          <div style={{ fontWeight: '600', color: 'var(--warning)' }}>{formatDate(summary.nextSchedule.date)}</div>
                           <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{summary.nextSchedule.balanceQty} units</div>
                         </div>
                       ) : '-'}
@@ -425,7 +426,7 @@ const Inspections = () => {
             <div className="card" style={{ textAlign: 'center', padding: '1.5rem 1rem', border: '2px solid var(--warning)', backgroundColor: 'rgba(245, 158, 11, 0.05)' }}>
               <div style={{ fontSize: '0.8rem', color: 'var(--warning)', fontWeight: '600', marginBottom: '0.5rem' }}>NEXT SCHEDULE</div>
               <div style={{ fontSize: '1.2rem', fontWeight: '700', color: 'var(--warning)', marginTop: '0.5rem' }}>
-                {stats.nextSchedule ? new Date(stats.nextSchedule.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : 'None'}
+                {stats.nextSchedule ? formatDate(stats.nextSchedule.date) : 'None'}
               </div>
               {stats.nextSchedule && (
                 <div style={{ fontSize: '0.75rem', color: 'var(--warning)', opacity: 0.8, marginTop: '0.2rem' }}>
@@ -458,7 +459,7 @@ const Inspections = () => {
                       {(schedules.find(s => s.poNo === selectedPoNo)?.schedules || []).map((s, idx) => (
                         <tr key={s.id} style={{ borderBottom: '1px solid var(--border-color)' }}>
                           <td style={{ padding: '0.8rem 0', fontWeight: '500' }}>Lot {idx + 1}</td>
-                          <td style={{ padding: '0.8rem 0' }}>{new Date(s.date).toLocaleDateString()}</td>
+                          <td style={{ padding: '0.8rem 0' }}>{formatDate(s.date)}</td>
                           <td style={{ padding: '0.8rem 0', fontWeight: '600', color: 'var(--accent-primary)' }}>{s.quantity} Units</td>
                           <td style={{ padding: '0.8rem 0', textAlign: 'right' }}>
                             <button onClick={() => handleRemoveSchedule(s.id)} style={{ background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer' }}><X size={16} /></button>
@@ -552,8 +553,8 @@ const Inspections = () => {
                           <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
                             <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
                               {insp.startDate === insp.endDate ? 
-                                new Date(insp.startDate).toLocaleDateString() : 
-                                `${new Date(insp.startDate).toLocaleDateString()} - ${new Date(insp.endDate).toLocaleDateString()}`
+                                formatDate(insp.startDate) : 
+                                `${formatDate(insp.startDate)} - ${formatDate(insp.endDate)}`
                               }
                             </span>
                             {currentUser?.role === 'superadmin' && (

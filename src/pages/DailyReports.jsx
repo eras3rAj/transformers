@@ -1,3 +1,4 @@
+import { formatDate } from '../utils/dateUtils';
 import React, { useState, useEffect } from 'react';
 import { useDailyReports } from '../context/DailyReportContext';
 import { usePO } from '../context/POContext';
@@ -902,7 +903,7 @@ const DailyReports = () => {
         
         {latestReportObj && latestReportObj.submitted_by ? (
           <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginBottom: '1.5rem' }}>
-            Logged by <strong style={{ color: 'var(--text-primary)' }}>{latestReportObj.submitted_by}</strong> on {new Date(latestReportObj.timestamp).toLocaleDateString('en-GB')} at {new Date(latestReportObj.timestamp).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
+            Logged by <strong style={{ color: 'var(--text-primary)' }}>{latestReportObj.submitted_by}</strong> on {formatDate(latestReportObj.timestamp)} at {new Date(latestReportObj.timestamp).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
           </p>
         ) : (
           <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginBottom: '1.5rem' }}>

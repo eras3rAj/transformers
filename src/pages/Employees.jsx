@@ -1,3 +1,4 @@
+import { formatDate } from '../utils/dateUtils';
 import { useState } from 'react';
 import { Plus, Edit, Briefcase, CheckCircle, XCircle } from 'lucide-react';
 import { useEmployees } from '../context/EmployeeContext';
@@ -171,7 +172,7 @@ const Employees = () => {
                       <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{emp.department}</div>
                     </td>
                     <td style={{ padding: '1rem', fontSize: '0.9rem' }}>{emp.contact || '-'}</td>
-                    <td style={{ padding: '1rem', fontSize: '0.9rem' }}>{new Date(emp.join_date).toLocaleDateString()}</td>
+                    <td style={{ padding: '1rem', fontSize: '0.9rem' }}>{formatDate(emp.join_date)}</td>
                     <td style={{ padding: '1rem' }}>
                       {emp.status === 'Active' ? (
                         <span style={{ padding: '0.2rem 0.5rem', borderRadius: '4px', fontSize: '0.75rem', fontWeight: '600', backgroundColor: 'rgba(16, 185, 129, 0.1)', color: 'var(--success)' }}>Active</span>

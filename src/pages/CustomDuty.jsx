@@ -1,3 +1,4 @@
+import { formatDate } from '../utils/dateUtils';
 import { useState, useMemo } from 'react';
 import { Plus, Edit, Trash2, Percent, Info, DollarSign, Activity } from 'lucide-react';
 import { useCustomDuty } from '../context/CustomDutyContext';
@@ -31,7 +32,7 @@ const CustomDuty = () => {
   const formatDate = (dateStr) => {
     if (!dateStr) return '';
     const date = new Date(dateStr);
-    return date.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+    return formatDate(date);
   };
 
   // Calculation Math Logic (Reusable for Row rendering and Live Preview)

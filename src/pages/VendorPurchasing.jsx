@@ -1,3 +1,4 @@
+import { formatDate } from '../utils/dateUtils';
 import { useState } from 'react';
 import { ShoppingCart, Plus, Building } from 'lucide-react';
 import { useVendors } from '../context/VendorContext';
@@ -107,7 +108,7 @@ const VendorPurchasing = () => {
                           <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>₹{po.total_price?.toLocaleString()}</div>
                         </td>
                         <td style={{ padding: '1rem', fontSize: '0.9rem' }}>
-                          {po.expected_delivery ? new Date(po.expected_delivery).toLocaleDateString() : 'N/A'}
+                          {po.expected_delivery ? formatDate(po.expected_delivery) : 'N/A'}
                         </td>
                         <td style={{ padding: '1rem' }}>
                           <select 

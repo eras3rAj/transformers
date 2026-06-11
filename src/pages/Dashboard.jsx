@@ -1,3 +1,4 @@
+import { formatDate } from '../utils/dateUtils';
 import React, { useMemo } from 'react';
 import { Factory, AlertCircle, CheckCircle, Clock, Truck, TrendingUp, Package, FileText, Target, Building2 } from 'lucide-react';
 import { usePO } from '../context/POContext';
@@ -114,7 +115,7 @@ const Dashboard = () => {
       }
       
       data.push({
-        name: d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }),
+        name: formatDate(d),
         'Box Up': boxUp,
         'CCA': cca,
         'HT Winding': ht,
@@ -170,7 +171,7 @@ const Dashboard = () => {
       const totalAmt = dayExps.reduce((sum, e) => sum + Number(e.amount), 0);
       
       data.push({
-        name: d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }),
+        name: formatDate(d),
         Amount: totalAmt
       });
     }
@@ -462,7 +463,7 @@ const Dashboard = () => {
                       </div>
                       <div>
                         <h4 style={{ margin: 0, fontSize: '1rem', color: 'var(--text-primary)' }}>{sched.poNo}</h4>
-                        <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-muted)' }}>{new Date(sched.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
+                        <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-muted)' }}>{formatDate(sched.date)}</p>
                       </div>
                     </div>
                     <div style={{ textAlign: 'right' }}>
@@ -498,7 +499,7 @@ const Dashboard = () => {
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
                     <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><Building2 size={12} /> {m.company}</span>
-                    {m.target_date && <span>Target: {new Date(m.target_date).toLocaleDateString()}</span>}
+                    {m.target_date && <span>Target: {formatDate(m.target_date)}</span>}
                   </div>
                 </div>
               ))

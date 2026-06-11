@@ -1,3 +1,4 @@
+import { formatDate } from '../utils/dateUtils';
 import { useState, useMemo } from 'react';
 import { PackageSearch, Search, Plus, MapPin, Database, Archive, Settings, FilePlus, LogIn, LogOut, Trash2, Building2, Edit, FileText } from 'lucide-react';
 import { generateTransactionPDF, generateBatchIssuePDF } from '../utils/pdfGenerator';
@@ -728,7 +729,7 @@ const InventoryManagement = () => {
             <tbody>
               {transactions.filter(t => t.location === locName).sort((a,b) => new Date(b.timestamp) - new Date(a.timestamp)).map((txn, idx) => (
                 <tr key={idx} style={{ borderBottom: '1px solid var(--border-color)' }}>
-                  <td style={{ padding: '0.8rem', color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>{new Date(txn.date).toLocaleDateString('en-GB')}</td>
+                  <td style={{ padding: '0.8rem', color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>{formatDate(txn.date)}</td>
                   <td style={{ padding: '0.8rem', fontWeight: '500', whiteSpace: 'nowrap' }}>
                     {txn.type === 'OUT' && txn.usageType === 'INTERNAL' ? txn.department : (txn.companyName || '-')}
                     {txn.usageType && <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '2px' }}>{txn.usageType}</div>}

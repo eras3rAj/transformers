@@ -1,3 +1,4 @@
+import { formatDate } from '../utils/dateUtils';
 import { useState } from 'react';
 import { useExpenses } from '../context/ExpenseContext';
 import { useAuth } from '../context/AuthContext';
@@ -144,13 +145,13 @@ const DailyExpenses = () => {
     const dayTotal = visibleExpenses
       .filter(exp => exp.date === dateStr && exp.status !== 'Rejected')
       .reduce((sum, exp) => sum + Number(exp.amount), 0);
-    return { name: d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }), total: dayTotal };
+    return { name: formatDate(d), total: dayTotal };
   });
 
   const handleExportPDF = () => {
     const headers = ['Date', 'Amount (INR)', 'Reason', 'Payable To', 'Submitted By', 'Status'];
     const rows = visibleExpenses.map(exp => [
-      new Date(exp.date).toLocaleDateString('en-GB'),
+      formatDate(exp.date),
       Number(exp.amount).toFixed(2),
       exp.reason,
       exp.payable_to,
@@ -162,7 +163,7 @@ const DailyExpenses = () => {
 
   const handleExportExcel = () => {
     const data = visibleExpenses.map(exp => ({
-      Date: new Date(exp.date).toLocaleDateString('en-GB'),
+      Date: formatDate(exp.date),
       Amount: Number(exp.amount),
       Reason: exp.reason,
       'Payable To': exp.payable_to,
@@ -235,7 +236,7 @@ const DailyExpenses = () => {
               ) : (
                 visibleExpenses.map(exp => (
                   <tr key={exp.id} style={{ borderBottom: '1px solid var(--border-color)' }}>
-                    <td style={{ padding: '1rem', color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>{new Date(exp.date).toLocaleDateString('en-GB')}</td>
+                    <td style={{ padding: '1rem', color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>{formatDate(exp.date)}</td>
                     <td style={{ padding: '1rem', fontWeight: '600', color: 'var(--text-primary)' }}>₹{Number(exp.amount).toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
                     <td style={{ padding: '1rem' }}>{exp.reason}</td>
                     <td style={{ padding: '1rem', fontWeight: '500' }}>{exp.payable_to}</td>

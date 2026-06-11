@@ -1,3 +1,4 @@
+import { formatDate } from '../utils/dateUtils';
 import { useState } from 'react';
 import { Shield, Search, Filter, AlertTriangle } from 'lucide-react';
 import { useLogs } from '../context/LogContext';
@@ -30,7 +31,7 @@ const SystemLogs = () => {
 
   const formatTime = (isoString) => {
     const d = new Date(isoString);
-    return `${d.toLocaleDateString()} ${d.toLocaleTimeString()}`;
+    return `${formatDate(d)} ${d.toLocaleTimeString()}`;
   };
 
   return (
