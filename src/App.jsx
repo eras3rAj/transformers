@@ -29,6 +29,7 @@ const SystemLogs = React.lazy(() => import('./pages/SystemLogs'));
 const PriceVariation = React.lazy(() => import('./pages/PriceVariation'));
 const PurchaseOrders = React.lazy(() => import('./pages/PurchaseOrders'));
 const UserManagement = React.lazy(() => import('./pages/UserManagement'));
+const Payroll = React.lazy(() => import('./pages/Payroll'));
 const ProfileSettings = React.lazy(() => import('./pages/ProfileSettings'));
 const ProductionTracker = React.lazy(() => import('./pages/ProductionTracker'));
 const Inspections = React.lazy(() => import('./pages/Inspections'));
