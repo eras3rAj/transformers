@@ -45,7 +45,9 @@ const PurchaseOrders = () => {
     let totalQuantity = 0;
     let totalPendingQuantity = 0;
     
-    pos.forEach(po => {
+    const filteredPOs = pos.filter(po => companyFilter === 'All' || po.companyName === companyFilter);
+    
+    filteredPOs.forEach(po => {
       const unitTotal = (po.exWorks || 0) + (po.freight || 0) + (((po.exWorks || 0) + (po.freight || 0)) * ((po.gstRate || 0) / 100));
       totalContractValue += unitTotal * (po.quantity || 1);
       totalQuantity += (po.quantity || 1);
@@ -58,7 +60,7 @@ const PurchaseOrders = () => {
     });
 
     return { totalContractValue, totalPendingValue, totalQuantity, totalPendingQuantity };
-  }, [pos, inspections]);
+  }, [pos, inspections, companyFilter]);
 
   return (
     <div className="animate-fade-in">
