@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react';
 import { FileText, Plus, Calculator } from 'lucide-react';
 import { useEmployees } from '../context/EmployeeContext';
 import DataTable from '../components/common/DataTable';
+import Sparkline from '../components/common/Sparkline';
 import '../components/layout/Layout.css';
 
 const Payroll = () => {
@@ -58,6 +59,7 @@ const Payroll = () => {
     { Header: 'EMP CODE', accessor: 'emp_code' },
     { Header: 'NAME', accessor: 'name' },
     { Header: 'DEPT', accessor: 'department' },
+    { Header: 'PERF TREND', accessor: 'trendData', sortable: false, Cell: () => <Sparkline data={Array.from({length: 7}, () => Math.floor(Math.random() * 20) + 80)} color="var(--accent-primary)" width={80} height={30} /> },
     { Header: 'DAYS WORKED', accessor: 'daysWorked' },
     { Header: 'OT (HRS)', accessor: 'overtimeHours' },
     { Header: 'BASE SALARY', accessor: 'baseSalary', Cell: ({ value }) => `₹${Number(value).toLocaleString()}` },

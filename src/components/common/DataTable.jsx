@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { Download, Printer, ArrowUpDown, ChevronLeft, ChevronRight, Search } from 'lucide-react';
 import { exportToCSV, printDocument } from '../../utils/exportUtils';
 import './DataTable.css';
+import EmptyState from './EmptyState';
 
 const DataTable = ({ 
   columns, 
@@ -123,8 +124,11 @@ const DataTable = ({
           <tbody>
             {currentTableData.length === 0 ? (
               <tr>
-                <td colSpan={columns.length} className="empty-state">
-                  No records found matching your criteria.
+                <td colSpan={columns.length} style={{ padding: 0 }}>
+                  <EmptyState 
+                    title="No Records Found" 
+                    message="We couldn't find any data matching your current filters or search criteria."
+                  />
                 </td>
               </tr>
             ) : (
