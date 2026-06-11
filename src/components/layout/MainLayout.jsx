@@ -3,6 +3,7 @@ import { Outlet, useLocation } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import Header from './Header';
 import AIAssistant from '../common/AIAssistant';
+import CommandPalette from './CommandPalette';
 import './Layout.css';
 
 const MainLayout = () => {
@@ -34,6 +35,7 @@ const MainLayout = () => {
         </main>
       </div>
       <AIAssistant />
+      <CommandPalette />
     </div>
   );
 };

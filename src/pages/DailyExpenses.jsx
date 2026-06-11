@@ -230,7 +230,7 @@ const DailyExpenses = () => {
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan={7} style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)' }}>Loading expenses...</td></tr>
+                <tr><td colSpan={7} style={{ padding: '2rem' }}><SkeletonLoader type="table" count={3} /></td></tr>
               ) : visibleExpenses.length === 0 ? (
                 <tr><td colSpan={7} style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)' }}>No expenses logged yet.</td></tr>
               ) : (

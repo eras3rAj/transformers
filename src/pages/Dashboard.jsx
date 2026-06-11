@@ -293,6 +293,16 @@ const Dashboard = () => {
     return data;
   }, [inspections, inspectionYear, companyFilter, validPONos, pos]);
 
+  const todaysLatestShift = useMemo(() => {
+    const d = new Date();
+    const dateStr = d.toISOString().split('T')[0];
+    const log = productionLogs.find(l => l.date === dateStr);
+    if (!log || !log.reports || log.reports.length === 0) return null;
+    if (log.reports.some(r => r.shift === 'evening')) return 'Evening (5-6 PM)';
+    if (log.reports.some(r => r.shift === 'afternoon')) return 'Afternoon (2-3 PM)';
+    if (log.reports.some(r => r.shift === 'morning')) return 'Morning (9-10 AM)';
+    return null;
+  }, [productionLogs]);
 
   return (
     <div className="animate-fade-in" style={{ paddingBottom: '3rem' }}>
@@ -303,6 +313,11 @@ const Dashboard = () => {
             Command Center
           </h1>
           <p style={{ color: 'var(--text-muted)', marginTop: '0.5rem' }}>Live overview of your entire manufacturing operations.</p>
+          {todaysLatestShift && (
+            <div style={{ marginTop: '0.5rem', display: 'inline-block', padding: '0.3rem 0.8rem', backgroundColor: 'var(--bg-tertiary)', borderRadius: '20px', border: '1px solid var(--border-color)', fontSize: '0.85rem', color: 'var(--text-secondary)', fontWeight: '500' }}>
+              Latest Shift: <span style={{ color: 'var(--accent-primary)', fontWeight: '600' }}>{todaysLatestShift}</span>
+            </div>
+          )}
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
           <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Master Filter:</span>

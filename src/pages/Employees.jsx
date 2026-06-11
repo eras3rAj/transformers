@@ -110,7 +110,7 @@ const Employees = () => {
   };
 
   if (loading) {
-    return <div className="animate-fade-in" style={{ padding: '2rem', textAlign: 'center' }}>Loading employees...</div>;
+    return <div className="animate-fade-in" style={{ padding: '2rem' }}><SkeletonLoader type="title" /><SkeletonLoader type="table" count={5} /></div>;
   }
 
   return (

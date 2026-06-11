@@ -52,7 +52,7 @@ const VendorPurchasing = () => {
     setShowPOForm(false);
   };
 
-  if (loading) return <div style={{ padding: '2rem', textAlign: 'center' }}>Loading purchasing data...</div>;
+  if (loading) return <div style={{ padding: '2rem' }}><SkeletonLoader type="title" /><SkeletonLoader type="table" count={5} /></div>;
 
   return (
     <div className="animate-fade-in">

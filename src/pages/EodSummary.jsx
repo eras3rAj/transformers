@@ -109,6 +109,17 @@ const EodSummary = () => {
     }));
   }, [productionLogs]);
 
+  // 2.6 Core Cutting Data (Latest available or selected day)
+  const coreCuttingSummary = useMemo(() => {
+    const sortedLogs = [...productionLogs].sort((a, b) => new Date(b.date) - new Date(a.date));
+    const log = sortedLogs.find(l => l.sections && l.sections['Core Cutting']);
+    if (!log) return null;
+    return {
+      date: log.date,
+      data: log.sections['Core Cutting']
+    };
+  }, [productionLogs]);
+
   // Helper to count total production items
   const totalProductionCount = useMemo(() => {
     let count = 0;
@@ -692,6 +703,55 @@ const EodSummary = () => {
                 </div>
               </div>
             ))}
+          </div>
+        )}
+      </div>
+
+      {/* 2.6 Core Cutting Details */}
+      <div className="report-section card">
+        <h2 style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', margin: '0 0 1rem 0' }}>
+          <Layers size={20} color="var(--accent-primary)" /> Core Cutting Details
+          {coreCuttingSummary?.date && <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 'normal', marginLeft: '0.5rem' }}>(Updated: {formatDate(coreCuttingSummary.date)})</span>}
+        </h2>
+        {!coreCuttingSummary ? (
+          <div className="empty-display">
+            <Inbox size={32} />
+            <p>No recent core cutting logs found.</p>
+          </div>
+        ) : (
+          <div style={{ padding: '1.2rem', background: 'var(--bg-secondary)', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '1rem', background: 'var(--bg-primary)', padding: '1rem', borderRadius: '8px' }}>
+              <div><strong style={{ color: 'var(--text-secondary)' }}>Rating in Oven:</strong> <span style={{ color: 'var(--text-primary)' }}>{coreCuttingSummary.data?.ratingInOven || 'N/A'}</span></div>
+              <div><strong style={{ color: 'var(--text-secondary)' }}>Oven Opening:</strong> <span style={{ color: 'var(--text-primary)' }}>{coreCuttingSummary.data?.openingTime ? new Date(`1970-01-01T${coreCuttingSummary.data.openingTime}`).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : 'N/A'}</span></div>
+              <div><strong style={{ color: 'var(--text-secondary)' }}>Cutting Rating:</strong> <span style={{ color: 'var(--text-primary)' }}>{coreCuttingSummary.data?.cuttingRating || 'N/A'}</span></div>
+              <div><strong style={{ color: 'var(--text-secondary)' }}>Next Oven Time:</strong> <span style={{ color: 'var(--text-primary)' }}>{coreCuttingSummary.data?.nextOvenTime ? new Date(`1970-01-01T${coreCuttingSummary.data.nextOvenTime}`).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : 'N/A'}</span></div>
+            </div>
+            <div className="grid-2">
+              <div>
+                <strong style={{ color: 'var(--text-secondary)' }}>Tested Ratings:</strong>
+                {coreCuttingSummary.data?.testingTable?.length > 0 ? (
+                  <ul style={{ margin: '8px 0 0 20px', color: 'var(--text-primary)' }}>
+                    {coreCuttingSummary.data.testingTable.filter(r => r.rating || r.srNo).map((r, i) => (
+                      <li key={i} style={{ marginBottom: '4px' }}>{r.rating || 'Unknown'} - Till Sr. No: <strong>{r.srNo || 'N/A'}</strong></li>
+                    ))}
+                  </ul>
+                ) : <div style={{ color: 'var(--text-muted)', marginTop: '8px' }}>No testing recorded.</div>}
+              </div>
+              <div>
+                <strong style={{ color: 'var(--text-secondary)' }}>Amorphous Ribbon Stock:</strong>
+                <ul style={{ margin: '8px 0 0 20px', color: 'var(--text-primary)' }}>
+                  {['142.2mm', '170.2mm', '213.4mm'].map(size => {
+                    const av = coreCuttingSummary.data?.ribbonStock?.[size]?.available;
+                    const inc = coreCuttingSummary.data?.ribbonStock?.[size]?.incoming;
+                    if (!av && !inc) return null;
+                    return <li key={size} style={{ marginBottom: '4px' }}>{size}: Available: <strong style={{ color: 'var(--accent-primary)' }}>{av||0}</strong> | Incoming: <strong style={{ color: 'var(--success)' }}>{inc||0}</strong></li>;
+                  })}
+                  {(!coreCuttingSummary.data?.ribbonStock || !Object.values(coreCuttingSummary.data.ribbonStock).some(s => s.available || s.incoming)) && (
+                    <li style={{ color: 'var(--text-muted)', listStyle: 'none', marginLeft: '-20px' }}>No stock data recorded.</li>
+                  )}
+                </ul>
+              </div>
+            </div>
           </div>
         )}
       </div>

@@ -111,6 +111,10 @@ const PurchaseOrders = () => {
               const totalAccepted = poFinalInspections.reduce((sum, i) => sum + Number(i.qtyAccepted || 0), 0);
               const pendingQty = Math.max(0, (po.quantity || 1) - totalAccepted);
               const pendingValue = unitTotal * pendingQty;
+
+              const fulfillmentStatus = totalAccepted === 0 ? 'PENDING' : (totalAccepted < (po.quantity || 1) ? 'PARTIAL' : 'COMPLETED');
+              const badgeColor = fulfillmentStatus === 'COMPLETED' ? 'var(--success)' : (fulfillmentStatus === 'PARTIAL' ? 'var(--warning)' : 'var(--text-muted)');
+              const badgeBg = fulfillmentStatus === 'COMPLETED' ? 'rgba(16, 185, 129, 0.1)' : (fulfillmentStatus === 'PARTIAL' ? 'rgba(245, 158, 11, 0.1)' : 'var(--bg-secondary)');
               
               return (
               <tr key={po.id} style={{ borderBottom: '1px solid var(--border-color)' }} className="table-row">
@@ -119,7 +123,9 @@ const PurchaseOrders = () => {
                     <div style={{ display: 'inline-block', backgroundColor: 'var(--bg-tertiary)', color: 'var(--text-secondary)', padding: '2px 8px', borderRadius: '4px', fontSize: '0.75rem', fontWeight: '600', border: '1px solid var(--border-color)' }}>
                       {po.companyName}
                     </div>
-                    {/* Status badge removed for now as per user request */}
+                    <div style={{ display: 'inline-block', backgroundColor: badgeBg, color: badgeColor, padding: '2px 8px', borderRadius: '4px', fontSize: '0.75rem', fontWeight: '700', border: `1px solid ${badgeColor}30` }}>
+                      {fulfillmentStatus}
+                    </div>
                   </div>
                   <div style={{ fontWeight: '600', color: 'var(--accent-primary)', fontSize: '1.05rem', marginBottom: '0.2rem' }}>{po.poNo}</div>
                   <div style={{ fontWeight: '500' }}>{po.utilityBoard} - {po.capacity} {po.noOfPhases === '3-Phase' ? '(3-Phase)' : ''}</div>

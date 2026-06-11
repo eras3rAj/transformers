@@ -339,7 +339,7 @@ const InventoryManagement = () => {
     setIssueCart(issueCart.filter(c => c.item.name !== itemName));
   };
 
-  if (loading) return <div className="animate-fade-in" style={{ padding: '2rem' }}>Loading Inventory System...</div>;
+  if (loading) return <div className="animate-fade-in" style={{ padding: '2rem' }}><SkeletonLoader type="title" /><SkeletonLoader type="table" count={5} /></div>;
 
   const renderGlobalOverview = () => (
     <div className="animate-fade-in">

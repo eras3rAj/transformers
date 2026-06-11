@@ -34,7 +34,7 @@ const PendingTasks = () => {
     setUpdateModal({ isOpen: false, task: null, updateText: '' });
   };
 
-  if (loading) return <div style={{ padding: '2rem', textAlign: 'center' }}>Loading tasks...</div>;
+  if (loading) return <div style={{ padding: '2rem' }}><SkeletonLoader type="title" /><SkeletonLoader type="table" count={5} /></div>;
 
   return (
     <div className="animate-fade-in">
@@ -51,73 +51,87 @@ const PendingTasks = () => {
         </button>
       </div>
 
-      <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem', borderBottom: '1px solid var(--border-color)' }}>
-        {['Pending', 'In Progress', 'Completed'].map(tab => (
-          <button 
-            key={tab}
-            onClick={() => setActiveTab(tab)}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1.5rem', marginTop: '1.5rem', overflowX: 'auto', minHeight: '60vh' }}>
+        {['Pending', 'In Progress', 'Completed'].map(columnStatus => (
+          <div 
+            key={columnStatus}
+            onDragOver={(e) => e.preventDefault()}
+            onDrop={async (e) => {
+              const taskId = e.dataTransfer.getData('taskId');
+              if (taskId) {
+                const task = tasks.find(t => t.id === taskId);
+                if (task && task.status !== columnStatus) {
+                  await updateTaskStatus(taskId, columnStatus);
+                }
+              }
+            }}
             style={{ 
-              background: 'none', border: 'none', padding: '1rem', cursor: 'pointer',
-              fontWeight: activeTab === tab ? '600' : '500',
-              color: activeTab === tab ? 'var(--accent-primary)' : 'var(--text-muted)',
-              borderBottom: activeTab === tab ? '2px solid var(--accent-primary)' : '2px solid transparent'
+              backgroundColor: 'var(--bg-secondary)', 
+              borderRadius: '8px', 
+              padding: '1rem', 
+              display: 'flex', 
+              flexDirection: 'column', 
+              gap: '1rem',
+              border: '1px solid var(--border-color)',
+              minWidth: '300px'
             }}
           >
-            {tab}
-          </button>
-        ))}
-      </div>
+            <h3 style={{ margin: 0, paddingBottom: '0.5rem', borderBottom: '2px solid var(--accent-primary)', color: 'var(--text-primary)', display: 'flex', justifyContent: 'space-between' }}>
+              {columnStatus}
+              <span style={{ fontSize: '0.8rem', backgroundColor: 'var(--bg-tertiary)', padding: '0.2rem 0.6rem', borderRadius: '12px' }}>
+                {tasks.filter(t => t.status === columnStatus).length}
+              </span>
+            </h3>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))', gap: '1.5rem' }}>
-        {filteredTasks.length === 0 ? (
-          <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '3rem', color: 'var(--text-muted)', backgroundColor: 'var(--bg-tertiary)', borderRadius: '8px' }}>
-            No {activeTab.toLowerCase()} tasks found.
-          </div>
-        ) : (
-          filteredTasks.map(task => (
-            <div key={task.id} className="card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', borderLeft: `4px solid ${task.priority === 'High' ? 'var(--danger)' : task.priority === 'Low' ? 'var(--success)' : 'var(--warning)'}` }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
-                <h3 style={{ margin: 0, fontSize: '1.1rem', color: 'var(--text-primary)' }}>{task.title}</h3>
-                <span style={{ fontSize: '0.75rem', padding: '0.2rem 0.5rem', borderRadius: '4px', backgroundColor: 'var(--bg-tertiary)', color: 'var(--text-muted)' }}>
-                  {task.priority} Priority
-                </span>
+            {tasks.filter(t => t.status === columnStatus).length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '2rem 1rem', color: 'var(--text-muted)', fontSize: '0.9rem' }}>
+                No tasks here.
               </div>
-              
-              <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', marginBottom: '1.5rem', flex: 1 }}>{task.description}</p>
-              
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>
-                <span><strong>To:</strong> {task.assigned_to}</span>
-                <span><strong>From:</strong> {task.raised_by}</span>
-              </div>
-
-              {task.latest_update && (
-                <div style={{ backgroundColor: 'var(--bg-secondary)', padding: '0.8rem', borderRadius: '4px', marginBottom: '1rem', fontSize: '0.85rem', borderLeft: '2px solid var(--accent-primary)' }}>
-                  <strong style={{ color: 'var(--text-primary)' }}>Latest Update:</strong><br/>
-                  {task.latest_update}
-                </div>
-              )}
-
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 'auto', paddingTop: '1rem', borderTop: '1px solid var(--border-color)' }}>
-                <select 
-                  value={task.status} 
-                  onChange={(e) => updateTaskStatus(task.id, e.target.value)}
-                  className="input-field" 
-                  style={{ marginBottom: 0, padding: '0.3rem', fontSize: '0.85rem', width: 'auto' }}
+            ) : (
+              tasks.filter(t => t.status === columnStatus).map(task => (
+                <div 
+                  key={task.id} 
+                  draggable
+                  onDragStart={(e) => e.dataTransfer.setData('taskId', task.id)}
+                  className="card" 
+                  style={{ 
+                    padding: '1rem', 
+                    display: 'flex', 
+                    flexDirection: 'column', 
+                    borderLeft: `4px solid ${task.priority === 'High' ? 'var(--danger)' : task.priority === 'Low' ? 'var(--success)' : 'var(--warning)'}`,
+                    cursor: 'grab'
+                  }}
                 >
-                  <option value="Pending">Pending</option>
-                  <option value="In Progress">In Progress</option>
-                  <option value="Completed">Completed</option>
-                </select>
-                
-                {task.status !== 'Completed' && (
-                  <button className="btn btn-secondary" style={{ padding: '0.3rem 0.8rem', fontSize: '0.85rem' }} onClick={() => setUpdateModal({ isOpen: true, task, updateText: task.latest_update || '' })}>
-                    Post Update
-                  </button>
-                )}
-              </div>
-            </div>
-          ))
-        )}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.5rem' }}>
+                    <h4 style={{ margin: 0, fontSize: '1rem', color: 'var(--text-primary)' }}>{task.title}</h4>
+                    <span style={{ fontSize: '0.7rem', padding: '0.2rem 0.4rem', borderRadius: '4px', backgroundColor: 'var(--bg-tertiary)', color: 'var(--text-muted)' }}>
+                      {task.priority}
+                    </span>
+                  </div>
+                  
+                  <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '1rem', flex: 1 }}>{task.description}</p>
+                  
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>
+                    <span><strong>To:</strong> {task.assigned_to}</span>
+                    <span><strong>From:</strong> {task.raised_by}</span>
+                  </div>
+
+                  {task.latest_update && (
+                    <div style={{ backgroundColor: 'var(--bg-tertiary)', padding: '0.5rem', borderRadius: '4px', marginBottom: '0.8rem', fontSize: '0.75rem', borderLeft: '2px solid var(--accent-primary)' }}>
+                      <strong style={{ color: 'var(--text-primary)' }}>Update:</strong> {task.latest_update}
+                    </div>
+                  )}
+
+                  {task.status !== 'Completed' && (
+                    <button className="btn btn-secondary" style={{ padding: '0.3rem', fontSize: '0.8rem', width: '100%', marginTop: 'auto' }} onClick={() => setUpdateModal({ isOpen: true, task, updateText: task.latest_update || '' })}>
+                      Post Update
+                    </button>
+                  )}
+                </div>
+              ))
+            )}
+          </div>
+        ))}
       </div>
 
       {/* Task Form */}

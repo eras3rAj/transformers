@@ -1,0 +1,49 @@
+.skeleton-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+}
+
+.skeleton-item {
+  background: linear-gradient(90deg, var(--bg-tertiary) 25%, var(--bg-secondary) 50%, var(--bg-tertiary) 75%);
+  background-size: 200% 100%;
+  animation: loading-skeleton 1.5s infinite linear;
+  border-radius: 8px;
+}
+
+@keyframes loading-skeleton {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+.skeleton-text .skeleton-item {
+  height: 20px;
+  width: 100%;
+}
+
+.skeleton-title .skeleton-item {
+  height: 32px;
+  width: 50%;
+  margin-bottom: 16px;
+}
+
+.skeleton-card {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 20px;
+}
+
+.skeleton-card .skeleton-item {
+  height: 150px;
+  width: 100%;
+}
+
+.skeleton-table .skeleton-item {
+  height: 48px;
+  width: 100%;
+}

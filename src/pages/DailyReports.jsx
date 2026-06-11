@@ -1,8 +1,10 @@
 import { formatDate } from '../utils/dateUtils';
+import SkeletonLoader from '../components/common/SkeletonLoader';
 import React, { useState, useEffect } from 'react';
 import { useDailyReports } from '../context/DailyReportContext';
 import { usePO } from '../context/POContext';
 import { useTasks } from '../context/TaskContext';
+import { useToast } from '../context/ToastContext';
 import { Save, Check, FileText, Link, Trash2, Copy } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import '../components/layout/Layout.css';
@@ -11,6 +13,7 @@ const DailyReports = () => {
   const { reports, fetchReportsForDate, saveReport, loading } = useDailyReports();
   const { pos, capacities } = usePO();
   const { tasks, addTask, addLatestUpdate } = useTasks();
+  const { addToast } = useToast();
   
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [selectedShift, setSelectedShift] = useState('morning');
@@ -384,10 +387,43 @@ const DailyReports = () => {
     const success = await saveReport(selectedDate, selectedShift, dataToSave);
     if (success) {
       setSaveSuccess(true);
+      addToast('Report saved successfully!', 'success');
       localStorage.removeItem(`draft_report_${selectedDate}_${selectedShift}`);
       setTimeout(() => setSaveSuccess(false), 3000);
     }
     setIsSaving(false);
+  };
+
+  const handleCopyPreviousDay = async () => {
+    setIsSaving(true);
+    try {
+      const d = new Date(selectedDate);
+      d.setDate(d.getDate() - 1);
+      const yesterday = d.toISOString().split('T')[0];
+
+      const { data, error } = await supabase
+        .from('system_logs')
+        .select('*')
+        .eq('action', 'daily_report')
+        .like('claim_id', `${yesterday}_%`);
+
+      if (!error && data && data.length > 0) {
+        let bestReport = data.find(r => r.claim_id.endsWith('evening')) ||
+                         data.find(r => r.claim_id.endsWith('afternoon')) ||
+                         data.find(r => r.claim_id.endsWith('morning')) || data[0];
+
+        if (bestReport && bestReport.details) {
+          let cloned = normalizeDraft({ ...JSON.parse(JSON.stringify(emptyReport)), ...bestReport.details });
+          if (cloned['Box-up']?.mainTable) cloned['Box-up'].mainTable.forEach(r => r.qty = '');
+          if (cloned['CCA']?.mainTable) cloned['CCA'].mainTable.forEach(r => r.qty = '');
+          if (cloned['Winding Section']?.ratingsTable) cloned['Winding Section'].ratingsTable.forEach(r => {r.ltCount = ''; r.htCount = ''});
+          if (cloned['Tank Fabrication']?.ratingsTable) cloned['Tank Fabrication'].ratingsTable.forEach(r => r.qty = '');
+          setFormData(cloned);
+        }
+      }
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const renderSectionFooter = (section) => (
@@ -496,9 +532,9 @@ const DailyReports = () => {
           <tbody>
             {(formData['Box-up'].mainTable || []).map((row, i) => (
               <tr key={i}>
-                <td><input type="number"  value={row.qty||''} onChange={e=>handleTableChange('Box-up','mainTable',i,'qty',e.target.value)}/></td>
+                <td><input type="number" className={invalidFields.includes('Box-up_qty') && i === 0 ? 'input-error' : ''} value={row.qty||''} onChange={e=>handleTableChange('Box-up','mainTable',i,'qty',e.target.value)}/></td>
                 <td>
-                  <input type="text" list="capacities-list"  placeholder="Select or type..." value={row.rating||''} onChange={e=>handleTableChange('Box-up','mainTable',i,'rating',e.target.value)}/>
+                  <input type="text" className={invalidFields.includes('Box-up_rating') && i === 0 ? 'input-error' : ''} list="capacities-list"  placeholder="Select or type..." value={row.rating||''} onChange={e=>handleTableChange('Box-up','mainTable',i,'rating',e.target.value)}/>
                 </td>
               </tr>
             ))}
@@ -563,9 +599,9 @@ const DailyReports = () => {
           <tbody>
             {(formData['CCA'].mainTable || []).map((row, i) => (
               <tr key={i}>
-                <td><input type="number"  value={row.qty||''} onChange={e=>handleTableChange('CCA','mainTable',i,'qty',e.target.value)}/></td>
+                <td><input type="number" className={invalidFields.includes('CCA_qty') && i === 0 ? 'input-error' : ''} value={row.qty||''} onChange={e=>handleTableChange('CCA','mainTable',i,'qty',e.target.value)}/></td>
                 <td>
-                  <input type="text" list="capacities-list"  placeholder="Select or type..." value={row.rating||''} onChange={e=>handleTableChange('CCA','mainTable',i,'rating',e.target.value)}/>
+                  <input type="text" className={invalidFields.includes('CCA_rating') && i === 0 ? 'input-error' : ''} list="capacities-list"  placeholder="Select or type..." value={row.rating||''} onChange={e=>handleTableChange('CCA','mainTable',i,'rating',e.target.value)}/>
                 </td>
               </tr>
             ))}
@@ -1136,6 +1172,9 @@ const DailyReports = () => {
             <h2 style={{ fontSize: '1.2rem', margin: 0 }}>Data Entry</h2>
             <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
               {lastSaved && <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>Draft auto-saved at {lastSaved.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>}
+              <button className="btn btn-secondary" onClick={handleCopyPreviousDay} disabled={isSaving} style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                <Copy size={16} /> Copy Yesterday
+              </button>
               <button className="btn btn-primary" onClick={handleSave} disabled={isSaving}>
                 {isSaving ? 'Saving...' : <><Save size={18} /> Save Report</>}
               </button>
@@ -1166,7 +1205,7 @@ const DailyReports = () => {
                 </select>
               </div>
             </div>
-            {loading && <p style={{ color: 'var(--text-muted)' }}>Loading report data...</p>}
+            {loading && <SkeletonLoader type="text" count={3} />}
           </div>
 
           <div className="tabs wizard-tabs" style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '1.5rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem', alignItems: 'center' }}>
@@ -1239,7 +1278,7 @@ const DailyReports = () => {
                 </select>
               </div>
             </div>
-            {loading && <p style={{ color: 'var(--text-muted)' }}>Loading summary data...</p>}
+            {loading && <SkeletonLoader type="text" count={3} />}
           </div>
           {renderSummary()}
         </div>

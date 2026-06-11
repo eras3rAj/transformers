@@ -19,6 +19,7 @@ import { BgLcProvider } from './context/BgLcContext';
 import { CustomDutyProvider } from './context/CustomDutyContext';
 import { NotificationProvider } from './context/NotificationContext';
 import { DailyReportProvider } from './context/DailyReportContext';
+import { ToastProvider } from './context/ToastContext';
 
 // Lazy loaded page components for Code Splitting
 const Dashboard = React.lazy(() => import('./pages/Dashboard'));
@@ -60,6 +61,7 @@ function App() {
   }, []);
   return (
     <UserProvider>
+      <ToastProvider>
       <AuthProvider>
         <NotificationProvider>
           <LogProvider>
@@ -130,6 +132,7 @@ function App() {
         </LogProvider>
         </NotificationProvider>
       </AuthProvider>
+    </ToastProvider>
     </UserProvider>
   );
 }

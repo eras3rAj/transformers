@@ -34,7 +34,7 @@ const Milestones = () => {
     setDeletePrompt({ isOpen: false, milestone: null });
   };
 
-  if (loading) return <div style={{ padding: '2rem', textAlign: 'center' }}>Loading milestones...</div>;
+  if (loading) return <div style={{ padding: '2rem' }}><SkeletonLoader type="title" /><SkeletonLoader type="table" count={5} /></div>;
 
   return (
     <div className="animate-fade-in">
