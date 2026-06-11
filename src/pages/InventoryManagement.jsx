@@ -1777,6 +1777,14 @@ const InventoryManagement = () => {
         onConfirm={confirmDeleteMaster}
         onCancel={() => setDeleteMasterConfirm({ isOpen: false, type: null, id: null, name: '' })}
       />
+
+      <ItemDetailsModal 
+        isOpen={!!selectedItemDetails} 
+        onClose={() => setSelectedItemDetails(null)} 
+        item={selectedItemDetails} 
+        transactions={transactions} 
+        currentStock={selectedItemDetails ? getGlobalStock(selectedItemDetails.name) : 0} 
+      />
     </div>
   );
 };
