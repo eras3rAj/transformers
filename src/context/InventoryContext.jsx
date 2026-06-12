@@ -479,7 +479,7 @@ export const InventoryProvider = ({ children }) => {
   return (
     <InventoryContext.Provider value={{
       locations, units, items, companies, departments, transactions, categories, loading,
-      addLocation, addUnit, addItem, addCompany, addDepartment, logTransaction, logBatchTransactions, deleteTransaction,
+      addLocation, addUnit, addItem, addCompany, addDepartment, logTransaction, logBatchTransactions, deleteTransaction, transferStock,
       getStockAtLocation, getGlobalStock, saveCategory, deleteEntity, editEntity
     }}>
       {children}

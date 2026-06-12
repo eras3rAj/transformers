@@ -18,6 +18,7 @@ import { MilestoneProvider } from './context/MilestoneContext';
 import { BgLcProvider } from './context/BgLcContext';
 import { CustomDutyProvider } from './context/CustomDutyContext';
 import { NotificationProvider } from './context/NotificationContext';
+import { BOMProvider } from './context/BOMContext';
 import { DailyReportProvider } from './context/DailyReportContext';
 import { ToastProvider } from './context/ToastContext';
 
@@ -65,6 +66,7 @@ function App() {
       <ToastProvider>
       <AuthProvider>
         <NotificationProvider>
+          <BOMProvider>
           <LogProvider>
           <POProvider>
             <PVProvider>
@@ -124,6 +126,7 @@ function App() {
             </PVProvider>
           </POProvider>
         </LogProvider>
+                  </BOMProvider>
         </NotificationProvider>
       </AuthProvider>
     </ToastProvider>
