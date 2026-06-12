@@ -114,6 +114,20 @@
   box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
 }
 
+.search-bar input {
+  background: transparent;
+  border: none;
+  color: var(--text-primary);
+  width: 100%;
+  outline: none;
+  font-size: 0.95rem;
+  margin-left: 0.5rem;
+}
+
+.search-bar input::placeholder {
+  color: var(--text-secondary);
+}
+
 .input-field:focus {
   outline: none;
   border-color: var(--accent-primary);

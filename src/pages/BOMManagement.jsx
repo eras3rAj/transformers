@@ -3,6 +3,7 @@ import { Layers, Plus, Save, Trash2, Edit2, Copy, Search, ChevronDown, ChevronUp
 import { useBOM } from '../context/BOMContext';
 import { useInventory } from '../context/InventoryContext';
 import ConfirmModal from '../components/common/ConfirmModal';
+import '../components/common/DataTable.css';
 import '../components/layout/Layout.css';
 
 const BOMManagement = () => {
@@ -84,7 +85,7 @@ const BOMManagement = () => {
   }, [boms, searchTerm]);
 
   return (
-    <div className="page-container">
+    <div className="page-container animate-fade-in">
       <header className="page-header">
         <div className="header-title">
           <Layers className="header-icon" />
@@ -113,7 +114,7 @@ const BOMManagement = () => {
       <div className="content-grid" style={{ gridTemplateColumns: '1fr' }}>
         <div className="card glass-panel p-0">
           <div className="table-responsive">
-            <table className="data-table">
+            <table className="datatable" style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
                 <tr>
                   <th style={{ width: '40px' }}></th>
@@ -126,8 +127,12 @@ const BOMManagement = () => {
               <tbody>
                 {filteredBOMs.length === 0 ? (
                   <tr>
-                    <td colSpan={5} style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-secondary)' }}>
-                      No BOMs defined. Click "Create BOM" to start.
+                    <td colSpan={5} style={{ textAlign: 'center', padding: '4rem 2rem', color: 'var(--text-secondary)', backgroundColor: 'var(--bg-primary)' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem' }}>
+                        <Layers size={48} color="var(--border-color)" />
+                        <p style={{ fontSize: '1.1rem', fontWeight: 500 }}>No BOMs defined.</p>
+                        <p style={{ fontSize: '0.9rem' }}>Click "Create BOM" to start building material recipes.</p>
+                      </div>
                     </td>
                   </tr>
                 ) : filteredBOMs.map((bom) => (
