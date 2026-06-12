@@ -47,9 +47,11 @@ const Sidebar = ({ isMobileMenuOpen, setIsMobileMenuOpen }) => {
     { name: 'Price Variation', icon: <TrendingUp size={20} />, path: '/price-variation', adminOk: true, normalOk: false, section: 'Financial' },
     { name: 'Warranty claims', icon: <Shield size={20} />, path: '/warranty', adminOk: true, normalOk: true, section: 'Manufacturing' },
     { name: 'Employees', icon: <Users size={20} />, path: '/employees', adminOk: true, normalOk: true, section: 'Overview' },
+    { name: 'Payroll', icon: <FileText size={20} />, path: '/payroll', adminOk: true, normalOk: true, section: 'Financial' },
     { name: 'Vendor Purchasing', icon: <ShoppingCart size={20} />, path: '/vendor-purchasing', adminOk: true, normalOk: false, section: 'Financial' },
     { name: 'Pending Tasks', icon: <ListTodo size={20} />, path: '/pending-tasks', adminOk: true, normalOk: true, section: 'Overview' },
     { name: 'Milestones', icon: <Target size={20} />, path: '/milestones', adminOk: true, normalOk: true, section: 'Overview' },
+    { name: 'BOM Config', icon: <FileText size={20} />, path: '/bom', adminOk: true, normalOk: false, section: 'Manufacturing' },
     { name: 'Daily Expenses', icon: <FileText size={20} />, path: '/expenses', adminOk: true, normalOk: true, section: 'Financial' },
     { name: 'Daily Summary', icon: <FileText size={20} />, path: '/eod-summary', adminOk: true, normalOk: true, section: 'Financial' },
     { name: 'Bank Guarantee & LC', icon: <Briefcase size={20} />, path: '/bg-lc', adminOk: true, normalOk: true, section: 'Financial' },
@@ -79,7 +81,9 @@ const Sidebar = ({ isMobileMenuOpen, setIsMobileMenuOpen }) => {
       '/expenses': 'expenses',
       '/eod-summary': 'eod-summary',
       '/bg-lc': 'bg-lc',
-      '/custom-duty': 'custom-duty'
+      '/custom-duty': 'custom-duty',
+      '/bom': 'bom',
+      '/payroll': 'payroll'
     };
     
     const moduleId = pathMap[item.path];

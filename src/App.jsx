@@ -44,6 +44,7 @@ const EodSummary = React.lazy(() => import('./pages/EodSummary'));
 const BankGuaranteeLC = React.lazy(() => import('./pages/BankGuaranteeLC'));
 const CustomDuty = React.lazy(() => import('./pages/CustomDuty'));
 const DailyReports = React.lazy(() => import('./pages/DailyReports'));
+const BOMManagement = React.lazy(() => import('./pages/BOMManagement'));
 
 // Protected Route Wrapper
 const ProtectedRoute = ({ children, requireSuperAdmin }) => {
@@ -104,6 +105,8 @@ function App() {
               <Route path="bg-lc" element={<BankGuaranteeLC />} />
               <Route path="custom-duty" element={<CustomDuty />} />
               <Route path="daily-reports" element={<DailyReports />} />
+              <Route path="bom" element={<BOMManagement />} />
+              <Route path="payroll" element={<Payroll />} />
               <Route path="profile" element={<ProfileSettings />} />
               <Route path="users" element={<ProtectedRoute requireSuperAdmin={true}><UserManagement /></ProtectedRoute>} />
               <Route path="logs" element={<ProtectedRoute requireSuperAdmin={true}><SystemLogs /></ProtectedRoute>} />
