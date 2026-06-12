@@ -17,7 +17,7 @@ const ProjectHub = () => {
 
   // Filter tabs based on user permissions
   const availableTabs = allTabs.filter(tab => {
-    if (currentUser?.role === 'superadmin') return true;
+    if (currentUser?.role === 'superadmin' || currentUser?.role === 'admin') return true;
     if (currentUser?.modules && currentUser.modules.includes(tab.id)) return true;
     return false;
   });
