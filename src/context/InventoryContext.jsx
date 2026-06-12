@@ -329,6 +329,34 @@ export const InventoryProvider = ({ children }) => {
     return false;
   };
 
+
+  const transferStock = async (itemId, fromLoc, toLoc, qty, companyName = '', remarks = '') => {
+    // 1. Stock OUT from fromLoc
+    await logTransaction({
+      location: fromLoc,
+      item: itemId,
+      type: 'OUT',
+      qty: qty,
+      date: new Date().toISOString(),
+      remarks: `Transfer to ${toLoc} - ${remarks}`,
+      companyName: companyName,
+      usageType: 'Production Transfer'
+    });
+
+    // 2. Stock IN to toLoc
+    await logTransaction({
+      location: toLoc,
+      item: itemId,
+      type: 'IN',
+      qty: qty,
+      date: new Date().toISOString(),
+      remarks: `Transfer from ${fromLoc} - ${remarks}`,
+      companyName: companyName,
+      usageType: 'Production Transfer'
+    });
+    return true;
+  };
+
   const deleteEntity = async (type, id, name) => {
     // Validation
     if (type === 'inv_loc' && transactions.some(t => t.location === name)) return { success: false, message: 'Location has active transactions.' };
