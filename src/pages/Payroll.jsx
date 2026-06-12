@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { FileText, Plus, Calculator } from 'lucide-react';
+import { FileText, Calculator } from 'lucide-react';
 import { useEmployees } from '../context/EmployeeContext';
 import DataTable from '../components/common/DataTable';
 import Sparkline from '../components/common/Sparkline';

@@ -8,7 +8,6 @@ import { useInspection } from '../context/InspectionContext';
 import { useExpenses } from '../context/ExpenseContext';
 import { useWarranty } from '../context/WarrantyContext';
 import { useInventory } from '../context/InventoryContext';
-import { useDailyReport } from '../context/DailyReportContext';
 import { useMilestones } from '../context/MilestoneContext';
 import { BarChart, Bar, AreaChart, Area, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import { useAuth } from '../context/AuthContext';
