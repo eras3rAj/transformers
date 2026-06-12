@@ -6,6 +6,7 @@ import { useInventory } from '../context/InventoryContext';
 import { useAuth } from '../context/AuthContext';
 import ConfirmModal from '../components/common/ConfirmModal';
 import SkeletonLoader from '../components/common/SkeletonLoader';
+import DataTable from '../components/common/DataTable';
 import MultiSelect from '../components/common/MultiSelect';
 import ItemDetailsModal from '../components/inventory/ItemDetailsModal';
 
@@ -1277,46 +1278,49 @@ const InventoryManagement = () => {
             <Database size={24} color="var(--accent-primary)" />
             Filtered Transaction Ledger
           </h3>
-          <div style={{ overflowX: 'auto' }}>
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th>DATE</th>
-                  <th>TYPE</th>
-                  <th>ITEM</th>
-                  <th>QTY</th>
-                  <th>PARTY / DEPT</th>
-                  <th>REMARKS</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredTxns.length === 0 ? (
-                  <tr><td colSpan="6" style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)' }}>No transactions found for current filters.</td></tr>
-                ) : (
-                  filteredTxns.slice(0, 100).map((txn, idx) => (
-                    <tr key={idx}>
-                      <td style={{ whiteSpace: 'nowrap' }}>{formatDate(txn.date || txn.timestamp)}</td>
-                      <td>
-                        <span style={{ fontSize: '0.75rem', fontWeight: '600', padding: '0.2rem 0.6rem', borderRadius: '4px', backgroundColor: txn.type === 'IN' ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.1)', color: txn.type === 'IN' ? 'var(--success)' : 'var(--danger)' }}>
-                          {txn.type}
-                        </span>
-                      </td>
-                      <td style={{ fontWeight: '500', cursor: 'pointer', color: 'var(--accent-primary)' }} onClick={() => {
-                        const matchedItem = items.find(i => i.name === txn.item);
-                        if (matchedItem) setSelectedItemDetails(matchedItem);
-                      }}>
-                        {txn.item}
-                      </td>
-                      <td>{txn.qty}</td>
-                      <td>{txn.companyName || txn.department || '-'}</td>
-                      <td>{txn.remarks || '-'}</td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-            {filteredTxns.length > 100 && <p style={{ textAlign: 'center', marginTop: '1rem', color: 'var(--text-muted)', fontSize: '0.85rem' }}>Showing latest 100 transactions. Export CSV to see all.</p>}
-          </div>
+
+          <DataTable 
+            title=""
+            data={filteredTxns}
+            columns={[
+              { Header: 'DATE', accessor: 'date', Cell: ({ value, row }) => <span style={{ whiteSpace: 'nowrap' }}>{formatDate(value || row.timestamp)}</span> },
+              { Header: 'TYPE', accessor: 'type', Cell: ({ value }) => (
+                  <span style={{ fontSize: '0.75rem', fontWeight: '600', padding: '0.2rem 0.6rem', borderRadius: '4px', backgroundColor: value === 'IN' ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.1)', color: value === 'IN' ? 'var(--success)' : 'var(--danger)' }}>
+                    {value}
+                  </span>
+                ) 
+              },
+              { Header: 'ITEM', accessor: 'item', Cell: ({ value }) => (
+                  <span style={{ fontWeight: '600', cursor: 'pointer', color: 'var(--accent-primary)' }} onClick={() => {
+                    const matchedItem = items.find(i => i.name === value);
+                    if (matchedItem) setSelectedItemDetails(matchedItem);
+                  }}>
+                    {value}
+                  </span>
+                ) 
+              },
+              { Header: 'QTY', accessor: 'qty', Cell: ({ row }) => {
+                  const matchedItem = items.find(i => i.name === row.item);
+                  return <span style={{ fontWeight: '500' }}>{row.qty} {matchedItem?.unit || ''}</span>;
+                } 
+              },
+              { Header: 'RATE', accessor: 'unitPrice', Cell: ({ value }) => value ? `₹${value}` : '-' },
+              { Header: 'PARTY / DEPT', accessor: 'party', Cell: ({ row }) => (
+                  <div>
+                    <div style={{ fontWeight: '600', color: 'var(--text-primary)' }}>{row.companyName || row.department || '-'}</div>
+                    <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{row.companyName ? 'VENDOR' : row.department ? 'INTERNAL' : ''}</div>
+                  </div>
+                ) 
+              },
+              { Header: 'BILL NO', accessor: 'billNo', Cell: ({ value }) => value || '-' },
+              { Header: 'REMARKS', accessor: 'remarks', Cell: ({ value }) => (
+                  <div style={{ maxWidth: '200px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={value}>
+                    {value || '-'}
+                  </div>
+                ) 
+              }
+            ]}
+          />
         </div>
       </div>
     );
