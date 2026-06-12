@@ -5,6 +5,7 @@ import { generateTransactionPDF, generateBatchIssuePDF } from '../utils/pdfGener
 import { useInventory } from '../context/InventoryContext';
 import { useAuth } from '../context/AuthContext';
 import ConfirmModal from '../components/common/ConfirmModal';
+import SkeletonLoader from '../components/common/SkeletonLoader';
 import ItemDetailsModal from '../components/inventory/ItemDetailsModal';
 
 import { calculateInventoryInsights } from '../utils/predictiveAnalytics';
