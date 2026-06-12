@@ -200,31 +200,33 @@ const BOMManagement = () => {
         </div>
 
       {isModalOpen && (
-        <div className="modal-overlay">
-          <div className="modal-content glass-panel" style={{ maxWidth: '800px', width: '90vw' }}>
-            <div className="modal-header">
-              <h2>{formData.rating ? (boms.some(b => b.rating === formData.rating && !formData.rating.includes('(Copy)')) ? 'Edit BOM' : 'Clone BOM') : 'Create BOM'}</h2>
-              <button className="icon-btn" onClick={() => setIsModalOpen(false)}>
+        <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100vh', backgroundColor: 'rgba(0,0,0,0.6)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000, backdropFilter: 'blur(4px)' }}>
+          <div className="card animate-fade-in" style={{ width: '100%', maxWidth: '800px', padding: '2rem', maxHeight: '90vh', overflowY: 'auto' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+              <h2 style={{ margin: 0, fontSize: '1.4rem' }}>{formData.rating ? (boms.some(b => b.rating === formData.rating && !formData.rating.includes('(Copy)')) ? 'Edit BOM' : 'Clone BOM') : 'Create BOM'}</h2>
+              <button type="button" className="icon-btn" onClick={() => setIsModalOpen(false)}>
                 <X size={20} />
               </button>
             </div>
-            <form onSubmit={handleSave} className="modal-body">
-              <div className="form-row">
-                <div className="form-group">
-                  <label>Transformer Rating</label>
+            <form onSubmit={handleSave}>
+              <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem' }}>
+                <div style={{ flex: 2 }}>
+                  <label className="input-label">Transformer Rating</label>
                   <input 
                     type="text" 
                     required 
+                    className="input-field"
                     placeholder="e.g. 100 KVA 11/0.433 KV"
                     value={formData.rating}
                     onChange={(e) => setFormData({...formData, rating: e.target.value})}
                     disabled={boms.some(b => b.rating === formData.rating) && !formData.rating.includes('(Copy)')}
                   />
                 </div>
-                <div className="form-group">
-                  <label>Phase</label>
+                <div style={{ flex: 1 }}>
+                  <label className="input-label">Phase</label>
                   <select 
                     required
+                    className="input-field"
                     value={formData.phase}
                     onChange={(e) => setFormData({...formData, phase: e.target.value})}
                   >
@@ -254,6 +256,7 @@ const BOMManagement = () => {
                         <div style={{ flex: 2 }}>
                           <select 
                             required
+                            className="input-field"
                             value={mat.itemId}
                             onChange={(e) => updateMaterial(index, 'itemId', e.target.value)}
                           >
@@ -267,6 +270,7 @@ const BOMManagement = () => {
                           <input 
                             type="number" 
                             required 
+                            className="input-field"
                             min="0.01" 
                             step="0.01"
                             placeholder="Qty"
@@ -277,6 +281,7 @@ const BOMManagement = () => {
                         <div style={{ width: '80px' }}>
                           <input 
                             type="text" 
+                            className="input-field"
                             readOnly 
                             value={mat.unit}
                             style={{ backgroundColor: 'var(--bg-tertiary)', color: 'var(--text-secondary)' }}
@@ -296,7 +301,7 @@ const BOMManagement = () => {
                 )}
               </div>
 
-              <div className="modal-footer">
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem', marginTop: '2rem', paddingTop: '1.5rem', borderTop: '1px solid var(--border-color)' }}>
                 <button type="button" className="btn btn-secondary" onClick={() => setIsModalOpen(false)}>
                   Cancel
                 </button>
