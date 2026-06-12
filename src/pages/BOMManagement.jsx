@@ -86,17 +86,17 @@ const BOMManagement = () => {
 
   return (
     <div className="page-container animate-fade-in">
-      <header className="page-header">
+      <header className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '2rem' }}>
         <div className="header-title">
-          <Layers className="header-icon" />
-          <div>
-            <h1>Bill of Materials (BOM)</h1>
-            <p className="subtitle">Manage raw material recipes for transformer ratings</p>
-          </div>
+          <h1 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', margin: '0 0 0.5rem 0' }}>
+            <Layers size={28} color="var(--accent-primary)" />
+            Bill of Materials (BOM)
+          </h1>
+          <p className="subtitle" style={{ margin: 0 }}>Manage raw material recipes for transformer ratings</p>
         </div>
-        <div className="header-actions">
+        <div className="header-actions" style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
           <div className="search-bar">
-            <Search size={18} className="search-icon" />
+            <Search size={18} style={{ color: 'var(--text-muted)' }} />
             <input 
               type="text" 
               placeholder="Search ratings..." 
