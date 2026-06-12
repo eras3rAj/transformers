@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, PackageSearch, Layers, Factory, Users, LogOut, Zap, Shield, ClipboardList, TrendingUp, UserCog, FileText, ClipboardCheck, ShoppingCart, ListTodo, Briefcase, Percent, Target, Bell, Moon, Sun } from 'lucide-react';
+import { NavLink, useLocation } from 'react-router-dom';
+import { LayoutDashboard, PackageSearch, Layers, Factory, Users, LogOut, Zap, Shield, ClipboardList, TrendingUp, UserCog, FileText, ClipboardCheck, ShoppingCart, ListTodo, Briefcase, Percent, Target, Bell, Moon, Sun, ChevronDown, ChevronUp } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useNotifications } from '../../context/NotificationContext';
 import './Layout.css';
@@ -10,6 +10,8 @@ const Sidebar = ({ isMobileMenuOpen, setIsMobileMenuOpen }) => {
   const { unreadCount, notifications, markAllAsRead, markAsRead } = useNotifications();
   const [showNotifPopup, setShowNotifPopup] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(true);
+  const location = useLocation();
+  const [expandedSections, setExpandedSections] = useState({ Overview: true });
 
   useEffect(() => {
     // Check local storage for theme preference
@@ -112,6 +114,18 @@ const Sidebar = ({ isMobileMenuOpen, setIsMobileMenuOpen }) => {
     })).filter(sec => sec.items.length > 0);
   }, [visibleNavItems]);
 
+  useEffect(() => {
+    // Automatically expand the section that contains the current active route
+    const activeSection = sectionsWithItems.find(sec => sec.items.some(i => i.path === location.pathname));
+    if (activeSection) {
+      setExpandedSections(prev => ({ ...prev, [activeSection.name]: true }));
+    }
+  }, [location.pathname, sectionsWithItems]);
+
+  const toggleSection = (secName) => {
+    setExpandedSections(prev => ({ ...prev, [secName]: !prev[secName] }));
+  };
+
   return (
     <aside className={`sidebar ${isMobileMenuOpen ? 'mobile-open' : ''}`}>
       <div className="sidebar-header">
@@ -125,28 +139,42 @@ const Sidebar = ({ isMobileMenuOpen, setIsMobileMenuOpen }) => {
       <nav className="sidebar-nav" style={{ display: 'flex', flexDirection: 'column', gap: '1.2rem', overflowY: 'auto' }}>
         {sectionsWithItems.map((sec) => (
           <div key={sec.name} className="sidebar-section" style={{ display: 'flex', flexDirection: 'column' }}>
-            <h3 className="section-title" style={{ 
-              fontSize: '0.7rem', 
-              fontWeight: '700', 
-              color: 'var(--text-muted)', 
-              textTransform: 'uppercase', 
-              letterSpacing: '0.08em', 
-              marginBottom: '0.5rem', 
-              paddingLeft: '0.75rem' 
-            }}>{sec.name}</h3>
-            <div className="section-items" style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
-              {sec.items.map((item) => (
-                <NavLink 
-                  key={item.name} 
-                  to={item.path} 
-                  className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
-                  onClick={() => setIsMobileMenuOpen && setIsMobileMenuOpen(false)}
-                >
-                  {item.icon}
-                  <span>{item.name}</span>
-                </NavLink>
-              ))}
-            </div>
+            <h3 
+              className="section-title" 
+              onClick={() => toggleSection(sec.name)}
+              style={{ 
+                fontSize: '0.7rem', 
+                fontWeight: '700', 
+                color: 'var(--text-muted)', 
+                textTransform: 'uppercase', 
+                letterSpacing: '0.08em', 
+                marginBottom: '0.5rem', 
+                paddingLeft: '0.75rem',
+                paddingRight: '0.75rem',
+                cursor: 'pointer',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center'
+              }}
+            >
+              <span>{sec.name}</span>
+              {expandedSections[sec.name] ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+            </h3>
+            {expandedSections[sec.name] && (
+              <div className="section-items" style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
+                {sec.items.map((item) => (
+                  <NavLink 
+                    key={item.name} 
+                    to={item.path} 
+                    className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
+                    onClick={() => setIsMobileMenuOpen && setIsMobileMenuOpen(false)}
+                  >
+                    {item.icon}
+                    <span>{item.name}</span>
+                  </NavLink>
+                ))}
+              </div>
+            )}
           </div>
         ))}
       </nav>
