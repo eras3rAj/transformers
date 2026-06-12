@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { MessageSquare, X, Send, Bot, User } from 'lucide-react';
+import { X, Send, Bot } from 'lucide-react';
 import { generateAIResponse } from '../../utils/aiEngine';
 import { useExpenses } from '../../context/ExpenseContext';
 import { useInventory } from '../../context/InventoryContext';

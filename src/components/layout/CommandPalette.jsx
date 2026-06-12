@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, LayoutDashboard, PackageSearch, Factory, Users, Zap, Shield, ClipboardList, TrendingUp, UserCog, FileText, ClipboardCheck, ShoppingCart, ListTodo, Briefcase, Percent, Target } from 'lucide-react';
+import { Search, LayoutDashboard, PackageSearch, Factory, Users, Shield, ClipboardList, TrendingUp, UserCog, FileText, ClipboardCheck, ShoppingCart, ListTodo, Briefcase, Percent, Target } from 'lucide-react';
 import './CommandPalette.css';
 
 const COMMANDS = [

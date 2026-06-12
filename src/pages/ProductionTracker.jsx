@@ -5,7 +5,7 @@ import { usePO } from '../context/POContext';
 import { useInspection } from '../context/InspectionContext';
 import { useEmployees } from '../context/EmployeeContext';
 import { useInventory } from '../context/InventoryContext';
-import { Calendar, Save, Check, Layers, Settings, Plus, X, ListFilter, UserCheck, Trash2, Copy, AlertCircle } from 'lucide-react';
+import { Calendar, Save, Check, Layers, Settings, Plus, X, ListFilter, UserCheck, Trash2, Copy } from 'lucide-react';
 import '../components/layout/Layout.css';
 
 const ProductionTracker = () => {

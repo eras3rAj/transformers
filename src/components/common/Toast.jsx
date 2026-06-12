@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect } from 'react';
 import { CheckCircle, XCircle, X } from 'lucide-react';
 import './Toast.css';
 
