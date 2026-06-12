@@ -41,23 +41,12 @@ const Sidebar = ({ isMobileMenuOpen, setIsMobileMenuOpen }) => {
 
   const navItems = [
     { name: 'Dashboard', icon: <LayoutDashboard size={20} />, path: '/', adminOk: true, normalOk: true, section: 'Overview' },
-    { name: 'Purchase Orders', icon: <FileText size={20} />, path: '/purchase-orders', adminOk: true, normalOk: true, section: 'Financial' },
-    { name: 'Production', icon: <Factory size={20} />, path: '/production', adminOk: true, normalOk: true, section: 'Manufacturing' },
-    { name: 'Daily Reports', icon: <FileText size={20} />, path: '/daily-reports', adminOk: true, normalOk: true, section: 'Manufacturing' },
-    { name: 'Inspections', icon: <ClipboardCheck size={20} />, path: '/inspections', adminOk: true, normalOk: true, section: 'Manufacturing' },
+    { name: 'HR Management', icon: <Users size={20} />, path: '/hr', adminOk: true, normalOk: true, section: 'Overview' },
+    { name: 'Project Management', icon: <ListTodo size={20} />, path: '/projects', adminOk: true, normalOk: true, section: 'Overview' },
+    { name: 'Manufacturing Hub', icon: <Factory size={20} />, path: '/manufacturing', adminOk: true, normalOk: true, section: 'Manufacturing' },
     { name: 'Inventory Stores', icon: <PackageSearch size={20} />, path: '/inventory', adminOk: true, normalOk: true, section: 'Manufacturing' },
-    { name: 'Price Variation', icon: <TrendingUp size={20} />, path: '/price-variation', adminOk: true, normalOk: false, section: 'Financial' },
-    { name: 'Warranty claims', icon: <Shield size={20} />, path: '/warranty', adminOk: true, normalOk: true, section: 'Manufacturing' },
-    { name: 'Employees', icon: <Users size={20} />, path: '/employees', adminOk: true, normalOk: true, section: 'Overview' },
-    { name: 'Payroll', icon: <FileText size={20} />, path: '/payroll', adminOk: true, normalOk: true, section: 'Financial' },
-    { name: 'Vendor Purchasing', icon: <ShoppingCart size={20} />, path: '/vendor-purchasing', adminOk: true, normalOk: false, section: 'Financial' },
-    { name: 'Pending Tasks', icon: <ListTodo size={20} />, path: '/pending-tasks', adminOk: true, normalOk: true, section: 'Overview' },
-    { name: 'Milestones', icon: <Target size={20} />, path: '/milestones', adminOk: true, normalOk: true, section: 'Overview' },
-    { name: 'BOM Config', icon: <FileText size={20} />, path: '/bom', adminOk: true, normalOk: false, section: 'Manufacturing' },
-    { name: 'Daily Expenses', icon: <FileText size={20} />, path: '/expenses', adminOk: true, normalOk: true, section: 'Financial' },
-    { name: 'Daily Summary', icon: <FileText size={20} />, path: '/eod-summary', adminOk: true, normalOk: true, section: 'Financial' },
-    { name: 'Bank Guarantee & LC', icon: <Briefcase size={20} />, path: '/bg-lc', adminOk: true, normalOk: true, section: 'Financial' },
-    { name: 'Custom Duty', icon: <Percent size={20} />, path: '/custom-duty', adminOk: true, normalOk: true, section: 'Financial' },
+    { name: 'Daily Operations', icon: <FileText size={20} />, path: '/operations', adminOk: true, normalOk: true, section: 'Financial' },
+    { name: 'Financial Hub', icon: <TrendingUp size={20} />, path: '/finance', adminOk: true, normalOk: true, section: 'Financial' },
     { name: 'Audit Logs', icon: <ClipboardList size={20} />, path: '/logs', adminOk: false, normalOk: false, section: 'System' },
     { name: 'User Management', icon: <UserCog size={20} />, path: '/users', adminOk: false, normalOk: false, section: 'System' },
   ];
@@ -65,35 +54,23 @@ const Sidebar = ({ isMobileMenuOpen, setIsMobileMenuOpen }) => {
   const visibleNavItems = navItems.filter(item => {
     if (currentUser?.role === 'superadmin') return true;
     
-    // Check if the route is explicitly enabled via the user's modules array
-    // We map the route path to the module id used in UserManagement
-    const pathMap = {
-      '/': 'dashboard',
-      '/purchase-orders': 'purchase-orders',
-      '/production': 'production',
-      '/daily-reports': 'daily-reports',
-      '/inspections': 'inspections',
-      '/inventory': 'inventory',
-      '/price-variation': 'price-variation',
-      '/warranty': 'warranty',
-      '/employees': 'employees',
-      '/vendor-purchasing': 'vendor-purchasing',
-      '/pending-tasks': 'pending-tasks',
-      '/milestones': 'milestones',
-      '/expenses': 'expenses',
-      '/eod-summary': 'eod-summary',
-      '/bg-lc': 'bg-lc',
-      '/custom-duty': 'custom-duty',
-      '/bom': 'bom',
-      '/payroll': 'payroll'
+    const hubMap = {
+      '/': ['dashboard'],
+      '/hr': ['employees', 'payroll'],
+      '/projects': ['pending-tasks', 'milestones'],
+      '/manufacturing': ['production', 'inspections', 'warranty', 'bom'],
+      '/inventory': ['inventory'],
+      '/operations': ['daily-reports', 'expenses', 'eod-summary'],
+      '/finance': ['purchase-orders', 'vendor-purchasing', 'price-variation', 'bg-lc', 'custom-duty'],
     };
     
-    const moduleId = pathMap[item.path];
+    const requiredModules = hubMap[item.path] || [];
     
     // Always show Dashboard if no modules are strictly mapped (or if we want it global)
     if (item.path === '/') return true;
     
-    if (currentUser?.modules && currentUser.modules.includes(moduleId)) {
+    // If the user has ANY of the required modules for this hub, show the hub
+    if (currentUser?.modules && requiredModules.some(mod => currentUser.modules.includes(mod))) {
       return true;
     }
     

@@ -460,3 +460,38 @@ input[type=number] {
   background-color: var(--bg-secondary);
   color: var(--text-primary);
 }
+
+/* Hub Page Layout Adjustments */
+.hub-tab-content .page-header {
+  display: none !important;
+}
+.hub-tab-content > .animate-fade-in {
+  animation: none !important;
+}
+.hub-tabs-container {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  border-bottom: 1px solid var(--border-color);
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+.hub-tab-btn {
+  padding: 0.75rem 1rem;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.95rem;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+.hub-tab-btn:hover {
+  color: var(--text-primary);
+}
+.hub-tab-btn.active {
+  color: var(--accent-primary);
+  border-bottom-color: var(--accent-primary);
+}

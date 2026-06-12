@@ -46,6 +46,12 @@ const CustomDuty = React.lazy(() => import('./pages/CustomDuty'));
 const DailyReports = React.lazy(() => import('./pages/DailyReports'));
 const BOMManagement = React.lazy(() => import('./pages/BOMManagement'));
 
+const FinanceHub = React.lazy(() => import('./pages/FinanceHub'));
+const ManufacturingHub = React.lazy(() => import('./pages/ManufacturingHub'));
+const HRHub = React.lazy(() => import('./pages/HRHub'));
+const OperationsHub = React.lazy(() => import('./pages/OperationsHub'));
+const ProjectHub = React.lazy(() => import('./pages/ProjectHub'));
+
 // Protected Route Wrapper
 const ProtectedRoute = ({ children, requireSuperAdmin }) => {
   const { currentUser, isAuthenticated, loading } = useAuth();
@@ -90,23 +96,31 @@ function App() {
             
             <Route path="/" element={<ProtectedRoute><MainLayout /></ProtectedRoute>}>
               <Route index element={<Dashboard />} />
-              <Route path="production" element={<ProductionTracker />} />
-              <Route path="inspections" element={<Inspections />} />
+              <Route path="finance" element={<FinanceHub />} />
+              <Route path="manufacturing" element={<ManufacturingHub />} />
+              <Route path="hr" element={<HRHub />} />
+              <Route path="operations" element={<OperationsHub />} />
+              <Route path="projects" element={<ProjectHub />} />
               <Route path="inventory" element={<InventoryManagement />} />
-              <Route path="expenses" element={<DailyExpenses />} />
-              <Route path="employees" element={<Employees />} />
-              <Route path="vendor-purchasing" element={<VendorPurchasing />} />
-              <Route path="pending-tasks" element={<PendingTasks />} />
-              <Route path="milestones" element={<Milestones />} />
-              <Route path="warranty" element={<WarrantyManagement />} />
-              <Route path="purchase-orders" element={<PurchaseOrders />} />
-              <Route path="price-variation" element={<PriceVariation />} />
-              <Route path="eod-summary" element={<EodSummary />} />
-              <Route path="bg-lc" element={<BankGuaranteeLC />} />
-              <Route path="custom-duty" element={<CustomDuty />} />
-              <Route path="daily-reports" element={<DailyReports />} />
-              <Route path="bom" element={<BOMManagement />} />
-              <Route path="payroll" element={<Payroll />} />
+              
+              {/* Legacy route redirects to preserve bookmarks */}
+              <Route path="production" element={<Navigate to="/manufacturing#production" replace />} />
+              <Route path="inspections" element={<Navigate to="/manufacturing#inspections" replace />} />
+              <Route path="warranty" element={<Navigate to="/manufacturing#warranty" replace />} />
+              <Route path="bom" element={<Navigate to="/manufacturing#bom" replace />} />
+              <Route path="purchase-orders" element={<Navigate to="/finance#purchase-orders" replace />} />
+              <Route path="vendor-purchasing" element={<Navigate to="/finance#vendor-purchasing" replace />} />
+              <Route path="price-variation" element={<Navigate to="/finance#price-variation" replace />} />
+              <Route path="bg-lc" element={<Navigate to="/finance#bg-lc" replace />} />
+              <Route path="custom-duty" element={<Navigate to="/finance#custom-duty" replace />} />
+              <Route path="employees" element={<Navigate to="/hr#employees" replace />} />
+              <Route path="payroll" element={<Navigate to="/hr#payroll" replace />} />
+              <Route path="daily-reports" element={<Navigate to="/operations#daily-reports" replace />} />
+              <Route path="expenses" element={<Navigate to="/operations#expenses" replace />} />
+              <Route path="eod-summary" element={<Navigate to="/operations#eod-summary" replace />} />
+              <Route path="pending-tasks" element={<Navigate to="/projects#pending-tasks" replace />} />
+              <Route path="milestones" element={<Navigate to="/projects#milestones" replace />} />
+
               <Route path="profile" element={<ProfileSettings />} />
               <Route path="users" element={<ProtectedRoute requireSuperAdmin={true}><UserManagement /></ProtectedRoute>} />
               <Route path="logs" element={<ProtectedRoute requireSuperAdmin={true}><SystemLogs /></ProtectedRoute>} />
