@@ -66,8 +66,8 @@ function App() {
       <ToastProvider>
       <AuthProvider>
         <NotificationProvider>
-          <BOMProvider>
           <LogProvider>
+          <BOMProvider>
           <POProvider>
             <PVProvider>
               <WarrantyProvider>
@@ -125,8 +125,8 @@ function App() {
               </WarrantyProvider>
             </PVProvider>
           </POProvider>
-        </LogProvider>
-                  </BOMProvider>
+        </BOMProvider>
+                  </LogProvider>
         </NotificationProvider>
       </AuthProvider>
     </ToastProvider>
