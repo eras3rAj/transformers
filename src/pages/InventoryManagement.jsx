@@ -6,6 +6,7 @@ import { useInventory } from '../context/InventoryContext';
 import { useAuth } from '../context/AuthContext';
 import ConfirmModal from '../components/common/ConfirmModal';
 import SkeletonLoader from '../components/common/SkeletonLoader';
+import MultiSelect from '../components/common/MultiSelect';
 import ItemDetailsModal from '../components/inventory/ItemDetailsModal';
 
 import { processMaterialFlow, exportToCSV } from '../utils/MaterialFlowUtils';
@@ -22,7 +23,7 @@ const InventoryManagement = () => {
   const [activeTab, setActiveTab] = useState('Overview');
   const [activeCategoryTab, setActiveCategoryTab] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
-  const [flowFilters, setFlowFilters] = useState({ startDate: '', endDate: '', showIn: true, showOut: true, usageType: 'ALL', entity: 'ALL', item: 'ALL', vendor: 'ALL' });
+  const [flowFilters, setFlowFilters] = useState({ startDate: '', endDate: '', showIn: true, showOut: true, usageType: 'ALL', entity: 'ALL', items: [], vendors: [] });
 
   // Filter items based on search query
   const filteredItems = useMemo(() => {
@@ -1148,23 +1149,19 @@ const InventoryManagement = () => {
           <option value="LOSS">Loss / Damage</option>
         </select>
 
-        <select 
-          value={flowFilters.item} 
-          onChange={e => setFlowFilters({...flowFilters, item: e.target.value})}
-          style={{ padding: '0.4rem', borderRadius: '4px', border: '1px solid var(--border-color)', background: 'var(--bg-primary)', color: 'var(--text-primary)' }}
-        >
-          <option value="ALL">All Items</option>
-          {items.map(i => <option key={i.id} value={i.name}>{i.name}</option>)}
-        </select>
+        <MultiSelect 
+          options={items.map(i => i.name)}
+          selectedValues={flowFilters.items}
+          onChange={(vals) => setFlowFilters({...flowFilters, items: vals})}
+          placeholder="All Items"
+        />
 
-        <select 
-          value={flowFilters.vendor} 
-          onChange={e => setFlowFilters({...flowFilters, vendor: e.target.value})}
-          style={{ padding: '0.4rem', borderRadius: '4px', border: '1px solid var(--border-color)', background: 'var(--bg-primary)', color: 'var(--text-primary)' }}
-        >
-          <option value="ALL">All Suppliers</option>
-          {companies.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
-        </select>
+        <MultiSelect 
+          options={companies.map(c => c.name)}
+          selectedValues={flowFilters.vendors}
+          onChange={(vals) => setFlowFilters({...flowFilters, vendors: vals})}
+          placeholder="All Suppliers"
+        />
 
         <select 
           value={flowFilters.entity} 
@@ -1176,7 +1173,7 @@ const InventoryManagement = () => {
         </select>
         
         <button 
-          onClick={() => setFlowFilters({ startDate: '', endDate: '', showIn: true, showOut: true, usageType: 'ALL', entity: 'ALL', item: 'ALL', vendor: 'ALL' })}
+          onClick={() => setFlowFilters({ startDate: '', endDate: '', showIn: true, showOut: true, usageType: 'ALL', entity: 'ALL', items: [], vendors: [] })}
           style={{ padding: '0.4rem 1rem', background: 'transparent', border: '1px solid var(--border-color)', borderRadius: '4px', color: 'var(--text-primary)', cursor: 'pointer' }}
         >
           Clear
