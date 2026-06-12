@@ -21,6 +21,8 @@ import { NotificationProvider } from './context/NotificationContext';
 import { BOMProvider } from './context/BOMContext';
 import { DailyReportProvider } from './context/DailyReportContext';
 import { ToastProvider } from './context/ToastContext';
+import { DispatchProvider } from './context/DispatchContext';
+
 
 // Lazy loaded page components for Code Splitting
 const Dashboard = React.lazy(() => import('./pages/Dashboard'));
@@ -89,6 +91,7 @@ function App() {
                                 <BgLcProvider>
                                   <CustomDutyProvider>
                                     <DailyReportProvider>
+<DispatchProvider>
       <Router>
         <Suspense fallback={<div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>Loading application...</div>}>
           <Routes>
@@ -128,7 +131,8 @@ function App() {
           </Routes>
         </Suspense>
       </Router>
-                                    </DailyReportProvider>
+                                    </DispatchProvider>
+</DailyReportProvider>
                                   </CustomDutyProvider>
                                 </BgLcProvider>
                               </MilestoneProvider>

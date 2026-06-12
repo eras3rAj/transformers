@@ -14,7 +14,8 @@ const OperationsHub = () => {
   const allTabs = [
     { id: 'daily-reports', label: 'Daily Reports', component: <DailyReports /> },
     { id: 'expenses', label: 'Daily Expenses', component: <DailyExpenses /> },
-    { id: 'eod-summary', label: 'EOD Summary', component: <EodSummary /> }
+    { id: 'eod-summary', label: 'EOD Summary', component: <EodSummary /> },
+    { id: 'dispatch', label: 'Dispatch & Loading', component: <TransformerDispatch /> }
   ];
 
   // Filter tabs based on user permissions
