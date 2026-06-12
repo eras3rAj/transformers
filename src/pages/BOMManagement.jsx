@@ -111,40 +111,39 @@ const BOMManagement = () => {
         </div>
       </header>
 
-      <div className="content-grid" style={{ gridTemplateColumns: '1fr' }}>
-        <div className="card glass-panel" style={{ padding: 0, overflow: 'hidden' }}>
-          <div className="table-responsive">
-            <table className="datatable" style={{ width: '100%', borderCollapse: 'collapse' }}>
-              <thead>
+      <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+        <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '700px' }}>
+            <thead>
+              <tr style={{ backgroundColor: 'var(--bg-tertiary)', borderBottom: '1px solid var(--border-color)' }}>
+                <th style={{ padding: '1rem', width: '40px' }}></th>
+                <th style={{ padding: '1rem', fontSize: '0.85rem', color: 'var(--text-muted)' }}>TRANSFORMER RATING</th>
+                <th style={{ padding: '1rem', fontSize: '0.85rem', color: 'var(--text-muted)' }}>PHASE</th>
+                <th style={{ padding: '1rem', fontSize: '0.85rem', color: 'var(--text-muted)' }}>MATERIAL COUNT</th>
+                <th style={{ padding: '1rem', fontSize: '0.85rem', color: 'var(--text-muted)', textAlign: 'right' }}>ACTIONS</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredBOMs.length === 0 ? (
                 <tr>
-                  <th style={{ width: '40px' }}></th>
-                  <th>Transformer Rating</th>
-                  <th>Phase</th>
-                  <th>Material Count</th>
-                  <th style={{ textAlign: 'right' }}>Actions</th>
+                  <td colSpan={5} style={{ textAlign: 'center', padding: '4rem 2rem', color: 'var(--text-secondary)' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem' }}>
+                      <Layers size={48} color="var(--border-color)" />
+                      <p style={{ fontSize: '1.1rem', fontWeight: 500, margin: 0 }}>No BOMs defined.</p>
+                      <p style={{ fontSize: '0.9rem', margin: 0 }}>Click "Create BOM" to start building material recipes.</p>
+                    </div>
+                  </td>
                 </tr>
-              </thead>
-              <tbody>
-                {filteredBOMs.length === 0 ? (
-                  <tr>
-                    <td colSpan={5} style={{ textAlign: 'center', padding: '4rem 2rem', color: 'var(--text-secondary)', backgroundColor: 'transparent' }}>
-                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem' }}>
-                        <Layers size={48} color="var(--border-color)" />
-                        <p style={{ fontSize: '1.1rem', fontWeight: 500 }}>No BOMs defined.</p>
-                        <p style={{ fontSize: '0.9rem' }}>Click "Create BOM" to start building material recipes.</p>
-                      </div>
+              ) : filteredBOMs.map((bom) => (
+                <React.Fragment key={bom.id}>
+                  <tr style={{ cursor: 'pointer', borderBottom: '1px solid var(--border-color)' }} onClick={() => setExpandedBOM(expandedBOM === bom.rating ? null : bom.rating)}>
+                    <td style={{ padding: '1rem', color: 'var(--text-muted)' }}>
+                      {expandedBOM === bom.rating ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
                     </td>
-                  </tr>
-                ) : filteredBOMs.map((bom) => (
-                  <React.Fragment key={bom.id}>
-                    <tr style={{ cursor: 'pointer' }} onClick={() => setExpandedBOM(expandedBOM === bom.rating ? null : bom.rating)}>
-                      <td>
-                        {expandedBOM === bom.rating ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
-                      </td>
-                      <td style={{ fontWeight: 600 }}>{bom.rating}</td>
-                      <td>{bom.phase}</td>
-                      <td>{bom.materials.length} Items</td>
-                      <td style={{ textAlign: 'right' }}>
+                    <td style={{ padding: '1rem', fontWeight: 600, color: 'var(--text-primary)' }}>{bom.rating}</td>
+                    <td style={{ padding: '1rem' }}>{bom.phase}</td>
+                    <td style={{ padding: '1rem', color: 'var(--text-secondary)' }}>{bom.materials.length} Items</td>
+                    <td style={{ padding: '1rem', textAlign: 'right' }}>
                         <div className="action-buttons" style={{ justifyContent: 'flex-end' }}>
                           <button 
                             className="icon-btn" 
@@ -199,7 +198,6 @@ const BOMManagement = () => {
             </table>
           </div>
         </div>
-      </div>
 
       {isModalOpen && (
         <div className="modal-overlay">

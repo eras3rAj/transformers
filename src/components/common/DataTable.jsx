@@ -76,7 +76,7 @@ const DataTable = ({
       <div className="datatable-toolbar">
         {searchable && (
           <div className="datatable-search">
-            <Search size={16} className="search-icon" />
+            <Search size={18} className="datatable-search-icon" />
             <input 
               type="text" 
               placeholder={searchPlaceholder} 
