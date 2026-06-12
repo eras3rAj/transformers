@@ -61,14 +61,15 @@ export const BOMProvider = ({ children }) => {
     };
   }, []);
 
-  const saveBOM = async (rating, phase, materials) => {
+  const saveBOM = async (rating, phase, materials, linkedPOs = []) => {
     const payload = {
       action: 'bom_record',
       user_name: currentUser?.name || 'System',
       changes: {
         rating,
         phase,
-        materials // Array of { itemId, quantity, unit }
+        materials, // Array of { itemId, quantity, unit }
+        linkedPOs
       }
     };
     await addLog(payload.action, payload.changes, payload.user_name);

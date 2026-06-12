@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { Layers, Plus, Save, Trash2, Edit2, Copy, Search, ChevronDown, ChevronUp, X } from 'lucide-react';
 import { useBOM } from '../context/BOMContext';
 import { useInventory } from '../context/InventoryContext';
+import { usePO } from '../context/POContext';
 import ConfirmModal from '../components/common/ConfirmModal';
 import '../components/common/DataTable.css';
 import '../components/layout/Layout.css';
@@ -9,26 +10,45 @@ import '../components/layout/Layout.css';
 const BOMManagement = () => {
   const { boms, saveBOM, deleteBOM } = useBOM();
   const { items } = useInventory();
+  const { pos, capacities } = usePO();
   
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [bomToDelete, setBomToDelete] = useState(null);
   
-  const [formData, setFormData] = useState({ rating: '', phase: '3-Phase', materials: [] });
+  const [formData, setFormData] = useState({ rating: '', phase: '3-Phase', materials: [], linkedPOs: [] });
   const [searchTerm, setSearchTerm] = useState('');
   const [expandedBOM, setExpandedBOM] = useState(null);
 
+  const ratingOptions = useMemo(() => {
+    const opts = new Set();
+    boms.forEach(b => opts.add(b.rating));
+    if (capacities) capacities.forEach(c => opts.add(c));
+    if (pos) pos.forEach(p => p.capacity && opts.add(p.capacity));
+    return Array.from(opts).sort();
+  }, [boms, capacities, pos]);
+
   const handleOpenModal = (bom = null) => {
     if (bom) {
-      setFormData({ rating: bom.rating, phase: bom.phase, materials: [...bom.materials] });
+      setFormData({ 
+        rating: bom.rating, 
+        phase: bom.phase || '3-Phase', 
+        materials: bom.materials ? [...bom.materials] : [],
+        linkedPOs: bom.linkedPOs ? [...bom.linkedPOs] : []
+      });
     } else {
-      setFormData({ rating: '', phase: '3-Phase', materials: [] });
+      setFormData({ rating: '', phase: '3-Phase', materials: [], linkedPOs: [] });
     }
     setIsModalOpen(true);
   };
 
   const handleCloneBOM = (bom) => {
-    setFormData({ rating: bom.rating + ' (Copy)', phase: bom.phase, materials: [...bom.materials] });
+    setFormData({ 
+      rating: bom.rating + ' (Copy)', 
+      phase: bom.phase || '3-Phase', 
+      materials: bom.materials ? [...bom.materials] : [],
+      linkedPOs: [] // Do not copy linked POs to a clone
+    });
     setIsModalOpen(true);
   };
 
@@ -47,7 +67,7 @@ const BOMManagement = () => {
 
   const handleSave = async (e) => {
     e.preventDefault();
-    await saveBOM(formData.rating, formData.phase, formData.materials);
+    await saveBOM(formData.rating, formData.phase, formData.materials, formData.linkedPOs || []);
     setIsModalOpen(false);
   };
 
@@ -172,7 +192,22 @@ const BOMManagement = () => {
                     {expandedBOM === bom.rating && (
                       <tr className="expanded-row" style={{ backgroundColor: 'var(--bg-tertiary)' }}>
                         <td colSpan={5} style={{ padding: '1.5rem' }}>
-                          <h4 style={{ marginBottom: '1rem', color: 'var(--text-secondary)', fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Required Materials</h4>
+                          {(bom.linkedPOs && bom.linkedPOs.length > 0) && (
+                            <div style={{ marginBottom: '1.5rem' }}>
+                              <h4 style={{ margin: '0 0 0.5rem 0', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>LINKED PURCHASE ORDERS</h4>
+                              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+                                {bom.linkedPOs.map(poNo => (
+                                  <span key={poNo} style={{ padding: '0.25rem 0.75rem', backgroundColor: 'var(--accent-primary)', color: 'white', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 600 }}>
+                                    {poNo}
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                            <h4 style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Required Materials</h4>
+                            <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Total Items: {bom.materials?.length || 0}</span>
+                          </div>
                           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1rem' }}>
                             {bom.materials.map((mat, idx) => {
                               const itemDetails = items.find(i => i.id === mat.itemId);
@@ -215,12 +250,16 @@ const BOMManagement = () => {
                   <input 
                     type="text" 
                     required 
+                    list="rating-options"
                     className="input-field"
-                    placeholder="e.g. 100 KVA 11/0.433 KV"
+                    placeholder="Type or select rating..."
                     value={formData.rating}
                     onChange={(e) => setFormData({...formData, rating: e.target.value})}
                     disabled={boms.some(b => b.rating === formData.rating) && !formData.rating.includes('(Copy)')}
                   />
+                  <datalist id="rating-options">
+                    {ratingOptions.map(opt => <option key={opt} value={opt} />)}
+                  </datalist>
                 </div>
                 <div style={{ flex: 1 }}>
                   <label className="input-label">Phase</label>
@@ -234,6 +273,32 @@ const BOMManagement = () => {
                     <option value="2-Phase">2-Phase</option>
                     <option value="3-Phase">3-Phase</option>
                   </select>
+                </div>
+              </div>
+
+              <div style={{ marginTop: '1.5rem' }}>
+                <label className="input-label" style={{ marginBottom: '0.5rem' }}>Link to Active Purchase Orders (Optional)</label>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', maxHeight: '120px', overflowY: 'auto', padding: '0.75rem', border: '1px solid var(--border-color)', borderRadius: '4px', backgroundColor: 'var(--bg-tertiary)' }}>
+                  {(!pos || pos.length === 0) ? (
+                    <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>No active purchase orders found.</span>
+                  ) : (
+                    pos.map(po => (
+                      <label key={po.poNo} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.25rem 0.5rem', backgroundColor: 'var(--bg-secondary)', borderRadius: '4px', fontSize: '0.85rem', cursor: 'pointer', border: '1px solid var(--border-color)' }}>
+                        <input 
+                          type="checkbox" 
+                          checked={(formData.linkedPOs || []).includes(po.poNo)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setFormData({ ...formData, linkedPOs: [...(formData.linkedPOs || []), po.poNo] });
+                            } else {
+                              setFormData({ ...formData, linkedPOs: (formData.linkedPOs || []).filter(p => p !== po.poNo) });
+                            }
+                          }}
+                        />
+                        {po.poNo} ({po.capacity})
+                      </label>
+                    ))
+                  )}
                 </div>
               </div>
 
