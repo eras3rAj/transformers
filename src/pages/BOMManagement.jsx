@@ -112,7 +112,7 @@ const BOMManagement = () => {
       </header>
 
       <div className="content-grid" style={{ gridTemplateColumns: '1fr' }}>
-        <div className="card glass-panel p-0">
+        <div className="card glass-panel" style={{ padding: 0, overflow: 'hidden' }}>
           <div className="table-responsive">
             <table className="datatable" style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
@@ -127,7 +127,7 @@ const BOMManagement = () => {
               <tbody>
                 {filteredBOMs.length === 0 ? (
                   <tr>
-                    <td colSpan={5} style={{ textAlign: 'center', padding: '4rem 2rem', color: 'var(--text-secondary)', backgroundColor: 'var(--bg-primary)' }}>
+                    <td colSpan={5} style={{ textAlign: 'center', padding: '4rem 2rem', color: 'var(--text-secondary)', backgroundColor: 'transparent' }}>
                       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem' }}>
                         <Layers size={48} color="var(--border-color)" />
                         <p style={{ fontSize: '1.1rem', fontWeight: 500 }}>No BOMs defined.</p>
