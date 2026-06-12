@@ -6,7 +6,7 @@ import { useLogs } from '../context/LogContext';
 import { useUsers } from '../context/UserContext';
 import { FileText, Plus, CheckCircle, XCircle, Clock, MessageSquare } from 'lucide-react';
 import ConfirmModal from '../components/common/ConfirmModal';
-import { exportToPDF, exportToExcel } from '../utils/exportUtils';
+import { exportToCSV, printDocument } from '../utils/exportUtils';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 
 const DailyExpenses = () => {
@@ -149,28 +149,27 @@ const DailyExpenses = () => {
   });
 
   const handleExportPDF = () => {
-    const headers = ['Date', 'Amount (INR)', 'Reason', 'Payable To', 'Submitted By', 'Status'];
-    const rows = visibleExpenses.map(exp => [
-      formatDate(exp.date),
-      Number(exp.amount).toFixed(2),
-      exp.reason,
-      exp.payable_to,
-      exp.submitted_by,
-      exp.status
-    ]);
-    exportToPDF('Daily Expenses Report', headers, rows, 'daily_expenses_report');
-  };
-
-  const handleExportExcel = () => {
     const data = visibleExpenses.map(exp => ({
       Date: formatDate(exp.date),
-      Amount: Number(exp.amount),
+      'Amount (INR)': Number(exp.amount).toFixed(2),
       Reason: exp.reason,
       'Payable To': exp.payable_to,
       'Submitted By': exp.submitted_by,
       Status: exp.status
     }));
-    exportToExcel(data, 'Expenses', 'daily_expenses_report');
+    printDocument('Daily Expenses Report', data);
+  };
+
+  const handleExportExcel = () => {
+    const data = visibleExpenses.map(exp => ({
+      Date: formatDate(exp.date),
+      'Amount (INR)': Number(exp.amount).toFixed(2),
+      Reason: exp.reason,
+      'Payable To': exp.payable_to,
+      'Submitted By': exp.submitted_by,
+      Status: exp.status
+    }));
+    exportToCSV(data, 'daily_expenses_report.csv');
   };
 
   return (
