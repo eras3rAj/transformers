@@ -51,7 +51,7 @@ const Sidebar = ({ isMobileMenuOpen, setIsMobileMenuOpen }) => {
     { name: 'User Management', icon: <UserCog size={20} />, path: '/users', adminOk: false, normalOk: false, section: 'System' },
   ];
 
-  const visibleNavItems = navItems.filter(item => {
+  const visibleNavItems = React.useMemo(() => navItems.filter(item => {
     if (currentUser?.role === 'superadmin') return true;
     
     const hubMap = {
@@ -81,7 +81,7 @@ const Sidebar = ({ isMobileMenuOpen, setIsMobileMenuOpen }) => {
     }
     
     return false;
-  });
+  }), [currentUser]);
 
   const sectionsWithItems = React.useMemo(() => {
     const sections = ['Overview', 'Manufacturing', 'Financial', 'System'];
@@ -95,9 +95,13 @@ const Sidebar = ({ isMobileMenuOpen, setIsMobileMenuOpen }) => {
     // Automatically expand the section that contains the current active route
     const activeSection = sectionsWithItems.find(sec => sec.items.some(i => i.path === location.pathname));
     if (activeSection) {
-      setExpandedSections(prev => ({ ...prev, [activeSection.name]: true }));
+      setExpandedSections(prev => {
+        if (prev[activeSection.name]) return prev;
+        return { ...prev, [activeSection.name]: true };
+      });
     }
-  }, [location.pathname, sectionsWithItems]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.pathname]);
 
   const toggleSection = (secName) => {
     setExpandedSections(prev => ({ ...prev, [secName]: !prev[secName] }));
