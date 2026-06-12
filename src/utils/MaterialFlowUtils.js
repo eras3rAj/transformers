@@ -10,14 +10,25 @@ export const processMaterialFlow = (transactions, filters = {}) => {
     const end = new Date(filters.endDate).getTime();
     filteredTxns = filteredTxns.filter(t => new Date(t.date).getTime() <= end);
   }
-  if (filters.type && filters.type !== 'ALL') {
-    filteredTxns = filteredTxns.filter(t => t.type === filters.type);
+  if (!filters.showIn && !filters.showOut) {
+    filteredTxns = [];
+  } else if (!filters.showIn && filters.showOut) {
+    filteredTxns = filteredTxns.filter(t => t.type === 'OUT');
+  } else if (filters.showIn && !filters.showOut) {
+    filteredTxns = filteredTxns.filter(t => t.type === 'IN');
   }
+  
   if (filters.usageType && filters.usageType !== 'ALL') {
     filteredTxns = filteredTxns.filter(t => t.usageType === filters.usageType);
   }
-  if (filters.entity && filters.entity !== 'ALL') {
-    filteredTxns = filteredTxns.filter(t => t.department === filters.entity || t.companyName === filters.entity);
+  if (filters.entity && filters.entity !== 'ALL') { // Department filter
+    filteredTxns = filteredTxns.filter(t => t.department === filters.entity);
+  }
+  if (filters.vendor && filters.vendor !== 'ALL') {
+    filteredTxns = filteredTxns.filter(t => t.companyName === filters.vendor);
+  }
+  if (filters.item && filters.item !== 'ALL') {
+    filteredTxns = filteredTxns.filter(t => t.item === filters.item);
   }
 
   // 1. Top Consumers (Departments) - based on OUT transactions and unitPrice
