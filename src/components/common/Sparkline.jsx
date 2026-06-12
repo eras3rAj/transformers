@@ -1,5 +1,6 @@
 import React from 'react';
-import { LineChart, Line, ResponsiveContainer } from 'recharts';
+import * as Recharts from 'recharts';
+const { LineChart, Line, ResponsiveContainer } = Recharts;
 
 const Sparkline = ({ data, dataKey = 'value', color = '#3b82f6', width = 100, height = 30 }) => {
   // If data is empty or invalid, return a placeholder

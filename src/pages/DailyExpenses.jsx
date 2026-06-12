@@ -7,7 +7,8 @@ import { useUsers } from '../context/UserContext';
 import { FileText, Plus, CheckCircle, XCircle, Clock, MessageSquare } from 'lucide-react';
 import ConfirmModal from '../components/common/ConfirmModal';
 import { exportToCSV, printDocument } from '../utils/exportUtils';
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
+import * as Recharts from 'recharts';
+const { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } = Recharts;
 
 const DailyExpenses = () => {
   const { expenses, addExpense, updateExpenseStatus, updateExpenseComment, loading } = useExpenses();

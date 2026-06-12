@@ -9,7 +9,8 @@ import { useExpenses } from '../context/ExpenseContext';
 import { useWarranty } from '../context/WarrantyContext';
 import { useInventory } from '../context/InventoryContext';
 import { useMilestones } from '../context/MilestoneContext';
-import { BarChart, Bar, AreaChart, Area, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
+import * as Recharts from 'recharts';
+const { BarChart, Bar, AreaChart, Area, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } = Recharts;
 import { useAuth } from '../context/AuthContext';
 import '../components/layout/Layout.css';
 
