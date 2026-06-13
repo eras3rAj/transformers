@@ -7,7 +7,7 @@ import '../layout/Layout.css';
 
 const WarrantyForm = ({ onClose, onSubmit, initialData, availablePOs = [] }) => {
   const { currentUser } = useAuth();
-  const { boards, addBoard, removeBoard, capacities, addCapacity } = usePO();
+  const { boards, addBoard, removeBoard, capacities, addCapacity, poSeries, addPOSeries } = usePO();
   const { stores, addStore, removeStore } = useWarranty();
 
   // Main form state
@@ -28,12 +28,41 @@ const WarrantyForm = ({ onClose, onSubmit, initialData, availablePOs = [] }) => 
   });
 
   // UI state for showing "Add New" inputs
-  const [adding, setAdding] = useState({ board: false, store: false, capacity: false });
+  const [adding, setAdding] = useState({ board: false, store: false, capacity: false, series: false });
   
   // Temp state for new items
   const [newBoard, setNewBoard] = useState('');
   const [newStore, setNewStore] = useState('');
   const [newCapacity, setNewCapacity] = useState('');
+  const [newSeriesPrefix, setNewSeriesPrefix] = useState('');
+
+  // Series selection state
+  const [selectedPrefix, setSelectedPrefix] = useState('');
+  const [serialSuffix, setSerialSuffix] = useState('');
+
+  // If initialData exists, try to parse its prefix
+  useEffect(() => {
+    if (initialData?.slNo) {
+      const prefixes = poSeries.filter(p => p.poNo === initialData.poNo).map(p => p.prefix);
+      let foundPrefix = '';
+      for (const p of prefixes) {
+        if (initialData.slNo.startsWith(p)) {
+          foundPrefix = p;
+          break;
+        }
+      }
+      if (foundPrefix) {
+        setSelectedPrefix(foundPrefix);
+        setSerialSuffix(initialData.slNo.substring(foundPrefix.length));
+      } else {
+        setSerialSuffix(initialData.slNo);
+      }
+    }
+  }, []); // Only run once on mount
+
+  useEffect(() => {
+    setFormData(prev => ({ ...prev, slNo: `${selectedPrefix}${serialSuffix}` }));
+  }, [selectedPrefix, serialSuffix]);
 
   // Automatically calculate returnDate whenever intimationDate or returnDays changes
   useEffect(() => {
@@ -55,6 +84,8 @@ const WarrantyForm = ({ onClose, onSubmit, initialData, availablePOs = [] }) => 
         poDate: selectedPO ? selectedPO.poDate : prev.poDate,
         capacity: selectedPO ? selectedPO.capacity : prev.capacity
       }));
+      // Reset prefix when PO changes
+      setSelectedPrefix('');
     } else {
       setFormData(prev => ({ ...prev, [name]: value }));
     }
@@ -89,6 +120,15 @@ const WarrantyForm = ({ onClose, onSubmit, initialData, availablePOs = [] }) => 
       setFormData(prev => ({ ...prev, capacity: newCapacity.trim() }));
       setNewCapacity('');
       setAdding(prev => ({ ...prev, capacity: false }));
+    }
+  };
+
+  const saveNewSeries = async () => {
+    if (newSeriesPrefix.trim() && formData.poNo) {
+      await addPOSeries(formData.poNo, newSeriesPrefix.trim());
+      setSelectedPrefix(newSeriesPrefix.trim());
+      setNewSeriesPrefix('');
+      setAdding(prev => ({ ...prev, series: false }));
     }
   };
 
@@ -140,16 +180,44 @@ const WarrantyForm = ({ onClose, onSubmit, initialData, availablePOs = [] }) => 
             {/* Column 1: Identification & Location */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1.2rem' }}>
               <div>
-                <label className="input-label">Transformer Sl No.</label>
-                <input type="text" name="slNo" value={formData.slNo} onChange={handleChange} className="input-field" required placeholder="e.g. TR-2024-001" />
-              </div>
-              
-              <div>
                 <label className="input-label">Purchase Order (PO)</label>
                 <select name="poNo" value={formData.poNo} onChange={handleChange} className="input-field" required>
                   <option value="">-- Select PO --</option>
                   {availablePOs.map(po => <option key={po.id} value={po.poNo}>{po.capacity ? `${po.capacity} - ` : ''}{po.poNo} ({po.utilityBoard})</option>)}
                 </select>
+              </div>
+
+              <div>
+                {renderAddHeader('Transformer Sl No.', 'series')}
+                {adding.series ? (
+                  <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                    <input type="text" className="input-field" value={newSeriesPrefix} onChange={e => setNewSeriesPrefix(e.target.value)} placeholder="e.g. TR-2024-" autoFocus style={{ marginBottom: 0 }} />
+                    <button type="button" className="btn btn-primary" onClick={saveNewSeries} style={{ padding: '0.5rem' }} disabled={!formData.poNo} title={!formData.poNo ? "Select a PO first" : ""}><Check size={16}/></button>
+                    <button type="button" className="btn btn-secondary" onClick={() => setAdding({...adding, series: false})} style={{ padding: '0.5rem' }}><X size={16}/></button>
+                  </div>
+                ) : null}
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                  <select 
+                    className="input-field" 
+                    value={selectedPrefix} 
+                    onChange={e => setSelectedPrefix(e.target.value)}
+                    style={{ flex: '1', backgroundColor: 'var(--bg-secondary)', marginBottom: 0 }}
+                  >
+                    <option value="">No Prefix</option>
+                    {poSeries.filter(p => p.poNo === formData.poNo).map((p, idx) => (
+                      <option key={idx} value={p.prefix}>{p.prefix}</option>
+                    ))}
+                  </select>
+                  <input 
+                    type="text" 
+                    value={serialSuffix} 
+                    onChange={e => setSerialSuffix(e.target.value)} 
+                    className="input-field" 
+                    required 
+                    placeholder="Number (e.g. 001)" 
+                    style={{ flex: '2', marginBottom: 0 }}
+                  />
+                </div>
               </div>
               
               <div>

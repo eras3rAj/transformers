@@ -13,10 +13,20 @@ export const POProvider = ({ children }) => {
   const [capacities, setCapacities] = useState(['10kVA', '16kVA', '25kVA', '63kVA', '100kVA', '200kVA', '250kVA', '315kVA', '400kVA', '500kVA', '630kVA', '1000kVA']);
   const [gstRates, setGstRates] = useState(['18', '12', '5']);
   const [companies, setCompanies] = useState([]);
+  const [poSeries, setPoSeries] = useState([]);
 
   const fetchPOs = async () => {
     const { data: delData } = await supabase.from('deleted_options').select('*');
     const deletedBoards = delData ? delData.filter(d => d.option_type === 'board').map(d => d.option_value) : [];
+    
+    // Parse existing PO series
+    const parsedSeries = delData ? delData
+      .filter(d => d.option_type === 'po_series')
+      .map(d => {
+        const [poNo, prefix] = d.option_value.split('|');
+        return { poNo, prefix };
+      }) : [];
+    setPoSeries(parsedSeries);
 
     const { data, error } = await supabase.from('purchase_orders').select('*').order('created_at', { ascending: false });
     if (!error && data) {
@@ -150,13 +160,20 @@ export const POProvider = ({ children }) => {
     if (!companies.includes(company)) setCompanies(prev => [...prev, company]);
   };
 
+  const addPOSeries = async (poNo, prefix) => {
+    const value = `${poNo}|${prefix}`;
+    await supabase.from('deleted_options').insert([{ option_type: 'po_series', option_value: value }]);
+    setPoSeries(prev => [...prev, { poNo, prefix }]);
+  };
+
   return (
     <POContext.Provider value={{ 
       pos, addPO, deletePO,
       boards, addBoard, removeBoard,
       capacities, addCapacity, 
       gstRates, addGstRate,
-      companies, addCompany
+      companies, addCompany,
+      poSeries, addPOSeries
     }}>
       {children}
     </POContext.Provider>
