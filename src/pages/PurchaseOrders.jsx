@@ -9,7 +9,7 @@ import { useAuth } from '../context/AuthContext';
 import '../components/layout/Layout.css';
 
 const PurchaseOrders = () => {
-  const { pos, addPO, deletePO, companies } = usePO();
+  const { pos, addPO, deletePO, companies, boards } = usePO();
   const { inspections } = useInspection();
   const { currentUser } = useAuth();
   const location = useLocation();
@@ -39,13 +39,18 @@ const PurchaseOrders = () => {
     setEditingPO(null);
   };
 
+  const [boardFilter, setBoardFilter] = useState('All');
+
   const globalSummary = React.useMemo(() => {
     let totalContractValue = 0;
     let totalPendingValue = 0;
     let totalQuantity = 0;
     let totalPendingQuantity = 0;
     
-    const filteredPOs = pos.filter(po => companyFilter === 'All' || po.companyName === companyFilter);
+    const filteredPOs = pos.filter(po => 
+      (companyFilter === 'All' || po.companyName === companyFilter) &&
+      (boardFilter === 'All' || po.utilityBoard === boardFilter)
+    );
     
     filteredPOs.forEach(po => {
       const unitTotal = (po.exWorks || 0) + (po.freight || 0) + (((po.exWorks || 0) + (po.freight || 0)) * ((po.gstRate || 0) / 100));
@@ -60,7 +65,7 @@ const PurchaseOrders = () => {
     });
 
     return { totalContractValue, totalPendingValue, totalQuantity, totalPendingQuantity };
-  }, [pos, inspections, companyFilter]);
+  }, [pos, inspections, companyFilter, boardFilter]);
 
   return (
     <div className="animate-fade-in">
@@ -75,6 +80,13 @@ const PurchaseOrders = () => {
             <select value={companyFilter} onChange={(e) => setCompanyFilter(e.target.value)} className="input-field" style={{ marginBottom: 0, minWidth: '150px' }}>
               <option value="All">All Companies</option>
               {companies?.map(c => <option key={c} value={c}>{c}</option>)}
+            </select>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Utility Board:</span>
+            <select value={boardFilter} onChange={(e) => setBoardFilter(e.target.value)} className="input-field" style={{ marginBottom: 0, minWidth: '150px' }}>
+              <option value="All">All Boards</option>
+              {boards?.map(b => <option key={b} value={b}>{b}</option>)}
             </select>
           </div>
           {currentUser?.role === 'superadmin' && (
@@ -103,7 +115,10 @@ const PurchaseOrders = () => {
             </tr>
           </thead>
           <tbody>
-            {pos.filter(po => companyFilter === 'All' || po.companyName === companyFilter).map((po) => {
+            {pos.filter(po => 
+              (companyFilter === 'All' || po.companyName === companyFilter) &&
+              (boardFilter === 'All' || po.utilityBoard === boardFilter)
+            ).map((po) => {
               const unitTotal = (po.exWorks || 0) + (po.freight || 0) + (((po.exWorks || 0) + (po.freight || 0)) * ((po.gstRate || 0) / 100));
               const totalValue = unitTotal * (po.quantity || 1);
               

@@ -100,19 +100,19 @@ const TransformerDispatch = () => {
         <>
           {/* Dashboard Summary Cards */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '2rem' }}>
-            <div style={{ padding: '1.5rem', background: 'var(--bg-secondary)', borderRadius: '8px', border: '1px solid var(--border-color)', textAlign: 'center' }}>
+            <div className="card" style={{ textAlign: "center", display: "flex", flexDirection: "column", justifyContent: "center" }}>
               <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>Ordered Quantity</div>
               <div style={{ fontSize: '2rem', fontWeight: 'bold', color: 'var(--text-primary)' }}>{currentPO.quantity}</div>
             </div>
-            <div style={{ padding: '1.5rem', background: 'rgba(16, 185, 129, 0.1)', borderRadius: '8px', border: '1px solid rgba(16, 185, 129, 0.2)', textAlign: 'center' }}>
+            <div className="card" style={{ textAlign: "center", borderTop: "3px solid var(--success)" }}>
               <div style={{ fontSize: '0.85rem', color: 'var(--success)', marginBottom: '0.5rem' }}>Cleared Inspection</div>
               <div style={{ fontSize: '2rem', fontWeight: 'bold', color: 'var(--success)' }}>{totalAccepted}</div>
             </div>
-            <div style={{ padding: '1.5rem', background: 'rgba(59, 130, 246, 0.1)', borderRadius: '8px', border: '1px solid rgba(59, 130, 246, 0.2)', textAlign: 'center' }}>
+            <div className="card" style={{ textAlign: "center", borderTop: "3px solid var(--accent-primary)" }}>
               <div style={{ fontSize: '0.85rem', color: 'var(--accent-primary)', marginBottom: '0.5rem' }}>Total Planned</div>
               <div style={{ fontSize: '2rem', fontWeight: 'bold', color: 'var(--accent-primary)' }}>{totalPlanned}</div>
             </div>
-            <div style={{ padding: '1.5rem', background: 'rgba(245, 158, 11, 0.1)', borderRadius: '8px', border: '1px solid rgba(245, 158, 11, 0.2)', textAlign: 'center' }}>
+            <div className="card" style={{ textAlign: "center", borderTop: "3px solid var(--warning)" }}>
               <div style={{ fontSize: '0.85rem', color: 'var(--warning)', marginBottom: '0.5rem' }}>Total Loaded</div>
               <div style={{ fontSize: '2rem', fontWeight: 'bold', color: 'var(--warning)' }}>{totalLoaded}</div>
             </div>
@@ -120,7 +120,7 @@ const TransformerDispatch = () => {
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '2rem', alignItems: 'start' }}>
             {/* Create Plan Panel */}
-            <div style={{ background: 'var(--bg-secondary)', padding: '1.5rem', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+            <div className="card">
               <h3 style={{ marginBottom: '1.5rem', fontSize: '1.1rem', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                 <MapPin size={20} /> Add Station Plan
               </h3>
