@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Plus, Edit, Anchor, Trash2 } from 'lucide-react';
+import { Plus, Edit, Anchor, Trash2, Download, ArrowUpDown } from 'lucide-react';
 import POForm from '../components/po/POForm';
 import ConfirmModal from '../components/common/ConfirmModal';
 import { usePO } from '../context/POContext';
 import { useInspection } from '../context/InspectionContext';
 import { useAuth } from '../context/AuthContext';
+import { exportToCSV } from '../utils/MaterialFlowUtils';
 import '../components/layout/Layout.css';
 
 const PurchaseOrders = () => {
@@ -40,17 +41,28 @@ const PurchaseOrders = () => {
   };
 
   const [boardFilter, setBoardFilter] = useState('All');
+  const [sortConfig, setSortConfig] = useState({ key: 'poNo', direction: 'asc' });
+
+  const handleSort = (key) => {
+    let direction = 'asc';
+    if (sortConfig.key === key && sortConfig.direction === 'asc') {
+      direction = 'desc';
+    }
+    setSortConfig({ key, direction });
+  };
+
+  const filteredPOs = React.useMemo(() => {
+    return pos.filter(po => 
+      (companyFilter === 'All' || po.companyName === companyFilter) &&
+      (boardFilter === 'All' || po.utilityBoard === boardFilter)
+    );
+  }, [pos, companyFilter, boardFilter]);
 
   const globalSummary = React.useMemo(() => {
     let totalContractValue = 0;
     let totalPendingValue = 0;
     let totalQuantity = 0;
     let totalPendingQuantity = 0;
-    
-    const filteredPOs = pos.filter(po => 
-      (companyFilter === 'All' || po.companyName === companyFilter) &&
-      (boardFilter === 'All' || po.utilityBoard === boardFilter)
-    );
     
     filteredPOs.forEach(po => {
       const unitTotal = (po.exWorks || 0) + (po.freight || 0) + (((po.exWorks || 0) + (po.freight || 0)) * ((po.gstRate || 0) / 100));
@@ -65,7 +77,60 @@ const PurchaseOrders = () => {
     });
 
     return { totalContractValue, totalPendingValue, totalQuantity, totalPendingQuantity };
-  }, [pos, inspections, companyFilter, boardFilter]);
+  }, [filteredPOs, inspections]);
+
+  const sortedPOs = React.useMemo(() => {
+    const sorted = [...filteredPOs];
+    sorted.sort((a, b) => {
+      let aVal = a[sortConfig.key];
+      let bVal = b[sortConfig.key];
+      
+      // Calculate derived values for sorting
+      if (sortConfig.key === 'contractValue' || sortConfig.key === 'pendingValue') {
+        const unitTotalA = (a.exWorks || 0) + (a.freight || 0) + (((a.exWorks || 0) + (a.freight || 0)) * ((a.gstRate || 0) / 100));
+        const unitTotalB = (b.exWorks || 0) + (b.freight || 0) + (((b.exWorks || 0) + (b.freight || 0)) * ((b.gstRate || 0) / 100));
+        
+        if (sortConfig.key === 'contractValue') {
+          aVal = unitTotalA * (a.quantity || 1);
+          bVal = unitTotalB * (b.quantity || 1);
+        } else {
+          const accA = inspections?.filter(i => i.poNo === a.poNo && i.type === 'Final').reduce((sum, i) => sum + Number(i.qtyAccepted || 0), 0) || 0;
+          const accB = inspections?.filter(i => i.poNo === b.poNo && i.type === 'Final').reduce((sum, i) => sum + Number(i.qtyAccepted || 0), 0) || 0;
+          aVal = unitTotalA * Math.max(0, (a.quantity || 1) - accA);
+          bVal = unitTotalB * Math.max(0, (b.quantity || 1) - accB);
+        }
+      }
+
+      if (aVal < bVal) return sortConfig.direction === 'asc' ? -1 : 1;
+      if (aVal > bVal) return sortConfig.direction === 'asc' ? 1 : -1;
+      return 0;
+    });
+    return sorted;
+  }, [filteredPOs, sortConfig, inspections]);
+
+  const handleExportCSV = () => {
+    const data = sortedPOs.map(po => {
+      const unitTotal = (po.exWorks || 0) + (po.freight || 0) + (((po.exWorks || 0) + (po.freight || 0)) * ((po.gstRate || 0) / 100));
+      const totalValue = unitTotal * (po.quantity || 1);
+      const poFinalInspections = inspections?.filter(i => i.poNo === po.poNo && i.type === 'Final') || [];
+      const totalAccepted = poFinalInspections.reduce((sum, i) => sum + Number(i.qtyAccepted || 0), 0);
+      const pendingQty = Math.max(0, (po.quantity || 1) - totalAccepted);
+      const pendingValue = unitTotal * pendingQty;
+      return {
+        'PO Number': po.poNo,
+        'Company': po.companyName,
+        'Utility Board': po.utilityBoard,
+        'Rating': po.rating,
+        'Ordered Qty': po.quantity,
+        'Delivered Qty': totalAccepted,
+        'Pending Qty': pendingQty,
+        'Unit Ex-Works': po.exWorks,
+        'Contract Value': totalValue.toFixed(2),
+        'Pending Value': pendingValue.toFixed(2)
+      };
+    });
+    exportToCSV(data, 'Purchase_Orders');
+  };
 
   return (
     <div className="animate-fade-in">
@@ -96,18 +161,27 @@ const PurchaseOrders = () => {
             <Plus size={18} /> Create PO
           </button>
         )}
+        <button className="btn btn-secondary" onClick={handleExportCSV}>
+          <Download size={18} /> Export CSV
+        </button>
       </div>
 
       <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
         <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
           <thead>
             <tr style={{ backgroundColor: 'var(--bg-tertiary)', borderBottom: '1px solid var(--border-color)' }}>
-              <th style={{ padding: '1rem', fontSize: '0.85rem', color: 'var(--text-muted)' }}>PO NUMBER & DETAILS</th>
+              <th style={{ padding: '1rem', fontSize: '0.85rem', color: 'var(--text-muted)', cursor: 'pointer', userSelect: 'none' }} onClick={() => handleSort('poNo')}>
+                PO NUMBER & DETAILS <ArrowUpDown size={14} style={{ display: 'inline', verticalAlign: 'middle', marginLeft: '4px' }} />
+              </th>
               {canViewFinancials && (
                 <>
                   <th style={{ padding: '1rem', fontSize: '0.85rem', color: 'var(--text-muted)' }}>FINANCIALS</th>
-                  <th style={{ padding: '1rem', fontSize: '0.85rem', color: 'var(--text-muted)' }}>CONTRACT VALUE</th>
-                  <th style={{ padding: '1rem', fontSize: '0.85rem', color: 'var(--text-muted)' }}>PENDING VALUE</th>
+                  <th style={{ padding: '1rem', fontSize: '0.85rem', color: 'var(--text-muted)', cursor: 'pointer', userSelect: 'none' }} onClick={() => handleSort('contractValue')}>
+                    CONTRACT VALUE <ArrowUpDown size={14} style={{ display: 'inline', verticalAlign: 'middle', marginLeft: '4px' }} />
+                  </th>
+                  <th style={{ padding: '1rem', fontSize: '0.85rem', color: 'var(--text-muted)', cursor: 'pointer', userSelect: 'none' }} onClick={() => handleSort('pendingValue')}>
+                    PENDING VALUE <ArrowUpDown size={14} style={{ display: 'inline', verticalAlign: 'middle', marginLeft: '4px' }} />
+                  </th>
                 </>
               )}
               {currentUser?.role === 'superadmin' && (
@@ -116,10 +190,7 @@ const PurchaseOrders = () => {
             </tr>
           </thead>
           <tbody>
-            {pos.filter(po => 
-              (companyFilter === 'All' || po.companyName === companyFilter) &&
-              (boardFilter === 'All' || po.utilityBoard === boardFilter)
-            ).map((po) => {
+            {sortedPOs.map((po) => {
               const unitTotal = (po.exWorks || 0) + (po.freight || 0) + (((po.exWorks || 0) + (po.freight || 0)) * ((po.gstRate || 0) / 100));
               const totalValue = unitTotal * (po.quantity || 1);
               

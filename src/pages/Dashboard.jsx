@@ -1,5 +1,6 @@
 import { formatDate } from '../utils/dateUtils';
-import React, { useMemo } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
+import SkeletonLoader from '../components/common/SkeletonLoader';
 import { Factory, AlertCircle, CheckCircle, Clock, Truck, TrendingUp, Package, FileText, Target, Building2 } from 'lucide-react';
 import { usePO } from '../context/POContext';
 import { usePV } from '../context/PVContext';
@@ -54,6 +55,12 @@ const CustomInspectionTooltip = ({ active, payload, label }) => {
 
 const Dashboard = () => {
   const { currentUser } = useAuth();
+  const [isInitialLoading, setIsInitialLoading] = useState(true);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setIsInitialLoading(false), 500);
+    return () => clearTimeout(timer);
+  }, []);
   
   const hasModule = (moduleId) => {
     if (!currentUser) return false;
@@ -125,7 +132,7 @@ const Dashboard = () => {
       });
     }
     return data;
-  }, [productionLogs]);
+  }, [productionLogs, companyFilter, validPONos]);
 
   const todaysBoxUps = chartData[6]['Box Up'];
   const todaysTanks = chartData[6]['Tanks Fabricated'];
@@ -304,6 +311,23 @@ const Dashboard = () => {
     if (log.reports.some(r => r.shift === 'morning')) return 'Morning (9-10 AM)';
     return null;
   }, [productionLogs]);
+  
+  if (isInitialLoading) {
+    return (
+      <div className="animate-fade-in" style={{ padding: '2rem' }}>
+        <div style={{ marginBottom: '2rem' }}>
+          <SkeletonLoader type="card" style={{ height: '50px', width: '300px' }} />
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1.5rem', marginBottom: '2.5rem' }}>
+          <SkeletonLoader type="card" count={4} style={{ height: '120px' }} />
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1.5rem', marginBottom: '2.5rem' }}>
+          <SkeletonLoader type="card" count={2} style={{ height: '350px' }} />
+        </div>
+        <SkeletonLoader type="table" count={5} />
+      </div>
+    );
+  }
 
   return (
     <div className="animate-fade-in" style={{ paddingBottom: '3rem' }}>
