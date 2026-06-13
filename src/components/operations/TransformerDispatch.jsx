@@ -1,8 +1,9 @@
 import React, { useState, useMemo } from 'react';
-import { Truck, MapPin, Plus, PackageOpen, AlertCircle, ChevronDown, Search } from 'lucide-react';
+import { Truck, MapPin, Plus, PackageOpen, AlertCircle, ChevronDown, Search, Trash2 } from 'lucide-react';
 import { usePO } from '../../context/POContext';
 import { useInspection } from '../../context/InspectionContext';
 import { useDispatch } from '../../context/DispatchContext';
+import { useWarranty } from '../../context/WarrantyContext';
 import { formatDate } from '../../utils/dateUtils';
 import DataTable from '../common/DataTable';
 
@@ -10,6 +11,7 @@ const TransformerDispatch = () => {
   const { pos } = usePO();
   const { inspections } = useInspection();
   const { dispatchPlans, loadings, addDispatchPlan, addLoading, getStationMetrics } = useDispatch();
+  const { stores, addStore, removeStore, claims } = useWarranty();
 
   const [selectedPO, setSelectedPO] = useState('');
   const [isSelectorOpen, setIsSelectorOpen] = useState(false);
@@ -18,6 +20,38 @@ const TransformerDispatch = () => {
   // Plan form state
   const [stationName, setStationName] = useState('');
   const [planQty, setPlanQty] = useState('');
+  
+  // Store management state
+  const [isAddingStore, setIsAddingStore] = useState(false);
+  const [newStoreName, setNewStoreName] = useState('');
+
+  const handleDeleteStore = (storeToDelete) => {
+    // Check if store is in use
+    const isUsedInPlans = dispatchPlans.some(p => p.station === storeToDelete);
+    const isUsedInLoadings = loadings.some(l => l.station === storeToDelete);
+    const isUsedInClaims = claims?.some(c => c.storeName === storeToDelete);
+
+    if (isUsedInPlans || isUsedInLoadings || isUsedInClaims) {
+      alert(`Cannot delete store "${storeToDelete}" because it is linked to existing dispatch plans, loadings, or warranty claims.`);
+      return;
+    }
+
+    if (window.confirm(`Are you sure you want to delete the store "${storeToDelete}"?`)) {
+      removeStore(storeToDelete);
+      if (stationName === storeToDelete) {
+        setStationName('');
+      }
+    }
+  };
+
+  const handleSaveNewStore = () => {
+    if (newStoreName.trim()) {
+      addStore(newStoreName.trim());
+      setStationName(newStoreName.trim());
+    }
+    setIsAddingStore(false);
+    setNewStoreName('');
+  };
 
   // Load Modal state
   const [isLoadModalOpen, setIsLoadModalOpen] = useState(false);
@@ -184,18 +218,43 @@ const TransformerDispatch = () => {
               <h3 style={{ marginBottom: '1.5rem', fontSize: '1.1rem', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                 <MapPin size={20} /> Add Station Plan
               </h3>
-              <form onSubmit={handleAddPlan}>
-                <div className="form-group" style={{ marginBottom: '1rem' }}>
-                  <label>Station / Store Name</label>
-                  <input 
-                    type="text" 
-                    placeholder="e.g. Substation A" 
-                    value={stationName}
-                    onChange={(e) => setStationName(e.target.value)}
-                    required
-                  />
-                </div>
-                <div className="form-group" style={{ marginBottom: '1.5rem' }}>
+                <form onSubmit={handleAddPlan}>
+                  <div className="form-group" style={{ marginBottom: '1rem' }}>
+                    <label>Station / Store Name</label>
+                    <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                      {isAddingStore ? (
+                        <>
+                          <input 
+                            type="text" 
+                            className="input-field" 
+                            value={newStoreName} 
+                            onChange={e => setNewStoreName(e.target.value)} 
+                            placeholder="Enter new store..."
+                            style={{ flex: 1 }}
+                            autoFocus
+                          />
+                          <button type="button" className="btn btn-primary" onClick={handleSaveNewStore} style={{ padding: '0.6rem 1rem' }}>Save</button>
+                          <button type="button" className="btn btn-secondary" onClick={() => setIsAddingStore(false)} style={{ padding: '0.6rem 1rem' }}>Cancel</button>
+                        </>
+                      ) : (
+                        <>
+                          <select value={stationName} onChange={(e) => setStationName(e.target.value)} required className="input-field" style={{ flex: 1 }}>
+                            <option value="">-- Select Store --</option>
+                            {stores.map(s => <option key={s} value={s}>{s}</option>)}
+                          </select>
+                          <button type="button" className="btn btn-secondary" onClick={() => setIsAddingStore(true)} title="Add New Store" style={{ padding: '0.6rem 0.8rem' }}>
+                            <Plus size={18} />
+                          </button>
+                          {stationName && (
+                            <button type="button" className="btn" style={{ padding: '0.6rem 0.8rem', border: '1px solid var(--danger)', color: 'var(--danger)', background: 'transparent' }} onClick={() => handleDeleteStore(stationName)} title="Delete Store">
+                              <Trash2 size={18} />
+                            </button>
+                          )}
+                        </>
+                      )}
+                    </div>
+                  </div>
+                  <div className="form-group" style={{ marginBottom: '1.5rem' }}>
                   <label>Planned Quantity</label>
                   <input 
                     type="number" 
