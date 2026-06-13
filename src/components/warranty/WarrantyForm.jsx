@@ -3,6 +3,7 @@ import { X, Save, Plus, Check, Trash2 } from 'lucide-react';
 import { usePO } from '../../context/POContext';
 import { useWarranty } from '../../context/WarrantyContext';
 import { useAuth } from '../../context/AuthContext';
+import SearchableSelect from '../common/SearchableSelect';
 import '../layout/Layout.css';
 
 const WarrantyForm = ({ onClose, onSubmit, initialData, availablePOs = [] }) => {
@@ -181,10 +182,17 @@ const WarrantyForm = ({ onClose, onSubmit, initialData, availablePOs = [] }) => 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1.2rem' }}>
               <div>
                 <label className="input-label">Purchase Order (PO)</label>
-                <select name="poNo" value={formData.poNo} onChange={handleChange} className="input-field" required>
-                  <option value="">-- Select PO --</option>
-                  {availablePOs.map(po => <option key={po.id} value={po.poNo}>{po.capacity ? `${po.capacity} - ` : ''}{po.poNo} ({po.utilityBoard})</option>)}
-                </select>
+                <SearchableSelect 
+                  name="poNo" 
+                  value={formData.poNo} 
+                  onChange={handleChange} 
+                  required 
+                  placeholder="-- Select PO --"
+                  options={availablePOs.map(po => ({ 
+                    value: po.poNo, 
+                    label: `${po.capacity ? `${po.capacity} - ` : ''}${po.poNo} (${po.utilityBoard})` 
+                  }))}
+                />
               </div>
 
               <div>
@@ -230,10 +238,14 @@ const WarrantyForm = ({ onClose, onSubmit, initialData, availablePOs = [] }) => 
                   </div>
                 ) : (
                   <div style={{ display: 'flex', gap: '0.5rem' }}>
-                    <select name="utilityBoard" value={formData.utilityBoard} onChange={handleChange} className="input-field" required>
-                      <option value="" disabled>Select Board</option>
-                      {boards.map(b => <option key={b} value={b}>{b}</option>)}
-                    </select>
+                    <SearchableSelect 
+                      name="utilityBoard" 
+                      value={formData.utilityBoard} 
+                      onChange={handleChange} 
+                      required 
+                      placeholder="Select Board"
+                      options={boards}
+                    />
                     {currentUser?.role === 'superadmin' && formData.utilityBoard && (
                       <button type="button" className="btn btn-secondary" onClick={handleDeleteBoard} style={{ padding: '0.5rem' }} title="Delete this Utility Board">
                         <Trash2 size={16} color="var(--error)" />
@@ -253,10 +265,14 @@ const WarrantyForm = ({ onClose, onSubmit, initialData, availablePOs = [] }) => 
                   </div>
                 ) : (
                   <div style={{ display: 'flex', gap: '0.5rem' }}>
-                    <select name="storeName" value={formData.storeName} onChange={handleChange} className="input-field" required>
-                      <option value="" disabled>Select Store</option>
-                      {stores.map(s => <option key={s} value={s}>{s}</option>)}
-                    </select>
+                    <SearchableSelect 
+                      name="storeName" 
+                      value={formData.storeName} 
+                      onChange={handleChange} 
+                      required 
+                      placeholder="Select Store"
+                      options={stores}
+                    />
                     {currentUser?.role === 'superadmin' && formData.storeName && (
                       <button type="button" className="btn btn-secondary" onClick={handleDeleteStore} style={{ padding: '0.5rem' }} title="Delete this Store Name">
                         <Trash2 size={16} color="var(--error)" />
@@ -279,10 +295,14 @@ const WarrantyForm = ({ onClose, onSubmit, initialData, availablePOs = [] }) => 
                       <button type="button" className="btn btn-primary" onClick={saveNewCapacity} style={{ padding: '0.5rem' }}><Check size={16}/></button>
                     </div>
                   ) : (
-                    <select name="capacity" value={formData.capacity} onChange={handleChange} className="input-field" required>
-                      <option value="" disabled>Select Capacity</option>
-                      {capacities.map(c => <option key={c} value={c}>{c}</option>)}
-                    </select>
+                    <SearchableSelect 
+                      name="capacity" 
+                      value={formData.capacity} 
+                      onChange={handleChange} 
+                      required 
+                      placeholder="Select Capacity"
+                      options={capacities}
+                    />
                   )}
                 </div>
               </div>
@@ -318,13 +338,18 @@ const WarrantyForm = ({ onClose, onSubmit, initialData, availablePOs = [] }) => 
 
               <div>
                 <label className="input-label">Status</label>
-                <select name="status" value={formData.status} onChange={handleChange} className="input-field">
-                  <option value="To be lifted from store">To be lifted from store</option>
-                  <option value="Pending Return">Pending Return</option>
-                  <option value="Inspected">Inspected</option>
-                  <option value="Under Repair">Under Repair</option>
-                  <option value="Resolved">Resolved</option>
-                </select>
+                <SearchableSelect 
+                  name="status" 
+                  value={formData.status} 
+                  onChange={handleChange} 
+                  options={[
+                    "To be lifted from store",
+                    "Pending Return",
+                    "Inspected",
+                    "Under Repair",
+                    "Resolved"
+                  ]}
+                />
               </div>
             </div>
           </div>
