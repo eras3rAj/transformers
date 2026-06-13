@@ -381,30 +381,43 @@ const InventoryManagement = () => {
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1.5rem', marginBottom: '2rem' }}>
-        {filteredItems.map(item => {
-          const globalStock = getGlobalStock(item.name);
-          return (
-            <div key={item.id} className="card stat-card" style={{ borderLeft: `4px solid ${globalStock > 0 ? 'var(--success)' : 'var(--danger)'}` }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                <div>
-                  <h3 style={{ margin: '0 0 0.5rem 0', color: 'var(--text-muted)', fontSize: '0.85rem', textTransform: 'uppercase' }}>{item.name}</h3>
-                  <p style={{ margin: 0, fontSize: '2rem', fontWeight: '700', color: 'var(--text-primary)' }}>{globalStock.toLocaleString()}</p>
-                  <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginTop: '0.2rem' }}>Total {item.unit} Global</div>
-                </div>
-                <div style={{ backgroundColor: 'var(--bg-tertiary)', padding: '0.8rem', borderRadius: '8px', color: 'var(--accent-primary)' }}>
-                  <Database size={24} />
-                </div>
-              </div>
+      {sortedCategories.map(category => {
+        const catItems = filteredItems.filter(item => item.category === category.name);
+        if (catItems.length === 0) return null;
+
+        return (
+          <div key={category.id} style={{ marginBottom: '2.5rem' }}>
+            <h4 style={{ margin: '0 0 1rem 0', color: 'var(--text-secondary)', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem', textTransform: 'uppercase', letterSpacing: '0.05em', fontSize: '0.9rem' }}>
+              {category.name}
+            </h4>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1.5rem' }}>
+              {catItems.map(item => {
+                const globalStock = getGlobalStock(item.name);
+                return (
+                  <div key={item.id} className="card stat-card" style={{ borderLeft: `4px solid ${globalStock > 0 ? 'var(--success)' : 'var(--danger)'}` }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                      <div>
+                        <h3 style={{ margin: '0 0 0.5rem 0', color: 'var(--text-muted)', fontSize: '0.85rem', textTransform: 'uppercase' }}>{item.name}</h3>
+                        <p style={{ margin: 0, fontSize: '2rem', fontWeight: '700', color: 'var(--text-primary)' }}>{globalStock.toLocaleString()}</p>
+                        <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginTop: '0.2rem' }}>Total {item.unit} Global</div>
+                      </div>
+                      <div style={{ backgroundColor: 'var(--bg-tertiary)', padding: '0.8rem', borderRadius: '8px', color: 'var(--accent-primary)' }}>
+                        <Database size={24} />
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
-          );
-        })}
-        {filteredItems.length === 0 && (
-          <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)', width: '100%', gridColumn: '1 / -1', border: '1px dashed var(--border-color)', borderRadius: '8px' }}>
-            {items.length === 0 ? "No items tracked yet. Head to Settings to configure your inventory items." : "No matching items found."}
           </div>
-        )}
-      </div>
+        );
+      })}
+
+      {filteredItems.length === 0 && (
+        <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)', width: '100%', border: '1px dashed var(--border-color)', borderRadius: '8px' }}>
+          {items.length === 0 ? "No items tracked yet. Head to Settings to configure your inventory items." : "No matching items found."}
+        </div>
+      )}
 
       {filteredItems.length > 0 && (
         <div className="card">
