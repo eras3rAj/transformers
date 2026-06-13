@@ -23,9 +23,11 @@ const FinanceHub = () => {
 
   // Filter tabs based on user permissions
   const availableTabs = allTabs.filter(tab => {
-    if (currentUser?.role === 'superadmin' || currentUser?.role === 'admin') return true;
-    if (currentUser?.modules && currentUser.modules.includes(tab.id)) return true;
-    return false;
+    if (currentUser?.role === 'superadmin') return true;
+    if (currentUser?.modules !== undefined) {
+      return currentUser.modules.includes(tab.id);
+    }
+    return true; // Legacy fallback for users without modules array
   });
 
   // Extract hash from URL to set active tab, or default to first available

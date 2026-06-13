@@ -75,7 +75,7 @@ const Sidebar = ({ isMobileMenuOpen, setIsMobileMenuOpen }) => {
     }
     
     // Fallback to legacy role checks if modules aren't populated yet
-    if (!currentUser?.modules || currentUser.modules.length === 0) {
+    if (currentUser?.modules === undefined) {
       if (currentUser?.role === 'admin') return item.adminOk;
       if (currentUser?.role === 'normal') return item.normalOk;
     }
