@@ -4,6 +4,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import DailyReports from './DailyReports';
 import DailyExpenses from './DailyExpenses';
 import EodSummary from './EodSummary';
+import TransformerDispatch from '../components/operations/TransformerDispatch';
 import '../components/layout/Layout.css';
 
 const OperationsHub = () => {
