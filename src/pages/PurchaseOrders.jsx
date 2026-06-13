@@ -74,27 +74,28 @@ const PurchaseOrders = () => {
           <h1>Purchase Orders</h1>
           <p>Manage Purchase Orders, financials, and custom PV Formulas.</p>
         </div>
-        <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Company:</span>
-            <select value={companyFilter} onChange={(e) => setCompanyFilter(e.target.value)} className="input-field" style={{ marginBottom: 0, minWidth: '150px' }}>
-              <option value="All">All Companies</option>
-              {companies?.map(c => <option key={c} value={c}>{c}</option>)}
-            </select>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Utility Board:</span>
-            <select value={boardFilter} onChange={(e) => setBoardFilter(e.target.value)} className="input-field" style={{ marginBottom: 0, minWidth: '150px' }}>
-              <option value="All">All Boards</option>
-              {boards?.map(b => <option key={b} value={b}>{b}</option>)}
-            </select>
-          </div>
-          {currentUser?.role === 'superadmin' && (
-            <button className="btn btn-primary" onClick={() => { setEditingPO(null); setShowForm(true); }}>
-              <Plus size={18} /> Create PO
-            </button>
-          )}
+      </div>
+
+      <div className="card" style={{ marginBottom: '1.5rem', display: 'flex', justifyContent: 'flex-end', gap: '1rem', alignItems: 'center', flexWrap: 'wrap', padding: '1rem 1.5rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Company:</span>
+          <select value={companyFilter} onChange={(e) => setCompanyFilter(e.target.value)} className="input-field" style={{ marginBottom: 0, minWidth: '150px' }}>
+            <option value="All">All Companies</option>
+            {companies?.map(c => <option key={c} value={c}>{c}</option>)}
+          </select>
         </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Utility Board:</span>
+          <select value={boardFilter} onChange={(e) => setBoardFilter(e.target.value)} className="input-field" style={{ marginBottom: 0, minWidth: '150px' }}>
+            <option value="All">All Boards</option>
+            {boards?.map(b => <option key={b} value={b}>{b}</option>)}
+          </select>
+        </div>
+        {currentUser?.role === 'superadmin' && (
+          <button className="btn btn-primary" onClick={() => { setEditingPO(null); setShowForm(true); }}>
+            <Plus size={18} /> Create PO
+          </button>
+        )}
       </div>
 
       <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
