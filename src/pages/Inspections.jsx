@@ -225,7 +225,7 @@ const Inspections = () => {
       </div>
 
       {/* PO Selector & Filters */}
-      <div className="card" style={{ marginBottom: '2rem', display: 'flex', gap: '2rem', flexWrap: 'wrap', position: 'relative', zIndex: 10 }}>
+      <div className="card" style={{ marginBottom: '2rem', display: 'flex', gap: '2rem', flexWrap: 'wrap', position: 'relative', zIndex: 10, overflow: 'visible' }}>
         <div style={{ flex: '1', minWidth: '250px' }}>
           <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '0.5rem', fontWeight: '500' }}>FILTER BY COMPANY</label>
           <select 
