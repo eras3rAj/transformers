@@ -1,4 +1,4 @@
-﻿import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Truck, MapPin, Plus, PackageOpen, AlertCircle } from 'lucide-react';
 import { usePO } from '../../context/POContext';
 import { useInspection } from '../../context/InspectionContext';
@@ -45,7 +45,7 @@ const TransformerDispatch = () => {
     // Validation
     const availableToPlan = totalAccepted - totalPlanned;
     if (Number(planQty) > availableToPlan) {
-      alert(Cannot plan more than available accepted quantity ().);
+      alert(`Cannot plan more than available accepted quantity (${availableToPlan}).`);
       return;
     }
 
@@ -67,7 +67,7 @@ const TransformerDispatch = () => {
     if (!selectedPO || !activeStation || !loadData.qty) return;
 
     if (Number(loadData.qty) > activeStation.pendingQty) {
-      alert(Cannot load more than pending quantity for this station ().);
+      alert(`Cannot load more than pending quantity for this station (${activeStation.pendingQty}).`);
       return;
     }
 
