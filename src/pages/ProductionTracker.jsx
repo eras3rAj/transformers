@@ -17,7 +17,7 @@ const ProductionTracker = () => {
   
   const [companyFilter, setCompanyFilter] = useState('All');
   
-  const [activeTab, setActiveTab] = useState('transformer'); // 'transformer' or 'tank'
+  const [activeTab, setActiveTab] = useState('summary'); // 'summary', 'transformer' or 'tank'
 
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [selectedLine, setSelectedLine] = useState('');
@@ -247,6 +247,7 @@ const ProductionTracker = () => {
   // For Summary Tab: Current Month Tank Fabrication Data
   const tankSummaryData = useMemo(() => {
     const summary = {};
+    const dailyData = {};
     let lastDate = null;
     
     const sortedLogs = [...productionLogs].sort((a, b) => new Date(b.date) - new Date(a.date));
@@ -267,6 +268,10 @@ const ProductionTracker = () => {
               if (b.component === 'Tanks Fabricated') {
                 if (!summary[b.capacity]) summary[b.capacity] = 0;
                 summary[b.capacity] += b.quantity;
+
+                if (!dailyData[log.date]) dailyData[log.date] = {};
+                if (!dailyData[log.date][b.capacity]) dailyData[log.date][b.capacity] = 0;
+                dailyData[log.date][b.capacity] += b.quantity;
               }
             });
           }
@@ -274,7 +279,11 @@ const ProductionTracker = () => {
       }
     }
     
-    return { lastDate, summary };
+    const sortedDailyData = Object.keys(dailyData)
+      .sort((a, b) => new Date(b) - new Date(a))
+      .map(date => ({ date, capacities: dailyData[date] }));
+
+    return { lastDate, summary, dailyData: sortedDailyData };
   }, [productionLogs]);
 
   return (
@@ -289,6 +298,12 @@ const ProductionTracker = () => {
 
       <div style={{ display: 'flex', gap: '1rem', marginBottom: '2rem' }}>
         <button 
+          onClick={() => setActiveTab('summary')}
+          style={{ flex: 1, padding: '1rem', backgroundColor: activeTab === 'summary' ? 'var(--accent-primary)' : 'var(--bg-secondary)', color: activeTab === 'summary' ? 'white' : 'var(--text-muted)', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', fontSize: '1rem', transition: 'all 0.2s' }}
+        >
+          Summary
+        </button>
+        <button 
           onClick={() => setActiveTab('transformer')}
           style={{ flex: 1, padding: '1rem', backgroundColor: activeTab === 'transformer' ? 'var(--accent-primary)' : 'var(--bg-secondary)', color: activeTab === 'transformer' ? 'white' : 'var(--text-muted)', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', fontSize: '1rem', transition: 'all 0.2s' }}
         >
@@ -299,12 +314,6 @@ const ProductionTracker = () => {
           style={{ flex: 1, padding: '1rem', backgroundColor: activeTab === 'tank' ? 'var(--accent-primary)' : 'var(--bg-secondary)', color: activeTab === 'tank' ? 'white' : 'var(--text-muted)', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', fontSize: '1rem', transition: 'all 0.2s' }}
         >
           Tank Fabrication
-        </button>
-        <button 
-          onClick={() => setActiveTab('summary')}
-          style={{ flex: 1, padding: '1rem', backgroundColor: activeTab === 'summary' ? 'var(--accent-primary)' : 'var(--bg-secondary)', color: activeTab === 'summary' ? 'white' : 'var(--text-muted)', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', fontSize: '1rem', transition: 'all 0.2s' }}
-        >
-          Summary
         </button>
       </div>
 
@@ -399,6 +408,56 @@ const ProductionTracker = () => {
                       </>
                     ) : (
                       <tr><td colSpan="2" style={{ padding: '1rem', color: 'var(--text-muted)' }}>No tank fabrication data found for the current month.</td></tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+            
+            {/* Daily Breakdown for Tank Fabrication */}
+            <div className="card" style={{ padding: '1.5rem', gridColumn: '1 / -1' }}>
+              <h4 style={{ marginBottom: '1rem', color: 'var(--text-secondary)' }}>Daily Breakdown (Tanks Fabricated)</h4>
+              <div style={{ overflowX: 'auto' }}>
+                <table className="report-table" style={{ width: '100%', textAlign: 'center' }}>
+                  <thead>
+                    <tr>
+                      <th style={{ textAlign: 'left' }}>DATE</th>
+                      {Object.keys(tankSummaryData.summary).map(cap => (
+                        <th key={cap}>{cap}</th>
+                      ))}
+                      <th style={{ color: 'var(--accent-primary)' }}>DAILY TOTAL</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {tankSummaryData.dailyData && tankSummaryData.dailyData.length > 0 ? (
+                      <>
+                        {tankSummaryData.dailyData.map(day => (
+                          <tr key={day.date}>
+                            <td style={{ textAlign: 'left', fontWeight: '600' }}>{new Date(day.date).toLocaleDateString()}</td>
+                            {Object.keys(tankSummaryData.summary).map(cap => (
+                              <td key={cap}>{day.capacities[cap] || '-'}</td>
+                            ))}
+                            <td style={{ fontWeight: 'bold', color: 'var(--accent-primary)' }}>
+                              {Object.values(day.capacities).reduce((sum, val) => sum + (val || 0), 0)}
+                            </td>
+                          </tr>
+                        ))}
+                        <tr style={{ backgroundColor: 'var(--bg-tertiary)', fontWeight: 'bold' }}>
+                          <td style={{ textAlign: 'left' }}>MONTHLY TOTALS</td>
+                          {Object.keys(tankSummaryData.summary).map(cap => (
+                            <td key={cap} style={{ color: 'var(--success)' }}>{tankSummaryData.summary[cap]}</td>
+                          ))}
+                          <td style={{ color: 'var(--success)', fontSize: '1.1rem' }}>
+                            {Object.values(tankSummaryData.summary).reduce((sum, qty) => sum + qty, 0)}
+                          </td>
+                        </tr>
+                      </>
+                    ) : (
+                      <tr>
+                        <td colSpan={Object.keys(tankSummaryData.summary).length + 2} style={{ padding: '1rem', color: 'var(--text-muted)' }}>
+                          No daily data found.
+                        </td>
+                      </tr>
                     )}
                   </tbody>
                 </table>
