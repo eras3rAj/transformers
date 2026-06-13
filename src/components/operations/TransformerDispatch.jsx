@@ -27,7 +27,7 @@ const TransformerDispatch = () => {
   
   const totalAccepted = useMemo(() => {
     if (!selectedPO) return 0;
-    return inspections.filter(i => i.poNo === selectedPO).reduce((sum, i) => sum + Number(i.qtyAccepted || 0), 0);
+    return inspections.filter(i => i.poNo === selectedPO && i.type === 'Final').reduce((sum, i) => sum + Number(i.qtyAccepted || 0), 0);
   }, [inspections, selectedPO]);
 
   const stationMetrics = useMemo(() => {
