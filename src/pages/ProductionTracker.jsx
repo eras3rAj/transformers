@@ -220,6 +220,63 @@ const ProductionTracker = () => {
     return summary;
   }, [productionLogs, selectedDate, transactions, items, capacities]);
 
+  // For Summary Tab: Last Logged Transformer Manufacturing Data
+  const transformerSummaryData = useMemo(() => {
+    const summary = {};
+    let lastDate = null;
+    
+    const sortedLogs = [...productionLogs].sort((a, b) => new Date(b.date) - new Date(a.date));
+    const transformerComponents = ['Box Up', 'CCA', 'HT Winding', 'LT Winding'];
+    
+    for (const log of sortedLogs) {
+      if (log.batches && log.batches.some(b => transformerComponents.includes(b.component))) {
+        lastDate = log.date;
+        log.batches.forEach(b => {
+          if (transformerComponents.includes(b.component)) {
+            if (!summary[b.capacity]) summary[b.capacity] = { 'LT Winding': 0, 'HT Winding': 0, 'CCA': 0, 'Box Up': 0 };
+            summary[b.capacity][b.component] += b.quantity;
+          }
+        });
+        break;
+      }
+    }
+    
+    return { lastDate, summary };
+  }, [productionLogs]);
+
+  // For Summary Tab: Current Month Tank Fabrication Data
+  const tankSummaryData = useMemo(() => {
+    const summary = {};
+    let lastDate = null;
+    
+    const sortedLogs = [...productionLogs].sort((a, b) => new Date(b.date) - new Date(a.date));
+    
+    for (const log of sortedLogs) {
+      if (log.batches && log.batches.some(b => b.component === 'Tanks Fabricated')) {
+        lastDate = log.date;
+        break;
+      }
+    }
+
+    if (lastDate) {
+      const monthPrefix = lastDate.substring(0, 7); // YYYY-MM
+      for (const log of productionLogs) {
+        if (log.date.startsWith(monthPrefix) && log.date <= lastDate) {
+          if (log.batches) {
+            log.batches.forEach(b => {
+              if (b.component === 'Tanks Fabricated') {
+                if (!summary[b.capacity]) summary[b.capacity] = 0;
+                summary[b.capacity] += b.quantity;
+              }
+            });
+          }
+        }
+      }
+    }
+    
+    return { lastDate, summary };
+  }, [productionLogs]);
+
   return (
     <div className="animate-fade-in" style={{ paddingBottom: '3rem' }}>
       <div style={{ marginBottom: '2rem' }}>
@@ -243,8 +300,114 @@ const ProductionTracker = () => {
         >
           Tank Fabrication
         </button>
+        <button 
+          onClick={() => setActiveTab('summary')}
+          style={{ flex: 1, padding: '1rem', backgroundColor: activeTab === 'summary' ? 'var(--accent-primary)' : 'var(--bg-secondary)', color: activeTab === 'summary' ? 'white' : 'var(--text-muted)', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', fontSize: '1rem', transition: 'all 0.2s' }}
+        >
+          Summary
+        </button>
       </div>
 
+      {activeTab === 'summary' ? (
+        <div style={{ marginTop: '2rem' }}>
+          <h3 style={{ margin: '0 0 1.5rem 0', fontSize: '1.2rem', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <ListFilter size={24} color="var(--accent-primary)" /> Production Summary
+          </h3>
+          
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '2rem' }}>
+            {/* Last Logged Transformer Summary */}
+            <div className="card" style={{ padding: '1.5rem' }}>
+              <h4 style={{ marginBottom: '1rem', color: 'var(--text-secondary)', display: 'flex', justifyContent: 'space-between' }}>
+                <span>Latest Transformer Manufacturing Data</span>
+                {transformerSummaryData.lastDate && <span style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>Date: {new Date(transformerSummaryData.lastDate).toLocaleDateString()}</span>}
+              </h4>
+              <div style={{ overflowX: 'auto' }}>
+                <table className="report-table" style={{ width: '100%', textAlign: 'center' }}>
+                  <thead>
+                    <tr>
+                      <th style={{ textAlign: 'left' }}>CAPACITY</th>
+                      <th>BOX UP</th>
+                      <th>CCA</th>
+                      <th>HT WINDING</th>
+                      <th>LT WINDING</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {Object.keys(transformerSummaryData.summary).length > 0 ? (
+                      <>
+                        {Object.keys(transformerSummaryData.summary).map(cap => {
+                          const data = transformerSummaryData.summary[cap];
+                          return (
+                            <tr key={cap}>
+                              <td style={{ textAlign: 'left', fontWeight: '700', color: 'var(--text-primary)' }}>{cap}</td>
+                              <td>{data['Box Up'] || '-'}</td>
+                              <td>{data['CCA'] || '-'}</td>
+                              <td>{data['HT Winding'] || '-'}</td>
+                              <td>{data['LT Winding'] || '-'}</td>
+                            </tr>
+                          );
+                        })}
+                        <tr style={{ backgroundColor: 'var(--bg-tertiary)', fontWeight: 'bold' }}>
+                          <td style={{ textAlign: 'left' }}>TOTALS</td>
+                          <td style={{ color: 'var(--accent-primary)' }}>{Object.values(transformerSummaryData.summary).reduce((sum, d) => sum + (d['Box Up'] || 0), 0)}</td>
+                          <td style={{ color: 'var(--accent-primary)' }}>{Object.values(transformerSummaryData.summary).reduce((sum, d) => sum + (d['CCA'] || 0), 0)}</td>
+                          <td style={{ color: 'var(--accent-primary)' }}>{Object.values(transformerSummaryData.summary).reduce((sum, d) => sum + (d['HT Winding'] || 0), 0)}</td>
+                          <td style={{ color: 'var(--accent-primary)' }}>{Object.values(transformerSummaryData.summary).reduce((sum, d) => sum + (d['LT Winding'] || 0), 0)}</td>
+                        </tr>
+                      </>
+                    ) : (
+                      <tr><td colSpan="5" style={{ padding: '1rem', color: 'var(--text-muted)' }}>No transformer production data found.</td></tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* Current Month Tank Fabrication Summary */}
+            <div className="card" style={{ padding: '1.5rem' }}>
+              <h4 style={{ marginBottom: '1rem', color: 'var(--text-secondary)', display: 'flex', justifyContent: 'space-between' }}>
+                <span>Current Month Tank Fabrication Total</span>
+                {tankSummaryData.lastDate && (
+                  <span style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>
+                    Month: {new Date(tankSummaryData.lastDate).toLocaleString('default', { month: 'long', year: 'numeric' })} (Till {new Date(tankSummaryData.lastDate).toLocaleDateString()})
+                  </span>
+                )}
+              </h4>
+              <div style={{ overflowX: 'auto' }}>
+                <table className="report-table" style={{ width: '100%', textAlign: 'center' }}>
+                  <thead>
+                    <tr>
+                      <th style={{ textAlign: 'left' }}>CAPACITY</th>
+                      <th>TOTAL TANKS FABRICATED</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {Object.keys(tankSummaryData.summary).length > 0 ? (
+                      <>
+                        {Object.keys(tankSummaryData.summary).map(cap => (
+                          <tr key={cap}>
+                            <td style={{ textAlign: 'left', fontWeight: '700', color: 'var(--text-primary)' }}>{cap}</td>
+                            <td style={{ color: 'var(--accent-primary)', fontWeight: 'bold' }}>{tankSummaryData.summary[cap]}</td>
+                          </tr>
+                        ))}
+                        <tr style={{ backgroundColor: 'var(--bg-tertiary)', fontWeight: 'bold' }}>
+                          <td style={{ textAlign: 'left' }}>TOTALS</td>
+                          <td style={{ color: 'var(--success)', fontSize: '1.1rem' }}>
+                            {Object.values(tankSummaryData.summary).reduce((sum, qty) => sum + qty, 0)}
+                          </td>
+                        </tr>
+                      </>
+                    ) : (
+                      <tr><td colSpan="2" style={{ padding: '1rem', color: 'var(--text-muted)' }}>No tank fabrication data found for the current month.</td></tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : (
+        <>
       <div className="card" style={{ marginBottom: '2rem' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
           <div style={{ display: 'flex', gap: '2rem', alignItems: 'flex-end', flexWrap: 'wrap' }}>
@@ -541,8 +704,9 @@ const ProductionTracker = () => {
             </div>
           </div>
         </div>
-
       </div>
+      </>
+      )}
     </div>
   );
 };
