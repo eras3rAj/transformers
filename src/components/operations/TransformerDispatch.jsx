@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Truck, MapPin, Plus, PackageOpen, AlertCircle } from 'lucide-react';
+import { Truck, MapPin, Plus, PackageOpen, AlertCircle, ChevronDown, Search } from 'lucide-react';
 import { usePO } from '../../context/POContext';
 import { useInspection } from '../../context/InspectionContext';
 import { useDispatch } from '../../context/DispatchContext';
@@ -12,6 +12,8 @@ const TransformerDispatch = () => {
   const { dispatchPlans, loadings, addDispatchPlan, addLoading, getStationMetrics } = useDispatch();
 
   const [selectedPO, setSelectedPO] = useState('');
+  const [isSelectorOpen, setIsSelectorOpen] = useState(false);
+  const [poSearchQuery, setPoSearchQuery] = useState('');
   
   // Plan form state
   const [stationName, setStationName] = useState('');
@@ -85,15 +87,73 @@ const TransformerDispatch = () => {
         Transformer Dispatch & Loading
       </h2>
 
-      {/* PO Selector */}
-      <div className="form-group" style={{ maxWidth: '400px', marginBottom: '2rem' }}>
+      {/* PO Selector (Tabular) */}
+      <div className="form-group" style={{ maxWidth: '800px', marginBottom: '2rem', position: 'relative' }}>
         <label>Select Purchase Order</label>
-        <select value={selectedPO} onChange={(e) => setSelectedPO(e.target.value)} required>
-          <option value="">-- Choose PO --</option>
-          {pos.map(p => (
-            <option key={p.id} value={p.poNo}>{p.poNo} - {p.companyName}</option>
-          ))}
-        </select>
+        
+        <div 
+          onClick={() => setIsSelectorOpen(!isSelectorOpen)}
+          className="input-field"
+          style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', minHeight: '45px' }}
+        >
+          <span style={{ fontWeight: selectedPO ? '600' : 'normal', color: selectedPO ? 'var(--accent-primary)' : 'var(--text-muted)' }}>
+            {selectedPO ? `${selectedPO} - ${currentPO?.companyName}` : '-- Choose PO --'}
+          </span>
+          <ChevronDown size={18} style={{ transform: isSelectorOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
+        </div>
+
+        {isSelectorOpen && (
+          <div className="card" style={{ position: 'absolute', top: '100%', left: 0, width: '100%', zIndex: 100, marginTop: '0.5rem', padding: '0', overflow: 'hidden', boxShadow: 'var(--shadow-lg)' }}>
+            
+            <div style={{ padding: '0.8rem', borderBottom: '1px solid var(--border-color)', display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'var(--bg-tertiary)' }}>
+              <Search size={16} color="var(--text-muted)" />
+              <input 
+                type="text" 
+                placeholder="Search PO No, Company, or Board..." 
+                value={poSearchQuery}
+                onChange={(e) => setPoSearchQuery(e.target.value)}
+                style={{ border: 'none', background: 'transparent', padding: 0, width: '100%', outline: 'none', fontSize: '0.9rem' }}
+                autoFocus
+              />
+            </div>
+
+            <div style={{ maxHeight: '350px', overflowY: 'auto' }}>
+              <table className="report-table" style={{ marginTop: 0, border: 'none', borderRadius: 0 }}>
+                <thead style={{ position: 'sticky', top: 0, zIndex: 10, boxShadow: '0 2px 4px rgba(0,0,0,0.2)' }}>
+                  <tr>
+                    <th style={{ background: 'var(--bg-secondary)' }}>PO No</th>
+                    <th style={{ background: 'var(--bg-secondary)' }}>Company</th>
+                    <th style={{ background: 'var(--bg-secondary)' }}>Board</th>
+                    <th style={{ background: 'var(--bg-secondary)' }}>Capacity</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {pos.filter(p => 
+                    p.poNo.toLowerCase().includes(poSearchQuery.toLowerCase()) || 
+                    (p.companyName || '').toLowerCase().includes(poSearchQuery.toLowerCase()) ||
+                    (p.utilityBoard || '').toLowerCase().includes(poSearchQuery.toLowerCase())
+                  ).map(p => (
+                    <tr 
+                      key={p.id} 
+                      onClick={() => { setSelectedPO(p.poNo); setIsSelectorOpen(false); setPoSearchQuery(''); }}
+                      style={{ cursor: 'pointer', background: selectedPO === p.poNo ? 'var(--accent-glow)' : 'transparent' }}
+                    >
+                      <td style={{ fontWeight: '600', color: 'var(--text-primary)' }}>{p.poNo}</td>
+                      <td>{p.companyName}</td>
+                      <td>{p.utilityBoard}</td>
+                      <td>{p.capacity}</td>
+                    </tr>
+                  ))}
+                  {pos.length === 0 && (
+                    <tr>
+                      <td colSpan="4" style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)' }}>No Purchase Orders found.</td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
       </div>
 
       {selectedPO && currentPO && (
