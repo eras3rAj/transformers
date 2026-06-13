@@ -183,11 +183,6 @@ const WarrantyManagement = () => {
           <h1>Warranty Claims</h1>
           <p>Manage damaged transformers, tracking, and warranty repairs.</p>
         </div>
-        <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-          <button className="btn btn-primary" onClick={() => { setEditingClaim(null); setShowForm(true); }}>
-            <Plus size={18} /> New Warranty Claim
-          </button>
-        </div>
       </div>
 
       {/* Filter Section */}
@@ -225,6 +220,10 @@ const WarrantyManagement = () => {
             <EyeOff size={16} /> Show Deleted
           </label>
         )}
+        
+        <button className="btn btn-primary" onClick={() => { setEditingClaim(null); setShowForm(true); }}>
+          <Plus size={18} /> New Claim
+        </button>
       </div>
 
       <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
