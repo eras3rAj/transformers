@@ -45,7 +45,7 @@ const Sidebar = ({ isMobileMenuOpen, setIsMobileMenuOpen }) => {
     { name: 'Project Management', icon: <ListTodo size={20} />, path: '/projects', adminOk: true, normalOk: true, section: 'Overview' },
     { name: 'Manufacturing Hub', icon: <Factory size={20} />, path: '/manufacturing', adminOk: true, normalOk: true, section: 'Manufacturing' },
     { name: 'Inventory Stores', icon: <PackageSearch size={20} />, path: '/inventory', adminOk: true, normalOk: true, section: 'Manufacturing' },
-    { name: 'Daily Operations', icon: <FileText size={20} />, path: '/operations', adminOk: true, normalOk: true, section: 'Financial' },
+    { name: 'Daily Operations', icon: <FileText size={20} />, path: '/operations', adminOk: true, normalOk: true, section: 'Manufacturing' },
     { name: 'Financial Hub', icon: <TrendingUp size={20} />, path: '/finance', adminOk: true, normalOk: true, section: 'Financial' },
     { name: 'Audit Logs', icon: <ClipboardList size={20} />, path: '/logs', adminOk: false, normalOk: false, section: 'System' },
     { name: 'User Management', icon: <UserCog size={20} />, path: '/users', adminOk: false, normalOk: false, section: 'System' },
