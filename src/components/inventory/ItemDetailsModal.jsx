@@ -3,6 +3,7 @@ import { X, Box, ArrowDownRight, ArrowUpRight, Truck, Filter } from 'lucide-reac
 import DataTable from '../common/DataTable';
 import DynamicMetric from '../common/DynamicMetric';
 import { formatDate } from '../../utils/dateUtils';
+// trigger redeploy
 
 const ItemDetailsModal = ({ isOpen, onClose, item, transactions = [], currentStock = 0 }) => {
   const [filterType, setFilterType] = useState('ALL');
