@@ -1,5 +1,5 @@
 import jsPDF from 'jspdf';
-import 'jspdf-autotable';
+import autoTable from 'jspdf-autotable';
 
 export const generateTransactionPDF = (txn) => {
   const doc = new jsPDF();
@@ -46,7 +46,7 @@ export const generateTransactionPDF = (txn) => {
     ]
   ];
 
-  doc.autoTable({
+  autoTable(doc, {
     startY: currentY,
     head: [['#', 'Item', 'Quantity']],
     body: tableData,
@@ -86,7 +86,7 @@ export const generateBatchIssuePDF = (cartItems, location) => {
     item.remarks || '-'
   ]);
 
-  doc.autoTable({
+  autoTable(doc, {
     startY: 45,
     head: [['#', 'Item', 'Quantity', 'Department', 'Remarks']],
     body: tableData,
