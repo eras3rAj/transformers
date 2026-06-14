@@ -5,7 +5,7 @@ import { useDailyReports } from '../context/DailyReportContext';
 import { usePO } from '../context/POContext';
 import { useTasks } from '../context/TaskContext';
 import { useToast } from '../context/ToastContext';
-import { Save, Check, FileText, Link, Trash2, Copy } from 'lucide-react';
+import { Save, Check, FileText, Link, Trash2, Copy, ChevronLeft, ChevronRight } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import '../components/layout/Layout.css';
 
@@ -692,6 +692,25 @@ const DailyReports = () => {
     );
   };
 
+  const shiftDateTime = (val, days) => {
+    let dateStr = val;
+    if (!dateStr) {
+      const now = new Date();
+      dateStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}T${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+    } else if (dateStr.length === 5) {
+      dateStr = `${selectedDate}T${dateStr}`;
+    }
+    const d = new Date(dateStr);
+    d.setDate(d.getDate() + days);
+    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}T${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+  };
+
+  const formatDateTime = (val) => {
+    if (!val) return '';
+    if (val.length === 5) return `${selectedDate}T${val}`;
+    return val;
+  };
+
   const renderCoreCutting = () => (
     <div className="animate-fade-in">
       <div className="card">
@@ -703,7 +722,27 @@ const DailyReports = () => {
           </div>
           <div className="input-group">
             <label className="input-label">Opening Time of Oven</label>
-            <input type="time" className="input-field" value={formData['Core Cutting'].openingTime} onChange={(e) => handleDataChange('Core Cutting', 'openingTime', e.target.value)} />
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <button 
+                type="button"
+                onClick={() => handleDataChange('Core Cutting', 'openingTime', shiftDateTime(formData['Core Cutting'].openingTime, -1))}
+                style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', borderRadius: '6px', cursor: 'pointer', display: 'flex', alignItems: 'center', padding: '0.3rem', color: 'var(--text-primary)' }}
+                title="Previous Date"
+              ><ChevronLeft size={16} /></button>
+              <input 
+                type="datetime-local" 
+                className="input-field" 
+                style={{ marginBottom: 0 }}
+                value={formatDateTime(formData['Core Cutting'].openingTime)} 
+                onChange={(e) => handleDataChange('Core Cutting', 'openingTime', e.target.value)} 
+              />
+              <button 
+                type="button"
+                onClick={() => handleDataChange('Core Cutting', 'openingTime', shiftDateTime(formData['Core Cutting'].openingTime, 1))}
+                style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', borderRadius: '6px', cursor: 'pointer', display: 'flex', alignItems: 'center', padding: '0.3rem', color: 'var(--text-primary)' }}
+                title="Next Date"
+              ><ChevronRight size={16} /></button>
+            </div>
           </div>
           <div className="input-group">
             <label className="input-label">Cutting Rating</label>
@@ -711,7 +750,27 @@ const DailyReports = () => {
           </div>
           <div className="input-group">
             <label className="input-label">Next Oven Time</label>
-            <input type="time" className="input-field" value={formData['Core Cutting'].nextOvenTime} onChange={(e) => handleDataChange('Core Cutting', 'nextOvenTime', e.target.value)} />
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <button 
+                type="button"
+                onClick={() => handleDataChange('Core Cutting', 'nextOvenTime', shiftDateTime(formData['Core Cutting'].nextOvenTime, -1))}
+                style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', borderRadius: '6px', cursor: 'pointer', display: 'flex', alignItems: 'center', padding: '0.3rem', color: 'var(--text-primary)' }}
+                title="Previous Date"
+              ><ChevronLeft size={16} /></button>
+              <input 
+                type="datetime-local" 
+                className="input-field" 
+                style={{ marginBottom: 0 }}
+                value={formatDateTime(formData['Core Cutting'].nextOvenTime)} 
+                onChange={(e) => handleDataChange('Core Cutting', 'nextOvenTime', e.target.value)} 
+              />
+              <button 
+                type="button"
+                onClick={() => handleDataChange('Core Cutting', 'nextOvenTime', shiftDateTime(formData['Core Cutting'].nextOvenTime, 1))}
+                style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', borderRadius: '6px', cursor: 'pointer', display: 'flex', alignItems: 'center', padding: '0.3rem', color: 'var(--text-primary)' }}
+                title="Next Date"
+              ><ChevronRight size={16} /></button>
+            </div>
           </div>
         </div>
       </div>
