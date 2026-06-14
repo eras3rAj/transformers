@@ -394,7 +394,7 @@ const InventoryManagement = () => {
               {catItems.map(item => {
                 const globalStock = getGlobalStock(item.name);
                 return (
-                  <div key={item.id} className="card stat-card" style={{ borderLeft: `4px solid ${globalStock > 0 ? 'var(--success)' : 'var(--danger)'}` }}>
+                  <div key={item.id} className="card stat-card" style={{ borderLeft: `4px solid ${globalStock > 0 ? 'var(--success)' : 'var(--danger)'}`, cursor: 'pointer' }} onClick={() => setSelectedItemDetails(item)}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                       <div>
                         <h3 style={{ margin: '0 0 0.5rem 0', color: 'var(--text-muted)', fontSize: '0.85rem', textTransform: 'uppercase' }}>{item.name}</h3>
