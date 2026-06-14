@@ -462,8 +462,12 @@ input[type=number] {
 }
 
 /* Hub Page Layout Adjustments */
-.hub-tab-content .page-header {
+.hub-tab-content .page-header > div:first-child {
   display: none !important;
+}
+.hub-tab-content .page-header {
+  margin-bottom: 0.5rem !important;
+  justify-content: flex-end !important;
 }
 .hub-tab-content > .animate-fade-in {
   animation: none !important;

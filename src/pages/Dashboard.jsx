@@ -57,6 +57,12 @@ const Dashboard = () => {
   const { currentUser } = useAuth();
   const [isInitialLoading, setIsInitialLoading] = useState(true);
 
+  const isCompanyMatch = (itemCompany, filterValue) => {
+    if (filterValue === 'All' || itemCompany === 'All') return true;
+    if (filterValue === 'J.M. Electricals' && (itemCompany === 'J.M. Electricals' || itemCompany === 'JM IGC')) return true;
+    return itemCompany === filterValue;
+  };
+
   useEffect(() => {
     const timer = setTimeout(() => setIsInitialLoading(false), 500);
     return () => clearTimeout(timer);
@@ -90,7 +96,7 @@ const Dashboard = () => {
 
   // 1. Global KPIs
   const filteredPOs = useMemo(() => {
-    return companyFilter === 'All' ? pos : pos.filter(po => po.companyName === companyFilter);
+    return companyFilter === 'All' ? pos : pos.filter(po => isCompanyMatch(po.companyName, companyFilter));
   }, [pos, companyFilter]);
   
   const validPONos = useMemo(() => new Set(filteredPOs.map(po => po.poNo)), [filteredPOs]);
@@ -195,7 +201,7 @@ const Dashboard = () => {
       
       const poObj = pos.find(p => p.poNo === c.poNo);
       const claimCompany = poObj ? poObj.companyName : 'Unknown';
-      if (companyFilter !== 'All' && claimCompany !== companyFilter) return;
+      if (companyFilter !== 'All' && !isCompanyMatch(claimCompany, companyFilter)) return;
 
       if (['To be lifted from store', 'Pending Return', 'Inspected'].includes(c.status)) {
         pendingAction++;
@@ -249,7 +255,7 @@ const Dashboard = () => {
   const upcomingMilestones = useMemo(() => {
     return milestones
       .filter(m => m.status === 'Pending')
-      .filter(m => companyFilter === 'All' || m.company === 'All' || m.company === companyFilter)
+      .filter(m => isCompanyMatch(m.company, companyFilter))
       .slice(0, 5); // Limit to top 5
   }, [milestones, companyFilter]);
 
@@ -348,7 +354,7 @@ const Dashboard = () => {
           <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Master Filter:</span>
           <select value={companyFilter} onChange={(e) => setCompanyFilter(e.target.value)} className="input-field" style={{ marginBottom: 0, minWidth: '200px' }}>
             <option value="All">All Companies (Global)</option>
-            {companies?.map(c => {
+            {companies?.filter(c => c !== 'JM IGC').map(c => {
               let display = c;
               if (c === 'J.M. Electricals') display = 'JM';
               if (c === 'J.R. Transformers') display = 'JRTPL';
