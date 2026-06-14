@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ListTodo, Plus } from 'lucide-react';
+import { ListTodo, Plus, Calendar } from 'lucide-react';
 import { useTasks } from '../context/TaskContext';
 import { useAuth } from '../context/AuthContext';
 import SkeletonLoader from '../components/common/SkeletonLoader';
@@ -128,6 +128,13 @@ const PendingTasks = () => {
                     <span><strong>To:</strong> {task.assigned_to}</span>
                     <span><strong>From:</strong> {task.raised_by}</span>
                   </div>
+
+                  {task.due_date && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>
+                      <Calendar size={12} />
+                      <strong>Due:</strong> {new Date(task.due_date).toLocaleDateString('en-GB')}
+                    </div>
+                  )}
 
                   {task.latest_update && (
                     <div style={{ backgroundColor: 'var(--bg-tertiary)', padding: '0.5rem', borderRadius: '4px', marginBottom: '0.8rem', fontSize: '0.75rem', borderLeft: '2px solid var(--accent-primary)' }}>
