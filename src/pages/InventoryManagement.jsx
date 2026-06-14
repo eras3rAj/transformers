@@ -768,7 +768,7 @@ const InventoryManagement = () => {
                   <td style={{ padding: '0.8rem', color: 'var(--text-muted)' }}>{txn.remarks}</td>
                   <td style={{ padding: '0.8rem', textAlign: 'right' }}>
                     <button onClick={() => generateTransactionPDF(txn)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--accent-primary)', opacity: 0.8, transition: 'opacity 0.2s', marginRight: isSuperAdmin ? '0.8rem' : '0' }} title="Download PDF Receipt" onMouseEnter={e => e.target.style.opacity = 1} onMouseLeave={e => e.target.style.opacity = 0.8}>
-                      <FileText size={15} />
+                      <Download size={15} />
                     </button>
                     {isSuperAdmin && (
                       <button onClick={() => setDeleteConfirm({ isOpen: true, txnId: txn.id })} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--danger)', opacity: 0.7, transition: 'opacity 0.2s' }} title="Delete Transaction" onMouseEnter={e => e.target.style.opacity = 1} onMouseLeave={e => e.target.style.opacity = 0.7}>
