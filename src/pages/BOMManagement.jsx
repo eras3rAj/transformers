@@ -18,7 +18,18 @@ const BOMManagement = () => {
   
   const [formData, setFormData] = useState({ rating: '', phase: '3-Phase', materials: [], linkedPOs: [] });
   const [searchTerm, setSearchTerm] = useState('');
+  const [poSearchTerm, setPoSearchTerm] = useState('');
   const [expandedBOM, setExpandedBOM] = useState(null);
+
+  const filteredModalPOs = useMemo(() => {
+    if (!pos) return [];
+    if (!poSearchTerm.trim()) return pos;
+    const lowerSearch = poSearchTerm.toLowerCase();
+    return pos.filter(po => 
+      po.poNo.toLowerCase().includes(lowerSearch) || 
+      (po.capacity && po.capacity.toLowerCase().includes(lowerSearch))
+    );
+  }, [pos, poSearchTerm]);
 
   const ratingOptions = useMemo(() => {
     const opts = new Set();
@@ -39,6 +50,7 @@ const BOMManagement = () => {
     } else {
       setFormData({ rating: '', phase: '3-Phase', materials: [], linkedPOs: [] });
     }
+    setPoSearchTerm('');
     setIsModalOpen(true);
   };
 
@@ -49,6 +61,7 @@ const BOMManagement = () => {
       materials: bom.materials ? [...bom.materials] : [],
       linkedPOs: [] // Do not copy linked POs to a clone
     });
+    setPoSearchTerm('');
     setIsModalOpen(true);
   };
 
@@ -277,15 +290,30 @@ const BOMManagement = () => {
               </div>
 
               <div style={{ marginTop: '1.5rem' }}>
-                <label className="input-label" style={{ marginBottom: '0.5rem' }}>Link to Active Purchase Orders (Optional)</label>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', maxHeight: '120px', overflowY: 'auto', padding: '0.75rem', border: '1px solid var(--border-color)', borderRadius: '4px', backgroundColor: 'var(--bg-tertiary)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                  <label className="input-label" style={{ margin: 0 }}>Link to Active Purchase Orders (Optional)</label>
+                  <div className="search-container" style={{ width: '250px' }}>
+                    <Search className="search-icon" size={16} />
+                    <input 
+                      type="text" 
+                      className="search-input" 
+                      placeholder="Search POs..." 
+                      value={poSearchTerm} 
+                      onChange={(e) => setPoSearchTerm(e.target.value)}
+                    />
+                  </div>
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '0.75rem', maxHeight: '200px', overflowY: 'auto', padding: '1rem', border: '1px solid var(--border-color)', borderRadius: '8px', backgroundColor: 'var(--bg-tertiary)' }}>
                   {(!pos || pos.length === 0) ? (
-                    <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>No active purchase orders found.</span>
+                    <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem', gridColumn: '1 / -1', textAlign: 'center' }}>No active purchase orders found.</span>
+                  ) : filteredModalPOs.length === 0 ? (
+                    <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem', gridColumn: '1 / -1', textAlign: 'center' }}>No POs match your search.</span>
                   ) : (
-                    pos.map(po => (
-                      <label key={po.poNo} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.25rem 0.5rem', backgroundColor: 'var(--bg-secondary)', borderRadius: '4px', fontSize: '0.85rem', cursor: 'pointer', border: '1px solid var(--border-color)' }}>
+                    filteredModalPOs.map(po => (
+                      <label key={po.poNo} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.75rem', backgroundColor: 'var(--bg-secondary)', borderRadius: '6px', fontSize: '0.9rem', cursor: 'pointer', border: '1px solid var(--border-color)', transition: 'all 0.2s ease', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
                         <input 
                           type="checkbox" 
+                          style={{ width: '18px', height: '18px', cursor: 'pointer' }}
                           checked={(formData.linkedPOs || []).includes(po.poNo)}
                           onChange={(e) => {
                             if (e.target.checked) {
@@ -295,7 +323,10 @@ const BOMManagement = () => {
                             }
                           }}
                         />
-                        {po.poNo} ({po.capacity})
+                        <div style={{ display: 'flex', flexDirection: 'column' }}>
+                          <span style={{ fontWeight: '600', color: 'var(--text-primary)' }}>{po.poNo}</span>
+                          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{po.capacity}</span>
+                        </div>
                       </label>
                     ))
                   )}
