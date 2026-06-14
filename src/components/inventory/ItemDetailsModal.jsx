@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react';
+import ReactDOM from 'react-dom';
 import { X, Box, ArrowDownRight, ArrowUpRight, Truck, Filter } from 'lucide-react';
 import DataTable from '../common/DataTable';
 import DynamicMetric from '../common/DynamicMetric';
@@ -78,7 +79,7 @@ const ItemDetailsModal = ({ isOpen, onClose, item, transactions = [], currentSto
     { Header: 'REMARKS', accessor: 'remarks', Cell: ({ value }) => <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>{value}</span> }
   ];
 
-  return (
+  return ReactDOM.createPortal(
     <div className="modal-backdrop">
       <div className="card animate-fade-in glass-panel" style={{ width: '90%', maxWidth: '1000px', maxHeight: '90vh', overflowY: 'auto', padding: 0 }}>
         
@@ -149,7 +150,8 @@ const ItemDetailsModal = ({ isOpen, onClose, item, transactions = [], currentSto
           />
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
 
