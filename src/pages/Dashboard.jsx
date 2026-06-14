@@ -170,7 +170,7 @@ const Dashboard = () => {
       }
     });
     
-    return all.sort((a, b) => new Date(b.date) - new Date(a.date));
+    return all.sort((a, b) => new Date(a.date) - new Date(b.date));
   }, [schedules, inspections, companyFilter, validPONos]);
 
   // 4. Expense Burn Rate Data (Last 14 Days)
