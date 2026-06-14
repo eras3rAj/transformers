@@ -164,7 +164,7 @@ const Dashboard = () => {
       }
     });
     
-    return all.sort((a, b) => new Date(a.date) - new Date(b.date)).slice(0, 5);
+    return all.sort((a, b) => new Date(b.date) - new Date(a.date));
   }, [schedules, inspections, companyFilter, validPONos]);
 
   // 4. Expense Burn Rate Data (Last 14 Days)
@@ -492,7 +492,7 @@ const Dashboard = () => {
               No upcoming schedules found.
             </div>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', maxHeight: '400px', overflowY: 'auto', paddingRight: '0.5rem' }}>
               {upcomingSchedules.map((sched, idx) => {
                 const isUrgent = new Date(sched.date).getTime() - new Date().getTime() < 7 * 24 * 60 * 60 * 1000; // Less than 7 days
                 return (
