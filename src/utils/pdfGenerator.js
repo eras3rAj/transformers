@@ -51,7 +51,12 @@ export const generateTransactionPDF = (txn) => {
     head: [['#', 'Item', 'Quantity']],
     body: tableData,
     theme: 'grid',
-    headStyles: { fillColor: [59, 130, 246] }
+    headStyles: { fillColor: [59, 130, 246] },
+    columnStyles: {
+      0: { cellWidth: 15 },
+      1: { cellWidth: 100 },
+      2: { cellWidth: 65 }
+    }
   });
   
   const finalY = doc.lastAutoTable.finalY || currentY;
@@ -91,7 +96,14 @@ export const generateBatchIssuePDF = (cartItems, location) => {
     head: [['#', 'Item', 'Quantity', 'Department', 'Remarks']],
     body: tableData,
     theme: 'grid',
-    headStyles: { fillColor: [59, 130, 246] }
+    headStyles: { fillColor: [59, 130, 246] },
+    columnStyles: {
+      0: { cellWidth: 15 },
+      1: { cellWidth: 60 },
+      2: { cellWidth: 30 },
+      3: { cellWidth: 40 },
+      4: { cellWidth: 35 }
+    }
   });
   
   const finalY = doc.lastAutoTable.finalY || 45;
