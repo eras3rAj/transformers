@@ -1554,9 +1554,10 @@ const InventoryManagement = () => {
                   </div>
                   <div style={{ maxHeight: '250px', overflowY: 'auto', padding: '0.5rem' }}>
                     {sortedCompanies.filter(c => c.name.toLowerCase().includes(supplierSearch.toLowerCase())).map(c => (
-                      <label key={c.id} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.4rem', cursor: 'pointer', borderRadius: '4px' }} className="supplier-row">
+                      <label key={c.id} style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'flex-start', textAlign: 'left', gap: '0.8rem', padding: '0.5rem', cursor: 'pointer', borderRadius: '4px' }} className="supplier-row">
                         <input 
                           type="checkbox" 
+                          style={{ marginTop: '0.2rem' }}
                           checked={itemData.suppliers.includes(c.name)}
                           onChange={(e) => {
                             const newSuppliers = e.target.checked 
@@ -1565,7 +1566,7 @@ const InventoryManagement = () => {
                             setItemData({ ...itemData, suppliers: newSuppliers });
                           }}
                         />
-                        <span style={{ fontSize: '0.9rem' }}>{c.name}</span>
+                        <span style={{ fontSize: '0.9rem', textAlign: 'left', wordBreak: 'break-word', flex: 1 }}>{c.name}</span>
                       </label>
                     ))}
                     {sortedCompanies.filter(c => c.name.toLowerCase().includes(supplierSearch.toLowerCase())).length === 0 && <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', padding: '0.5rem' }}>No companies found.</div>}
@@ -1690,9 +1691,10 @@ const InventoryManagement = () => {
                   </div>
                   <div style={{ maxHeight: '250px', overflowY: 'auto', padding: '0.5rem' }}>
                     {sortedCompanies.filter(c => c.name.toLowerCase().includes(supplierSearch.toLowerCase())).map(c => (
-                      <label key={c.id} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.4rem', cursor: 'pointer', borderRadius: '4px' }} className="supplier-row">
+                      <label key={c.id} style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'flex-start', textAlign: 'left', gap: '0.8rem', padding: '0.5rem', cursor: 'pointer', borderRadius: '4px' }} className="supplier-row">
                         <input 
                           type="checkbox" 
+                          style={{ marginTop: '0.2rem' }}
                           checked={categoryData.suppliers.includes(c.name)}
                           onChange={(e) => {
                             const newSuppliers = e.target.checked 
@@ -1701,7 +1703,7 @@ const InventoryManagement = () => {
                             setCategoryData({ ...categoryData, suppliers: newSuppliers });
                           }}
                         />
-                        <span style={{ fontSize: '0.9rem' }}>{c.name}</span>
+                        <span style={{ fontSize: '0.9rem', textAlign: 'left', wordBreak: 'break-word', flex: 1 }}>{c.name}</span>
                       </label>
                     ))}
                     {sortedCompanies.filter(c => c.name.toLowerCase().includes(supplierSearch.toLowerCase())).length === 0 && <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', padding: '0.5rem' }}>No companies found.</div>}
