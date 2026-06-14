@@ -12,10 +12,8 @@ export const generateTransactionPDF = (txn) => {
   doc.setFontSize(10);
   doc.text(`Date: ${new Date(txn.date).toLocaleDateString('en-GB')}`, 14, 30);
   doc.text(`Location: ${txn.location}`, 14, 35);
-  doc.text(`Item: ${txn.item}`, 14, 40);
-  doc.text(`Quantity: ${txn.qty}`, 14, 45);
   
-  let currentY = 55;
+  let currentY = 40;
   if (!isOut && txn.companyName) {
     doc.text(`Supplier: ${txn.companyName}`, 14, currentY);
     currentY += 5;
@@ -38,9 +36,29 @@ export const generateTransactionPDF = (txn) => {
     currentY += 10;
   }
   
+  currentY += 5;
+
+  const tableData = [
+    [
+      1,
+      txn.item,
+      txn.qty
+    ]
+  ];
+
+  doc.autoTable({
+    startY: currentY,
+    head: [['#', 'Item', 'Quantity']],
+    body: tableData,
+    theme: 'grid',
+    headStyles: { fillColor: [59, 130, 246] }
+  });
+  
+  const finalY = doc.lastAutoTable.finalY || currentY;
+
   // Signatures
   doc.setFontSize(10);
-  const signatureY = currentY + 40;
+  const signatureY = finalY + 40;
   doc.text("_______________________", 14, signatureY);
   doc.text("Store Manager", 20, signatureY + 5);
   
