@@ -678,9 +678,11 @@ const InventoryManagement = () => {
                     <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '600px', tableLayout: 'fixed' }}>
                       <thead>
                         <tr style={{ backgroundColor: 'var(--bg-tertiary)', borderBottom: '1px solid var(--border-color)' }}>
-                          <th style={{ width: '50%', padding: '0.8rem 1rem', fontSize: '0.85rem', color: 'var(--text-muted)' }}>ITEM/RATING</th>
-                          <th style={{ width: '20%', padding: '0.8rem 1rem', fontSize: '0.85rem', color: 'var(--text-muted)', textAlign: 'center' }}>CURRENT STOCK</th>
-                          <th style={{ width: '30%', padding: '0.8rem 1rem', fontSize: '0.85rem', color: 'var(--text-muted)', textAlign: 'right' }}>QUICK ACTIONS</th>
+                          <th style={{ width: '30%', padding: '0.8rem 1rem', fontSize: '0.85rem', color: 'var(--text-muted)' }}>ITEM/RATING</th>
+                          <th style={{ width: '15%', padding: '0.8rem 1rem', fontSize: '0.85rem', color: 'var(--text-muted)', textAlign: 'center' }}>TOTAL IN</th>
+                          <th style={{ width: '15%', padding: '0.8rem 1rem', fontSize: '0.85rem', color: 'var(--text-muted)', textAlign: 'center' }}>TOTAL OUT</th>
+                          <th style={{ width: '15%', padding: '0.8rem 1rem', fontSize: '0.85rem', color: 'var(--text-muted)', textAlign: 'center' }}>CURRENT STOCK</th>
+                          <th style={{ width: '25%', padding: '0.8rem 1rem', fontSize: '0.85rem', color: 'var(--text-muted)', textAlign: 'right' }}>QUICK ACTIONS</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -688,15 +690,26 @@ const InventoryManagement = () => {
                           const stock = getStockAtLocation(item.name, locName);
                           const minStock = item.minStockLevels?.[locName] || 0;
                           const isLowStock = minStock > 0 && stock < minStock;
+                          
+                          const itemTxns = transactions.filter(t => t.item === item.name && t.location === locName);
+                          const totalIn = itemTxns.filter(t => t.type === 'IN').reduce((acc, t) => acc + Number(t.qty || 0), 0);
+                          const totalOut = itemTxns.filter(t => t.type === 'OUT').reduce((acc, t) => acc + Number(t.qty || 0), 0);
+
                           return (
                             <tr key={item.id} style={{ borderBottom: '1px solid var(--border-color)', backgroundColor: isLowStock ? 'rgba(239, 68, 68, 0.05)' : 'transparent' }}>
                               <td style={{ padding: '1rem', fontWeight: '600' }}>
                                 {item.name} <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>({item.unit})</span>
                                 {isLowStock && <span style={{ marginLeft: '0.5rem', fontSize: '0.7rem', padding: '0.2rem 0.4rem', backgroundColor: 'var(--danger)', color: 'white', borderRadius: '4px', whiteSpace: 'nowrap' }}>Low Stock (Min {minStock})</span>}
                               </td>
+                              <td style={{ padding: '1rem', textAlign: 'center', color: 'var(--text-secondary)' }}>
+                                {Number(totalIn).toLocaleString()}
+                              </td>
+                              <td style={{ padding: '1rem', textAlign: 'center', color: 'var(--text-secondary)' }}>
+                                {Number(totalOut).toLocaleString()}
+                              </td>
                               <td style={{ padding: '1rem', textAlign: 'center' }}>
                                 <span style={{ fontSize: '1.1rem', fontWeight: '700', color: isLowStock ? 'var(--danger)' : stock > 0 ? 'var(--success)' : 'var(--danger)' }}>
-                                  {stock.toLocaleString()}
+                                  {Number(stock).toLocaleString()}
                                 </span>
                               </td>
                               <td style={{ padding: '1rem' }}>
