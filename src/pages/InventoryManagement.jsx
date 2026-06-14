@@ -1268,15 +1268,15 @@ const InventoryManagement = () => {
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                       <span style={{ color: 'var(--text-muted)' }}>Current Global Stock:</span>
-                      <span style={{ fontWeight: '600', color: 'var(--text-primary)' }}>{insight.currentStock} {insight.unit}</span>
+                      <span style={{ fontWeight: '600', color: 'var(--text-primary)' }}>{typeof insight.currentStock === 'number' ? insight.currentStock.toFixed(2) : insight.currentStock} {insight.unit}</span>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                       <span style={{ color: 'var(--text-muted)' }}>Est. Burn Rate:</span>
-                      <span style={{ fontWeight: '600', color: 'var(--text-primary)' }}>{insight.burnRate} {insight.unit}/day</span>
+                      <span style={{ fontWeight: '600', color: 'var(--text-primary)' }}>{typeof insight.dailyBurnRate === 'number' ? insight.dailyBurnRate.toFixed(2) : insight.dailyBurnRate} {insight.unit}/day</span>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                       <span style={{ color: 'var(--text-muted)' }}>Days Remaining:</span>
-                      <span style={{ fontWeight: '600', color: insight.daysRemaining <= 7 ? 'var(--danger)' : 'var(--text-primary)' }}>{insight.daysRemaining} days</span>
+                      <span style={{ fontWeight: '600', color: typeof insight.runwayDays === 'number' && insight.runwayDays <= 7 ? 'var(--danger)' : 'var(--text-primary)' }}>{insight.runwayDays} {insight.runwayDays !== 'Infinite' && 'days'}</span>
                     </div>
                   </div>
                 </div>
