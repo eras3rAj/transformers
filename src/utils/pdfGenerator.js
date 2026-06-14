@@ -51,6 +51,7 @@ export const generateTransactionPDF = (txn) => {
     head: [['#', 'Item', 'Quantity']],
     body: tableData,
     theme: 'grid',
+    styles: { overflow: 'linebreak' },
     headStyles: { fillColor: [59, 130, 246] },
     columnStyles: {
       0: { cellWidth: 15 },
@@ -96,6 +97,7 @@ export const generateBatchIssuePDF = (cartItems, location) => {
     head: [['#', 'Item', 'Quantity', 'Department', 'Remarks']],
     body: tableData,
     theme: 'grid',
+    styles: { overflow: 'linebreak' },
     headStyles: { fillColor: [59, 130, 246] },
     columnStyles: {
       0: { cellWidth: 15 },
