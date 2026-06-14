@@ -3,14 +3,13 @@ import { X, Box, ArrowDownRight, ArrowUpRight, Truck, Filter } from 'lucide-reac
 import DataTable from '../common/DataTable';
 import DynamicMetric from '../common/DynamicMetric';
 import { formatDate } from '../../utils/dateUtils';
-// trigger redeploy
 
 const ItemDetailsModal = ({ isOpen, onClose, item, transactions = [], currentStock = 0 }) => {
   const [filterType, setFilterType] = useState('ALL');
-  if (!isOpen || !item) return null;
 
   // Filter transactions specifically for this item
   const itemTransactions = useMemo(() => {
+    if (!item) return [];
     return transactions
       .filter(t => t.item === item.name)
       .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
@@ -36,6 +35,8 @@ const ItemDetailsModal = ({ isOpen, onClose, item, transactions = [], currentSto
 
     return { totalIn, totalOut, uniquePartiesCount: uniqueParties.size };
   }, [itemTransactions]);
+
+  if (!isOpen || !item) return null;
 
   const columns = [
     { Header: 'DATE', accessor: 'date', Cell: ({ value }) => <span style={{ whiteSpace: 'nowrap' }}>{formatDate(value)}</span> },
