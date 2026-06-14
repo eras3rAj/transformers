@@ -12,8 +12,15 @@ const PendingTasks = () => {
   const [showTaskForm, setShowTaskForm] = useState(false);
   const [activeTab, setActiveTab] = useState('Pending'); // Pending, In Progress, Completed
   
+  const getDefaultDate = (priority) => {
+    const d = new Date();
+    if (priority === 'Medium') d.setDate(d.getDate() + 3);
+    else if (priority === 'Low') d.setDate(d.getDate() + 5);
+    return d.toISOString().split('T')[0];
+  };
+
   const [taskData, setTaskData] = useState({
-    title: '', description: '', assigned_to: '', priority: 'Medium', due_date: ''
+    title: '', description: '', assigned_to: '', priority: 'Medium', due_date: getDefaultDate('Medium')
   });
 
   const [updateModal, setUpdateModal] = useState({ isOpen: false, task: null, updateText: '' });
@@ -23,8 +30,13 @@ const PendingTasks = () => {
   const handleTaskSubmit = async (e) => {
     e.preventDefault();
     await addTask(taskData);
-    setTaskData({ title: '', description: '', assigned_to: '', priority: 'Medium', due_date: '' });
+    setTaskData({ title: '', description: '', assigned_to: '', priority: 'Medium', due_date: getDefaultDate('Medium') });
     setShowTaskForm(false);
+  };
+
+  const handlePriorityChange = (e) => {
+    const newPriority = e.target.value;
+    setTaskData({ ...taskData, priority: newPriority, due_date: getDefaultDate(newPriority) });
   };
 
   const handleUpdateSubmit = async (e) => {
@@ -154,7 +166,7 @@ const PendingTasks = () => {
                 </div>
                 <div style={{ flex: 1 }}>
                   <label className="input-label">Priority</label>
-                  <select className="input-field" value={taskData.priority} onChange={e => setTaskData({...taskData, priority: e.target.value})}>
+                  <select className="input-field" value={taskData.priority} onChange={handlePriorityChange}>
                     <option value="High">High</option>
                     <option value="Medium">Medium</option>
                     <option value="Low">Low</option>
