@@ -5,7 +5,7 @@ import { usePO } from '../context/POContext';
 import { useInspection } from '../context/InspectionContext';
 import { useEmployees } from '../context/EmployeeContext';
 import { useInventory } from '../context/InventoryContext';
-import { Calendar, Save, Check, Layers, Settings, Plus, X, ListFilter, UserCheck, Trash2, Copy } from 'lucide-react';
+import { Calendar, Save, Check, Layers, Settings, Plus, X, ListFilter, UserCheck, Trash2, Copy, ChevronLeft, ChevronRight } from 'lucide-react';
 import '../components/layout/Layout.css';
 
 const ProductionTracker = () => {
@@ -264,14 +264,38 @@ const ProductionTracker = () => {
 
             <div>
               <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '0.5rem', fontWeight: '500' }}>SELECT DATE</label>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', backgroundColor: 'var(--bg-tertiary)', padding: '0.5rem 1rem', borderRadius: '8px', border: '1px solid var(--border-color)', marginBottom: 0 }}>
-                <Calendar size={18} color="var(--text-secondary)" />
-                <input 
-                  type="date" 
-                  value={selectedDate}
-                  onChange={(e) => setSelectedDate(e.target.value)}
-                  style={{ background: 'transparent', border: 'none', color: 'var(--text-primary)', outline: 'none', fontWeight: '600' }}
-                />
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', backgroundColor: 'var(--bg-tertiary)', padding: '0.3rem 0.5rem', borderRadius: '8px', border: '1px solid var(--border-color)', marginBottom: 0 }}>
+                <button 
+                  onClick={() => {
+                    const d = new Date(selectedDate);
+                    d.setUTCDate(d.getUTCDate() - 1);
+                    setSelectedDate(d.toISOString().split('T')[0]);
+                  }}
+                  style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', borderRadius: '6px', cursor: 'pointer', display: 'flex', alignItems: 'center', padding: '0.3rem', color: 'var(--text-primary)' }}
+                  title="Previous Date"
+                >
+                  <ChevronLeft size={16} />
+                </button>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0 0.25rem' }}>
+                  <Calendar size={18} color="var(--text-secondary)" />
+                  <input 
+                    type="date" 
+                    value={selectedDate}
+                    onChange={(e) => setSelectedDate(e.target.value)}
+                    style={{ background: 'transparent', border: 'none', color: 'var(--text-primary)', outline: 'none', fontWeight: '600' }}
+                  />
+                </div>
+                <button 
+                  onClick={() => {
+                    const d = new Date(selectedDate);
+                    d.setUTCDate(d.getUTCDate() + 1);
+                    setSelectedDate(d.toISOString().split('T')[0]);
+                  }}
+                  style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', borderRadius: '6px', cursor: 'pointer', display: 'flex', alignItems: 'center', padding: '0.3rem', color: 'var(--text-primary)' }}
+                  title="Next Date"
+                >
+                  <ChevronRight size={16} />
+                </button>
               </div>
             </div>
 
