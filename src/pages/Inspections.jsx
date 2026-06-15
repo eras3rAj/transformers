@@ -320,17 +320,14 @@ const Inspections = () => {
                   <th style={{ padding: '1rem', fontSize: '0.85rem', color: 'var(--text-muted)', textAlign: 'right' }}>STAGE INSPECTED</th>
                   <th style={{ padding: '1rem', fontSize: '0.85rem', color: 'var(--text-muted)', textAlign: 'right' }}>FINAL ACCEPTED</th>
                   <th style={{ padding: '1rem', fontSize: '0.85rem', color: 'var(--text-muted)', textAlign: 'right' }}>BALANCE STAGE</th>
-                  <th style={{ padding: '1rem', fontSize: '0.85rem', color: 'var(--text-muted)' }}>STATUS</th>
+
                   <th style={{ padding: '1rem', fontSize: '0.85rem', color: 'var(--text-muted)', textAlign: 'right' }}>BALANCE PO QTY</th>
                   <th style={{ padding: '1rem', fontSize: '0.85rem', color: 'var(--text-muted)', textAlign: 'right' }}>NEXT SCHEDULE</th>
                 </tr>
               </thead>
               <tbody>
                 {poSummaries.map((summary, index) => {
-                  let status = 'PENDING';
-                  if (summary.balanceQty === 0) status = 'COMPLETED';
-                  else if (summary.balanceQty < summary.quantity) status = 'PARTIAL';
-                  
+
                   return (
                   <tr key={index} style={{ borderBottom: '1px solid var(--border-color)' }}>
                     <td style={{ padding: '1rem', fontWeight: '600' }}>{summary.poNo} <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>({summary.capacity})</span></td>
@@ -346,18 +343,7 @@ const Inspections = () => {
                     <td style={{ padding: '1rem', textAlign: 'right', color: summary.balanceStageQty > 0 ? 'var(--accent-primary)' : 'inherit' }}>
                       {summary.balanceStageQty > 0 ? <strong>{summary.balanceStageQty}</strong> : '-'}
                     </td>
-                    <td style={{ padding: '1rem' }}>
-                      <span style={{ 
-                        padding: '0.3rem 0.6rem', 
-                        borderRadius: '20px', 
-                        fontSize: '0.75rem', 
-                        fontWeight: '700',
-                        backgroundColor: status === 'COMPLETED' ? 'rgba(34, 197, 94, 0.15)' : status === 'PARTIAL' ? 'rgba(245, 158, 11, 0.15)' : 'rgba(107, 114, 128, 0.15)',
-                        color: status === 'COMPLETED' ? 'var(--success)' : status === 'PARTIAL' ? 'var(--warning)' : 'var(--text-muted)'
-                      }}>
-                        {status}
-                      </span>
-                    </td>
+
                     <td style={{ padding: '1rem', textAlign: 'right', color: summary.balanceQty > 0 ? 'var(--danger)' : 'inherit' }}>
                       {summary.balanceQty > 0 ? <strong>{summary.balanceQty}</strong> : '-'}
                     </td>
@@ -378,7 +364,7 @@ const Inspections = () => {
                   <td style={{ padding: '1rem', textAlign: 'right', color: 'var(--accent-primary)' }}>{poSummaries.reduce((sum, s) => sum + s.totalStageInspected, 0)}</td>
                   <td style={{ padding: '1rem', textAlign: 'right', color: 'var(--success)' }}>{poSummaries.reduce((sum, s) => sum + s.totalFinalAccepted, 0)}</td>
                   <td style={{ padding: '1rem', textAlign: 'right', color: 'var(--accent-primary)' }}>{poSummaries.reduce((sum, s) => sum + s.balanceStageQty, 0)}</td>
-                  <td style={{ padding: '1rem', textAlign: 'right' }}>-</td>
+
                   <td style={{ padding: '1rem', textAlign: 'right', color: 'var(--danger)' }}>{poSummaries.reduce((sum, s) => sum + s.balanceQty, 0)}</td>
                   <td style={{ padding: '1rem', textAlign: 'right' }}>-</td>
                 </tr>
