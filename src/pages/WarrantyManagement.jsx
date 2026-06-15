@@ -307,27 +307,19 @@ const WarrantyManagement = () => {
               </table>
             </div>
 
-            {/* Board Breakdown */}
+            {/* Capacity Distribution */}
             <div className="card" style={{ padding: '1.5rem' }}>
               <h3 style={{ margin: '0 0 1rem 0', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <Building2 size={20} color="var(--accent-primary)" /> Claims by Utility Board
+                <BarChart3 size={20} color="var(--accent-primary)" /> Claims by Capacity
               </h3>
-              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                <thead>
-                  <tr style={{ borderBottom: '1px solid var(--border-color)' }}>
-                    <th style={{ padding: '0.75rem', textAlign: 'left', fontSize: '0.8rem', color: 'var(--text-muted)' }}>UTILITY BOARD</th>
-                    <th style={{ padding: '0.75rem', textAlign: 'right', fontSize: '0.8rem', color: 'var(--text-muted)' }}>COUNT</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {Object.entries(summaryStats.boardCounts).sort((a, b) => b[1] - a[1]).map(([board, count]) => (
-                    <tr key={board} style={{ borderBottom: '1px solid var(--border-color)' }}>
-                      <td style={{ padding: '0.75rem', fontWeight: '500' }}>{board}</td>
-                      <td style={{ padding: '0.75rem', textAlign: 'right', fontWeight: '700', fontSize: '1.1rem' }}>{count}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem' }}>
+                {Object.entries(summaryStats.capacityCounts).sort((a, b) => b[1] - a[1]).map(([cap, count]) => (
+                  <div key={cap} className="card" style={{ padding: '0.75rem 1.25rem', display: 'flex', alignItems: 'center', gap: '0.75rem', minWidth: '140px' }}>
+                    <span style={{ fontWeight: '500', fontSize: '0.9rem' }}>{cap}</span>
+                    <span style={{ marginLeft: 'auto', fontWeight: '700', fontSize: '1.2rem', color: 'var(--accent-primary)' }}>{count}</span>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
 
@@ -419,20 +411,28 @@ const WarrantyManagement = () => {
             </div>
           )}
 
-          {/* Capacity Distribution */}
-          {Object.keys(summaryStats.capacityCounts).length > 0 && (
+          {/* Board Breakdown */}
+          {Object.keys(summaryStats.boardCounts).length > 0 && (
             <div className="card" style={{ padding: '1.5rem', marginTop: '1.5rem' }}>
               <h3 style={{ margin: '0 0 1rem 0', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <BarChart3 size={20} color="var(--accent-primary)" /> Claims by Capacity
+                <Building2 size={20} color="var(--accent-primary)" /> Claims by Utility Board
               </h3>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem' }}>
-                {Object.entries(summaryStats.capacityCounts).sort((a, b) => b[1] - a[1]).map(([cap, count]) => (
-                  <div key={cap} className="card" style={{ padding: '0.75rem 1.25rem', display: 'flex', alignItems: 'center', gap: '0.75rem', minWidth: '140px' }}>
-                    <span style={{ fontWeight: '500', fontSize: '0.9rem' }}>{cap}</span>
-                    <span style={{ marginLeft: 'auto', fontWeight: '700', fontSize: '1.2rem', color: 'var(--accent-primary)' }}>{count}</span>
-                  </div>
-                ))}
-              </div>
+              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                <thead>
+                  <tr style={{ borderBottom: '1px solid var(--border-color)' }}>
+                    <th style={{ padding: '0.75rem', textAlign: 'left', fontSize: '0.8rem', color: 'var(--text-muted)' }}>UTILITY BOARD</th>
+                    <th style={{ padding: '0.75rem', textAlign: 'right', fontSize: '0.8rem', color: 'var(--text-muted)' }}>COUNT</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {Object.entries(summaryStats.boardCounts).sort((a, b) => b[1] - a[1]).map(([board, count]) => (
+                    <tr key={board} style={{ borderBottom: '1px solid var(--border-color)' }}>
+                      <td style={{ padding: '0.75rem', fontWeight: '500' }}>{board}</td>
+                      <td style={{ padding: '0.75rem', textAlign: 'right', fontWeight: '700', fontSize: '1.1rem' }}>{count}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           )}
         </div>
