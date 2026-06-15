@@ -7,10 +7,10 @@ export const useWarranty = () => useContext(WarrantyContext);
 
 export const WarrantyProvider = ({ children }) => {
   const [claims, setClaims] = useState([]);
-  const [stores, setStores] = useState(['Substation West', 'Depot Alpha', 'Central Hub', 'North Station']);
+  const [stores, setStores] = useState(['Substation West', 'Depot Alpha', 'Central Hub', 'North Station'].sort((a, b) => a.localeCompare(b)));
 
   const addStore = (store) => {
-    if (!stores.includes(store)) setStores(prev => [...prev, store]);
+    if (!stores.includes(store)) setStores(prev => [...prev, store].sort((a, b) => a.localeCompare(b)));
   };
 
   const removeStore = async (store) => {
@@ -46,7 +46,7 @@ export const WarrantyProvider = ({ children }) => {
 
       const dbStores = [...new Set(mappedClaims.map(c => c.storeName).filter(Boolean))].filter(s => !deletedStores.includes(s));
       const defaultStores = ['Substation West', 'Depot Alpha', 'Central Hub', 'North Station'].filter(s => !deletedStores.includes(s));
-      setStores([...new Set([...defaultStores, ...dbStores])]);
+      setStores([...new Set([...defaultStores, ...dbStores])].sort((a, b) => a.localeCompare(b)));
     }
   };
 

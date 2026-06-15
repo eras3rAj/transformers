@@ -1,4 +1,4 @@
-﻿import { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from './AuthContext';
 import { useToast } from './ToastContext';
@@ -9,7 +9,7 @@ export const useDispatch = () => useContext(DispatchContext);
 
 export const DispatchProvider = ({ children }) => {
   const { currentUser } = useAuth();
-  const { showToast } = useToast();
+  const { addToast } = useToast();
   
   const [dispatchPlans, setDispatchPlans] = useState([]);
   const [loadings, setLoadings] = useState([]);
@@ -76,10 +76,10 @@ export const DispatchProvider = ({ children }) => {
 
     const { error } = await supabase.from('system_logs').insert([newLog]);
     if (error) {
-      showToast("Error saving dispatch plan.", "error");
+      addToast("Error saving dispatch plan.", "error");
       return false;
     }
-    showToast("Dispatch plan saved successfully.", "success");
+    addToast("Dispatch plan saved successfully.", "success");
     await fetchDispatchData();
     return true;
   };
@@ -100,10 +100,10 @@ export const DispatchProvider = ({ children }) => {
 
     const { error } = await supabase.from('system_logs').insert([newLog]);
     if (error) {
-      showToast("Error saving loading details.", "error");
+      addToast("Error saving loading details.", "error");
       return false;
     }
-    showToast("Loading details saved successfully.", "success");
+    addToast("Loading details saved successfully.", "success");
     await fetchDispatchData();
     return true;
   };
