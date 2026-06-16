@@ -32,17 +32,18 @@ export const generateTransactionPDF = (txn) => {
   }
 
   if (txn.remarks) {
-    doc.text(`Remarks: ${txn.remarks}`, 14, currentY);
-    currentY += 10;
+    const splitRemarks = doc.splitTextToSize(`Remarks: ${txn.remarks}`, 180);
+    doc.text(splitRemarks, 14, currentY);
+    currentY += (splitRemarks.length * 5) + 5;
+  } else {
+    currentY += 5;
   }
-  
-  currentY += 5;
 
   const tableData = [
     [
       1,
       txn.item,
-      txn.qty
+      `${txn.qty} ${txn.unit || ''}`.trim()
     ]
   ];
 
@@ -84,13 +85,16 @@ export const generateBatchIssuePDF = (cartItems, location) => {
   doc.text(`Date: ${new Date().toLocaleDateString('en-GB')}`, 14, 30);
   doc.text(`Location: ${location}`, 14, 35);
   
-  const tableData = cartItems.map((item, idx) => [
-    idx + 1,
-    item.item.name,
-    item.qtyStr,
-    item.department || '-',
-    item.remarks || '-'
-  ]);
+  const tableData = cartItems.map((item, idx) => {
+    const unit = item.selectedUnit === 'secondary' ? item.item.secondaryUnit : item.item.unit;
+    return [
+      idx + 1,
+      item.item.name,
+      `${item.qtyStr} ${unit}`.trim(),
+      item.department || '-',
+      item.remarks || '-'
+    ];
+  });
 
   autoTable(doc, {
     startY: 45,

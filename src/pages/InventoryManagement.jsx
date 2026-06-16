@@ -257,7 +257,7 @@ const InventoryManagement = () => {
     await logTransaction(payload);
     
     if (txnData.generatePdf) {
-      generateTransactionPDF({ ...payload, id: Date.now() });
+      generateTransactionPDF({ ...payload, id: Date.now(), unit: targetItem?.unit || '' });
     }
 
     setTxnData({ qty: '', remarks: '', date: new Date().toISOString().split('T')[0], companyName: '', billNo: '', receivingDate: '', billDate: '', unitPrice: '', usageType: 'INTERNAL', department: '', selectedUnit: 'primary', generatePdf: true });
@@ -849,7 +849,7 @@ const InventoryManagement = () => {
                   <td style={{ padding: '0.8rem', color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>{txn.user}</td>
                   <td style={{ padding: '0.8rem', color: 'var(--text-muted)' }}>{txn.remarks}</td>
                   <td style={{ padding: '0.8rem', textAlign: 'right' }}>
-                    <button onClick={() => generateTransactionPDF(txn)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--accent-primary)', opacity: 0.8, transition: 'opacity 0.2s', marginRight: isSuperAdmin ? '0.8rem' : '0' }} title="Download PDF Receipt" onMouseEnter={e => e.target.style.opacity = 1} onMouseLeave={e => e.target.style.opacity = 0.8}>
+                    <button onClick={() => generateTransactionPDF({...txn, unit: items.find(i => i.name === txn.item)?.unit || ''})} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--accent-primary)', opacity: 0.8, transition: 'opacity 0.2s', marginRight: isSuperAdmin ? '0.8rem' : '0' }} title="Download PDF Receipt" onMouseEnter={e => e.target.style.opacity = 1} onMouseLeave={e => e.target.style.opacity = 0.8}>
                       <Download size={15} />
                     </button>
                     {isSuperAdmin && (
