@@ -1,5 +1,5 @@
 import { formatDate } from '../utils/dateUtils';
-import { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { PackageSearch, Search, Plus, MapPin, Database, Archive, Settings, FilePlus, LogIn, LogOut, Trash2, Building2, Edit, FileText } from 'lucide-react';
 import { generateTransactionPDF, generateBatchIssuePDF } from '../utils/pdfGenerator';
 import { useInventory } from '../context/InventoryContext';
@@ -43,6 +43,9 @@ const InventoryManagement = () => {
   const [showDepartmentModal, setShowDepartmentModal] = useState(false);
   const [showCategoryModal, setShowCategoryModal] = useState(false);
   const [showTxnModal, setShowTxnModal] = useState({ isOpen: false, type: 'IN', item: null });
+  const [showBatchInModal, setShowBatchInModal] = useState(false);
+  const [batchInData, setBatchInData] = useState({ companyName: '', billNo: '', receivingDate: new Date().toISOString().split('T')[0], billDate: '', generatePdf: true, items: [] });
+  const [batchInSelectedItems, setBatchInSelectedItems] = useState([]);
   const [editingMaster, setEditingMaster] = useState(null); // { type, id, oldName }
   const [issueCart, setIssueCart] = useState([]);
   const [batchUsageType, setBatchUsageType] = useState('INTERNAL');
@@ -332,6 +335,67 @@ const InventoryManagement = () => {
       generateBatchIssuePDF(issueCart, activeTab);
       setIssueCart([]);
       setAlert({ isOpen: true, message: `Successfully issued ${txnsToLog.length} items. Slip downloading.` });
+    } else {
+      setAlert({ isOpen: true, message: 'Failed to log batch transactions.' });
+    }
+  };
+
+  useEffect(() => {
+    setBatchInData(prev => {
+      const newItems = batchInSelectedItems.map(itemName => {
+        const existing = prev.items.find(i => i.item.name === itemName);
+        if (existing) return existing;
+        const targetItem = items.find(i => i.name === itemName);
+        return { item: targetItem, qtyStr: '', unitPrice: '', remarks: '', selectedUnit: 'primary' };
+      }).filter(Boolean);
+      return { ...prev, items: newItems };
+    });
+  }, [batchInSelectedItems, items]);
+
+  const handleBatchInSubmit = async (e) => {
+    e.preventDefault();
+    if (!batchInData.companyName) {
+      setAlert({ isOpen: true, message: "Company Name is required for Batch In." });
+      return;
+    }
+    const txnsToLog = [];
+    for (const itemRow of batchInData.items) {
+      const validation = validateAndCalculateQuantity(itemRow.qtyStr);
+      if (!validation.valid) {
+        setAlert({ isOpen: true, message: `Invalid quantity for ${itemRow.item.name}: ${validation.message || 'Check input format'}` });
+        return;
+      }
+      let finalQty = validation.total;
+      if (itemRow.selectedUnit === 'secondary' && itemRow.item.conversionFactor) {
+        finalQty = finalQty * Number(itemRow.item.conversionFactor);
+        finalQty = Number(finalQty.toFixed(4));
+      }
+      txnsToLog.push({
+        location: activeTab,
+        item: itemRow.item.name,
+        type: 'IN',
+        qty: finalQty,
+        date: batchInData.receivingDate || new Date().toISOString().split('T')[0],
+        remarks: itemRow.remarks || '',
+        companyName: batchInData.companyName,
+        billNo: batchInData.billNo || '',
+        receivingDate: batchInData.receivingDate || '',
+        billDate: batchInData.billDate || '',
+        unitPrice: itemRow.unitPrice ? Number(itemRow.unitPrice) : '',
+        usageType: 'INTERNAL',
+        department: ''
+      });
+    }
+    if (txnsToLog.length === 0) {
+      setAlert({ isOpen: true, message: 'Please select items and enter valid quantities.' });
+      return;
+    }
+    const success = await logBatchTransactions(txnsToLog);
+    if (success) {
+      setShowBatchInModal(false);
+      setBatchInData({ companyName: '', billNo: '', receivingDate: new Date().toISOString().split('T')[0], billDate: '', generatePdf: true, items: [] });
+      setBatchInSelectedItems([]);
+      setAlert({ isOpen: true, message: `Successfully received ${txnsToLog.length} items in batch.` });
     } else {
       setAlert({ isOpen: true, message: 'Failed to log batch transactions.' });
     }
@@ -651,16 +715,21 @@ const InventoryManagement = () => {
             <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               <MapPin size={20} color="var(--success)" /> Stock at {locName}
             </h3>
-            <div style={{ position: 'relative', width: '300px', maxWidth: '100%' }}>
-              <PackageSearch size={18} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
-              <input 
-                type="text" 
-                className="input-field" 
-                placeholder="Search items..." 
-                value={itemSearch}
-                onChange={e => setItemSearch(e.target.value)}
-                style={{ paddingLeft: '35px', marginBottom: 0 }}
-              />
+            <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
+              <button className="btn btn-primary" onClick={() => setShowBatchInModal(true)} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <LogIn size={16} /> Batch Stock In
+              </button>
+              <div style={{ position: 'relative', width: '300px', maxWidth: '100%' }}>
+                <PackageSearch size={18} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+                <input 
+                  type="text" 
+                  className="input-field" 
+                  placeholder="Search items..." 
+                  value={itemSearch}
+                  onChange={e => setItemSearch(e.target.value)}
+                  style={{ paddingLeft: '35px', marginBottom: 0 }}
+                />
+              </div>
             </div>
           </div>
           
@@ -1726,6 +1795,146 @@ const InventoryManagement = () => {
               <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end' }}>
                 <button type="button" className="btn btn-secondary" onClick={() => setShowCategoryModal(false)}>Cancel</button>
                 <button type="submit" className="btn btn-primary">Save Category</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {showBatchInModal && (
+        <div className="modal-backdrop">
+          <div className="card animate-fade-in" style={{ width: '800px', maxWidth: '95vw', padding: '2rem', borderTop: '4px solid var(--success)', maxHeight: '90vh', overflowY: 'auto' }}>
+            <h3>Batch Stock In</h3>
+            <p style={{ color: 'var(--text-muted)', marginBottom: '1.5rem' }}>Log multiple items from a single bill for <strong>{activeTab}</strong></p>
+            <form onSubmit={handleBatchInSubmit}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
+                <div>
+                  <label className="input-label">Supplier Company <span style={{ color: 'var(--danger)' }}>*</span></label>
+                  <select className="input-field" value={batchInData.companyName} onChange={e => setBatchInData({...batchInData, companyName: e.target.value})} required>
+                    <option value="">Select Supplier</option>
+                    {sortedCompanies.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="input-label">Bill Number</label>
+                  <input type="text" className="input-field" value={batchInData.billNo} onChange={e => setBatchInData({...batchInData, billNo: e.target.value})} />
+                </div>
+                <div>
+                  <label className="input-label">Receiving Date <span style={{ color: 'var(--danger)' }}>*</span></label>
+                  <input type="date" className="input-field" value={batchInData.receivingDate} onChange={e => setBatchInData({...batchInData, receivingDate: e.target.value})} required />
+                </div>
+                <div>
+                  <label className="input-label">Bill Date</label>
+                  <input type="date" className="input-field" value={batchInData.billDate} onChange={e => setBatchInData({...batchInData, billDate: e.target.value})} />
+                </div>
+              </div>
+              
+              <div style={{ marginBottom: '1.5rem' }}>
+                <label className="input-label">Select Items</label>
+                <div style={{ width: '100%' }}>
+                  <MultiSelect 
+                    options={items.map(i => i.name)}
+                    selectedValues={batchInSelectedItems}
+                    onChange={setBatchInSelectedItems}
+                    placeholder="Search and select items..."
+                  />
+                </div>
+              </div>
+
+              {batchInData.items.length > 0 && (
+                <div style={{ overflowX: 'auto', marginBottom: '1.5rem', border: '1px solid var(--border-color)', borderRadius: '8px' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '600px' }}>
+                    <thead>
+                      <tr style={{ backgroundColor: 'var(--bg-tertiary)', borderBottom: '1px solid var(--border-color)' }}>
+                        <th style={{ padding: '0.8rem', fontSize: '0.85rem', color: 'var(--text-muted)' }}>ITEM</th>
+                        <th style={{ padding: '0.8rem', fontSize: '0.85rem', color: 'var(--text-muted)', width: '20%' }}>QTY (use , or + for bobbins)</th>
+                        <th style={{ padding: '0.8rem', fontSize: '0.85rem', color: 'var(--text-muted)', width: '20%' }}>UNIT PRICE (₹)</th>
+                        <th style={{ padding: '0.8rem', fontSize: '0.85rem', color: 'var(--text-muted)', width: '25%' }}>REMARKS</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {batchInData.items.map((row, idx) => {
+                        const val = validateAndCalculateQuantity(row.qtyStr);
+                        return (
+                          <tr key={idx} style={{ borderBottom: '1px solid var(--border-color)' }}>
+                            <td style={{ padding: '0.8rem', fontWeight: '600', fontSize: '0.9rem' }}>
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                                <span>{row.item.name}</span>
+                                {row.item.secondaryUnit ? (
+                                  <select 
+                                    className="input-field"
+                                    style={{ padding: '0.1rem 0.3rem', fontSize: '0.75rem', marginBottom: 0, width: 'auto', display: 'inline-block' }}
+                                    value={row.selectedUnit || 'primary'}
+                                    onChange={(e) => {
+                                      const newItems = [...batchInData.items];
+                                      newItems[idx].selectedUnit = e.target.value;
+                                      setBatchInData({...batchInData, items: newItems});
+                                    }}
+                                  >
+                                    <option value="primary">{row.item.unit}</option>
+                                    <option value="secondary">{row.item.secondaryUnit}</option>
+                                  </select>
+                                ) : (
+                                  <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{row.item.unit}</span>
+                                )}
+                              </div>
+                            </td>
+                            <td style={{ padding: '0.8rem' }}>
+                              <input 
+                                type="text" 
+                                className="input-field" 
+                                style={{ marginBottom: 0, border: val.valid === false && row.qtyStr ? '1px solid var(--danger)' : undefined }}
+                                value={row.qtyStr}
+                                onChange={(e) => {
+                                  const newItems = [...batchInData.items];
+                                  newItems[idx].qtyStr = e.target.value;
+                                  setBatchInData({...batchInData, items: newItems});
+                                }}
+                                placeholder="e.g. 20"
+                                required
+                              />
+                              {val.valid === false && row.qtyStr && <span style={{ color: 'var(--danger)', fontSize: '0.75rem', marginTop: '4px', display: 'block' }}>{val.message}</span>}
+                              {val.valid && row.qtyStr && <span style={{ color: 'var(--success)', fontSize: '0.75rem', marginTop: '4px', display: 'block', fontWeight: '600' }}>Total: {val.total}</span>}
+                            </td>
+                            <td style={{ padding: '0.8rem' }}>
+                              <input 
+                                type="number" 
+                                className="input-field" 
+                                style={{ marginBottom: 0 }}
+                                value={row.unitPrice}
+                                onChange={(e) => {
+                                  const newItems = [...batchInData.items];
+                                  newItems[idx].unitPrice = e.target.value;
+                                  setBatchInData({...batchInData, items: newItems});
+                                }}
+                                placeholder="0.00"
+                              />
+                            </td>
+                            <td style={{ padding: '0.8rem' }}>
+                              <input 
+                                type="text" 
+                                className="input-field" 
+                                style={{ marginBottom: 0 }}
+                                value={row.remarks}
+                                onChange={(e) => {
+                                  const newItems = [...batchInData.items];
+                                  newItems[idx].remarks = e.target.value;
+                                  setBatchInData({...batchInData, items: newItems});
+                                }}
+                                placeholder="Optional"
+                              />
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+
+              <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end' }}>
+                <button type="button" className="btn btn-secondary" onClick={() => setShowBatchInModal(false)}>Cancel</button>
+                <button type="submit" className="btn btn-primary" disabled={batchInData.items.length === 0}>Submit Batch</button>
               </div>
             </form>
           </div>
