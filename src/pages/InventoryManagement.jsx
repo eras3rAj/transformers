@@ -1803,11 +1803,11 @@ const InventoryManagement = () => {
 
       {showBatchInModal && (
         <div className="modal-backdrop">
-          <div className="card animate-fade-in" style={{ width: '800px', maxWidth: '95vw', padding: '2rem', borderTop: '4px solid var(--success)', maxHeight: '90vh', overflowY: 'auto' }}>
+          <div className="card animate-fade-in" style={{ width: '800px', maxWidth: '95vw', padding: '2.5rem', borderTop: '4px solid var(--success)', overflow: 'visible', display: 'flex', flexDirection: 'column' }}>
             <h3>Batch Stock In</h3>
             <p style={{ color: 'var(--text-muted)', marginBottom: '1.5rem' }}>Log multiple items from a single bill for <strong>{activeTab}</strong></p>
             <form onSubmit={handleBatchInSubmit}>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginBottom: '2rem' }}>
                 <div>
                   <label className="input-label">Supplier Company <span style={{ color: 'var(--danger)' }}>*</span></label>
                   <select className="input-field" value={batchInData.companyName} onChange={e => setBatchInData({...batchInData, companyName: e.target.value})} required>
@@ -1829,7 +1829,7 @@ const InventoryManagement = () => {
                 </div>
               </div>
               
-              <div style={{ marginBottom: '1.5rem' }}>
+              <div style={{ marginBottom: '2rem' }}>
                 <label className="input-label">Select Items</label>
                 <div style={{ width: '100%' }}>
                   <MultiSelect 
@@ -1842,7 +1842,7 @@ const InventoryManagement = () => {
               </div>
 
               {batchInData.items.length > 0 && (
-                <div style={{ overflowX: 'auto', marginBottom: '1.5rem', border: '1px solid var(--border-color)', borderRadius: '8px' }}>
+                <div style={{ overflowX: 'auto', overflowY: 'auto', maxHeight: '40vh', marginBottom: '2rem', border: '1px solid var(--border-color)', borderRadius: '8px' }}>
                   <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '600px' }}>
                     <thead>
                       <tr style={{ backgroundColor: 'var(--bg-tertiary)', borderBottom: '1px solid var(--border-color)' }}>
@@ -1932,7 +1932,7 @@ const InventoryManagement = () => {
                 </div>
               )}
 
-              <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end' }}>
+              <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end', marginTop: '1rem' }}>
                 <button type="button" className="btn btn-secondary" onClick={() => setShowBatchInModal(false)}>Cancel</button>
                 <button type="submit" className="btn btn-primary" disabled={batchInData.items.length === 0}>Submit Batch</button>
               </div>
