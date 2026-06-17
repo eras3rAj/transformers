@@ -1671,7 +1671,7 @@ const InventoryManagement = () => {
                             setItemData({ ...itemData, suppliers: newSuppliers });
                           }}
                         />
-                        <span style={{ fontSize: '0.9rem', textAlign: 'left', flex: 1 }}>{c.name}</span>
+                        <span style={{ fontSize: '0.9rem', textAlign: 'left' }}>{c.name}</span>
                       </label>
                     ))}
                     {sortedCompanies.filter(c => c.name.toLowerCase().includes(supplierSearch.toLowerCase())).length === 0 && <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', padding: '0.5rem' }}>No companies found.</div>}
@@ -1773,7 +1773,7 @@ const InventoryManagement = () => {
                               setCompanyData({ ...companyData, linkedCategories: newLinked });
                             }}
                           />
-                          <span style={{ fontSize: '0.9rem', textAlign: 'left', flex: 1 }}>{c.name}</span>
+                          <span style={{ fontSize: '0.9rem', textAlign: 'left' }}>{c.name}</span>
                         </label>
                       ))}
                       {sortedCategories.filter(c => c.name.toLowerCase().includes(companyCatSearch.toLowerCase())).length === 0 && <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', padding: '0.5rem' }}>No categories found.</div>}
@@ -1807,7 +1807,7 @@ const InventoryManagement = () => {
                               setCompanyData({ ...companyData, linkedItems: newLinked });
                             }}
                           />
-                          <span style={{ fontSize: '0.9rem', textAlign: 'left', flex: 1 }}>{i.name}</span>
+                          <span style={{ fontSize: '0.9rem', textAlign: 'left' }}>{i.name}</span>
                         </label>
                       ))}
                       {sortedItems.filter(i => i.name.toLowerCase().includes(companyItemSearch.toLowerCase())).length === 0 && <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', padding: '0.5rem' }}>No items found.</div>}
@@ -1878,7 +1878,7 @@ const InventoryManagement = () => {
                             setCategoryData({ ...categoryData, suppliers: newSuppliers });
                           }}
                         />
-                        <span style={{ fontSize: '0.9rem', textAlign: 'left', flex: 1 }}>{c.name}</span>
+                        <span style={{ fontSize: '0.9rem', textAlign: 'left' }}>{c.name}</span>
                       </label>
                     ))}
                     {sortedCompanies.filter(c => c.name.toLowerCase().includes(supplierSearch.toLowerCase())).length === 0 && <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', padding: '0.5rem' }}>No companies found.</div>}
