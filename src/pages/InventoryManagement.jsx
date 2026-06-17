@@ -55,7 +55,7 @@ const InventoryManagement = () => {
   const [locName, setLocName] = useState('');
   const [unitName, setUnitName] = useState('');
   const [companyFormName, setCompanyFormName] = useState('');
-  const [companyData, setCompanyData] = useState({ name: '', address: '', mobile: '', poc: '', gst: '' });
+  const [companyData, setCompanyData] = useState({ name: '', address: '', mobile: '', poc: '', gst: '', linkedCategories: [], linkedItems: [] });
   const [departmentFormName, setDepartmentFormName] = useState('');
   const [categoryData, setCategoryData] = useState({ name: '', suppliers: [] });
   const [itemData, setItemData] = useState({ name: '', unit: '', category: '', isNewCategory: false, suppliers: [], minStockLevels: {}, secondaryUnit: '', conversionFactor: '' });
@@ -68,6 +68,8 @@ const InventoryManagement = () => {
   const [batchDepartmentSearch, setBatchDepartmentSearch] = useState('');
   const [batchDepartmentDropdownOpen, setBatchDepartmentDropdownOpen] = useState(false);
   const [supplierSearch, setSupplierSearch] = useState('');
+  const [companyCatSearch, setCompanyCatSearch] = useState('');
+  const [companyItemSearch, setCompanyItemSearch] = useState('');
   const [activeSettingsTab, setActiveSettingsTab] = useState('Supplier Companies');
   
   // Item search state for location view
@@ -142,7 +144,26 @@ const InventoryManagement = () => {
       if (!success) setAlert({ isOpen: true, message: "Company name already exists!" });
     }
     if (success) {
-      setCompanyData({ name: '', address: '', mobile: '', poc: '', gst: '' });
+      const companyName = companyData.name.trim();
+      for (const cat of categories) {
+        const isLinked = companyData.linkedCategories.includes(cat.name);
+        const hasCompany = cat.suppliers && cat.suppliers.includes(companyName);
+        if (isLinked && !hasCompany) {
+          await editEntity('inv_category', cat.id, cat.name, cat.name, { suppliers: [...(cat.suppliers || []), companyName] });
+        } else if (!isLinked && hasCompany) {
+          await editEntity('inv_category', cat.id, cat.name, cat.name, { suppliers: cat.suppliers.filter(s => s !== companyName) });
+        }
+      }
+      for (const item of items) {
+        const isLinked = companyData.linkedItems.includes(item.name);
+        const hasCompany = item.suppliers && item.suppliers.includes(companyName);
+        if (isLinked && !hasCompany) {
+          await editEntity('inv_item', item.id, item.name, item.name, { unit: item.unit, category: item.category, suppliers: [...(item.suppliers || []), companyName], minStockLevels: item.minStockLevels, secondaryUnit: item.secondaryUnit, conversionFactor: item.conversionFactor });
+        } else if (!isLinked && hasCompany) {
+          await editEntity('inv_item', item.id, item.name, item.name, { unit: item.unit, category: item.category, suppliers: item.suppliers.filter(s => s !== companyName), minStockLevels: item.minStockLevels, secondaryUnit: item.secondaryUnit, conversionFactor: item.conversionFactor });
+        }
+      }
+      setCompanyData({ name: '', address: '', mobile: '', poc: '', gst: '', linkedCategories: [], linkedItems: [] });
       setShowCompanyModal(false);
       setEditingMaster(null);
     }
@@ -1032,7 +1053,7 @@ const InventoryManagement = () => {
                   </div>
                   <button className="btn btn-primary" style={{ padding: '0.5rem 1rem', fontSize: '0.85rem', whiteSpace: 'nowrap' }} onClick={() => {
                     setEditingMaster(null);
-                    setCompanyData({ name: '', address: '', mobile: '', poc: '', gst: '' });
+                    setCompanyData({ name: '', address: '', mobile: '', poc: '', gst: '', linkedCategories: [], linkedItems: [] });
                     setShowCompanyModal(true);
                   }}><Plus size={16} style={{ marginRight: '0.4rem' }}/> Add Company</button>
                 </div>
@@ -1056,7 +1077,9 @@ const InventoryManagement = () => {
                   <div style={{ display: 'flex', gap: '0.5rem' }}>
                     <button className="icon-btn-small" onClick={() => {
                       setEditingMaster({ type: 'inv_company', id: c.id, oldName: c.name });
-                      setCompanyData({ name: c.name, address: c.address || '', mobile: c.mobile || '', poc: c.poc || '', gst: c.gst || '' });
+                      const cLinkedCats = categories.filter(cat => cat.suppliers && cat.suppliers.includes(c.name)).map(cat => cat.name);
+                      const cLinkedItems = items.filter(item => item.suppliers && item.suppliers.includes(c.name)).map(item => item.name);
+                      setCompanyData({ name: c.name, address: c.address || '', mobile: c.mobile || '', poc: c.poc || '', gst: c.gst || '', linkedCategories: cLinkedCats, linkedItems: cLinkedItems });
                       setShowCompanyModal(true);
                     }} title="Edit Company"><Edit size={14} color="var(--accent-primary)" /></button>
                     <button className="icon-btn-small" onClick={() => handleDeleteMaster('inv_company', c.id, c.name)} title="Delete Company"><Trash2 size={14} color="var(--danger)" /></button>
@@ -1648,7 +1671,7 @@ const InventoryManagement = () => {
                             setItemData({ ...itemData, suppliers: newSuppliers });
                           }}
                         />
-                        <span style={{ fontSize: '0.9rem', textAlign: 'left', wordBreak: 'break-word', flex: 1 }}>{c.name}</span>
+                        <span style={{ fontSize: '0.9rem', textAlign: 'left', flex: 1 }}>{c.name}</span>
                       </label>
                     ))}
                     {sortedCompanies.filter(c => c.name.toLowerCase().includes(supplierSearch.toLowerCase())).length === 0 && <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', padding: '0.5rem' }}>No companies found.</div>}
@@ -1697,7 +1720,7 @@ const InventoryManagement = () => {
 
       {showCompanyModal && (
         <div className="modal-backdrop">
-          <div className="card animate-fade-in" style={{ width: '500px', padding: '2rem', maxHeight: '90vh', overflowY: 'auto' }}>
+          <div className="card animate-fade-in" style={{ width: '700px', padding: '2rem', maxHeight: '90vh', overflowY: 'auto' }}>
             <h3>{editingMaster ? 'Edit' : 'Add'} Supplier Company</h3>
             <form onSubmit={handleAddCompany}>
               <div style={{ marginBottom: '1.5rem' }}>
@@ -1722,8 +1745,78 @@ const InventoryManagement = () => {
                 <label className="input-label">GST Number (Optional)</label>
                 <input type="text" className="input-field" value={companyData.gst} onChange={e => setCompanyData({ ...companyData, gst: e.target.value })} placeholder="e.g. 22AAAAA0000A1Z5" style={{ textTransform: 'uppercase' }} />
               </div>
+              <div style={{ display: 'flex', gap: '1.5rem', marginBottom: '2rem' }}>
+                <div style={{ flex: 1 }}>
+                  <label className="input-label">Link Categories (Optional)</label>
+                  <div style={{ border: '1px solid var(--border-color)', borderRadius: '8px', backgroundColor: 'var(--bg-secondary)', overflow: 'hidden' }}>
+                    <div style={{ padding: '0.5rem', borderBottom: '1px solid var(--border-color)', backgroundColor: 'var(--bg-tertiary)' }}>
+                      <input 
+                        type="text" 
+                        className="input-field" 
+                        placeholder="Search categories..." 
+                        value={companyCatSearch}
+                        onChange={e => setCompanyCatSearch(e.target.value)}
+                        style={{ marginBottom: 0, padding: '0.4rem 0.8rem', fontSize: '0.85rem' }}
+                      />
+                    </div>
+                    <div style={{ maxHeight: '150px', overflowY: 'auto', padding: '0.5rem' }}>
+                      {sortedCategories.filter(c => c.name.toLowerCase().includes(companyCatSearch.toLowerCase())).map(c => (
+                        <label key={c.id} style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'flex-start', textAlign: 'left', gap: '0.8rem', padding: '0.5rem', cursor: 'pointer', borderRadius: '4px' }} className="supplier-row">
+                          <input 
+                            type="checkbox" 
+                            style={{ marginTop: '0.2rem' }}
+                            checked={companyData.linkedCategories.includes(c.name)}
+                            onChange={(e) => {
+                              const newLinked = e.target.checked 
+                                ? [...companyData.linkedCategories, c.name]
+                                : companyData.linkedCategories.filter(s => s !== c.name);
+                              setCompanyData({ ...companyData, linkedCategories: newLinked });
+                            }}
+                          />
+                          <span style={{ fontSize: '0.9rem', textAlign: 'left', flex: 1 }}>{c.name}</span>
+                        </label>
+                      ))}
+                      {sortedCategories.filter(c => c.name.toLowerCase().includes(companyCatSearch.toLowerCase())).length === 0 && <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', padding: '0.5rem' }}>No categories found.</div>}
+                    </div>
+                  </div>
+                </div>
+                <div style={{ flex: 1 }}>
+                  <label className="input-label">Link Items (Optional)</label>
+                  <div style={{ border: '1px solid var(--border-color)', borderRadius: '8px', backgroundColor: 'var(--bg-secondary)', overflow: 'hidden' }}>
+                    <div style={{ padding: '0.5rem', borderBottom: '1px solid var(--border-color)', backgroundColor: 'var(--bg-tertiary)' }}>
+                      <input 
+                        type="text" 
+                        className="input-field" 
+                        placeholder="Search items..." 
+                        value={companyItemSearch}
+                        onChange={e => setCompanyItemSearch(e.target.value)}
+                        style={{ marginBottom: 0, padding: '0.4rem 0.8rem', fontSize: '0.85rem' }}
+                      />
+                    </div>
+                    <div style={{ maxHeight: '150px', overflowY: 'auto', padding: '0.5rem' }}>
+                      {sortedItems.filter(i => i.name.toLowerCase().includes(companyItemSearch.toLowerCase())).map(i => (
+                        <label key={i.id} style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'flex-start', textAlign: 'left', gap: '0.8rem', padding: '0.5rem', cursor: 'pointer', borderRadius: '4px' }} className="supplier-row">
+                          <input 
+                            type="checkbox" 
+                            style={{ marginTop: '0.2rem' }}
+                            checked={companyData.linkedItems.includes(i.name)}
+                            onChange={(e) => {
+                              const newLinked = e.target.checked 
+                                ? [...companyData.linkedItems, i.name]
+                                : companyData.linkedItems.filter(s => s !== i.name);
+                              setCompanyData({ ...companyData, linkedItems: newLinked });
+                            }}
+                          />
+                          <span style={{ fontSize: '0.9rem', textAlign: 'left', flex: 1 }}>{i.name}</span>
+                        </label>
+                      ))}
+                      {sortedItems.filter(i => i.name.toLowerCase().includes(companyItemSearch.toLowerCase())).length === 0 && <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', padding: '0.5rem' }}>No items found.</div>}
+                    </div>
+                  </div>
+                </div>
+              </div>
               <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end' }}>
-                <button type="button" className="btn btn-secondary" onClick={() => { setShowCompanyModal(false); setEditingMaster(null); setCompanyData({ name: '', address: '', mobile: '', poc: '', gst: '' }); }}>Cancel</button>
+                <button type="button" className="btn btn-secondary" onClick={() => { setShowCompanyModal(false); setEditingMaster(null); setCompanyData({ name: '', address: '', mobile: '', poc: '', gst: '', linkedCategories: [], linkedItems: [] }); }}>Cancel</button>
                 <button type="submit" className="btn btn-primary">Save Company</button>
               </div>
             </form>
@@ -1785,7 +1878,7 @@ const InventoryManagement = () => {
                             setCategoryData({ ...categoryData, suppliers: newSuppliers });
                           }}
                         />
-                        <span style={{ fontSize: '0.9rem', textAlign: 'left', wordBreak: 'break-word', flex: 1 }}>{c.name}</span>
+                        <span style={{ fontSize: '0.9rem', textAlign: 'left', flex: 1 }}>{c.name}</span>
                       </label>
                     ))}
                     {sortedCompanies.filter(c => c.name.toLowerCase().includes(supplierSearch.toLowerCase())).length === 0 && <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', padding: '0.5rem' }}>No companies found.</div>}
@@ -2123,7 +2216,7 @@ const InventoryManagement = () => {
                     className="icon-btn" 
                     title="Add New Company"
                     style={{ border: '1px solid var(--border-color)', borderRadius: '8px', width: '42px', height: '42px', flexShrink: 0 }}
-                    onClick={() => { setCompanyDropdownOpen(false); setEditingMaster(null); setCompanyData({ name: '', address: '', mobile: '', poc: '', gst: '' }); setShowCompanyModal(true); }}
+                    onClick={() => { setCompanyDropdownOpen(false); setEditingMaster(null); setCompanyData({ name: '', address: '', mobile: '', poc: '', gst: '', linkedCategories: [], linkedItems: [] }); setShowCompanyModal(true); }}
                   >
                     <Plus size={18} />
                   </button>
