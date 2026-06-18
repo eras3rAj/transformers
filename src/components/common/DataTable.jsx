@@ -145,7 +145,7 @@ const DataTable = ({
             )}
             {footerRow && currentTableData.length > 0 && (
               <tr style={{ backgroundColor: 'var(--bg-tertiary)', fontWeight: 'bold' }}>
-                {footerRow}
+                {typeof footerRow === 'function' ? footerRow(processedData) : footerRow}
               </tr>
             )}
           </tbody>

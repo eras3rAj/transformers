@@ -76,7 +76,7 @@ const CompanyLedger = () => {
     <div className="animate-fade-in" style={{ paddingBottom: '2rem' }}>
       
       {/* Filters Section */}
-      <div className="card" style={{ marginBottom: '1.5rem', display: 'flex', flexWrap: 'wrap', gap: '1.5rem', alignItems: 'flex-end', zIndex: 10 }}>
+      <div className="card" style={{ marginBottom: '1.5rem', display: 'flex', flexWrap: 'wrap', gap: '1.5rem', alignItems: 'flex-end', zIndex: 10, overflow: 'visible' }}>
         <div style={{ flex: '1 1 300px', position: 'relative' }}>
           <label className="input-label" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
             <Building2 size={16} /> Select Company
@@ -232,8 +232,12 @@ const CompanyLedger = () => {
                 data={filteredTxns}
                 footerRow={
                   <>
-                    <td colSpan={5} style={{ textAlign: 'right', padding: '1rem', color: 'var(--text-muted)' }}>NET TOTAL (IN - OUT)</td>
-                    <td style={{ padding: '1rem', color: 'var(--text-primary)', fontSize: '1.05rem' }}>
+                    <td colSpan={3} style={{ textAlign: 'right', padding: '1rem', color: 'var(--text-muted)' }}>NET TOTAL (IN - OUT)</td>
+                    <td style={{ padding: '1rem', color: 'var(--text-primary)', fontSize: '1.05rem', fontWeight: 'bold' }}>
+                      {(summary.totalInQty - summary.totalOutQty).toLocaleString(undefined, { maximumFractionDigits: 2 })}
+                    </td>
+                    <td></td>
+                    <td style={{ padding: '1rem', color: 'var(--text-primary)', fontSize: '1.05rem', fontWeight: 'bold' }}>
                       {formatCurrency(summary.totalInValue - summary.totalOutValue)}
                     </td>
                     <td colSpan={2}></td>
