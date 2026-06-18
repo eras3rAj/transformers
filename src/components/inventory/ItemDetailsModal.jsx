@@ -1,14 +1,16 @@
-import React, { useMemo } from 'react';
-import { X, Box, ArrowDownRight, ArrowUpRight, Truck } from 'lucide-react';
+import React, { useMemo, useState } from 'react';
+import ReactDOM from 'react-dom';
+import { X, Box, ArrowDownRight, ArrowUpRight, Truck, Filter } from 'lucide-react';
 import DataTable from '../common/DataTable';
 import DynamicMetric from '../common/DynamicMetric';
 import { formatDate } from '../../utils/dateUtils';
 
 const ItemDetailsModal = ({ isOpen, onClose, item, transactions = [], currentStock = 0 }) => {
-  if (!isOpen || !item) return null;
+  const [filterType, setFilterType] = useState('ALL');
 
   // Filter transactions specifically for this item
   const itemTransactions = useMemo(() => {
+    if (!item) return [];
     return transactions
       .filter(t => t.item === item.name)
       .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
@@ -34,6 +36,8 @@ const ItemDetailsModal = ({ isOpen, onClose, item, transactions = [], currentSto
 
     return { totalIn, totalOut, uniquePartiesCount: uniqueParties.size };
   }, [itemTransactions]);
+
+  if (!isOpen || !item) return null;
 
   const columns = [
     { Header: 'DATE', accessor: 'date', Cell: ({ value }) => <span style={{ whiteSpace: 'nowrap' }}>{formatDate(value)}</span> },
@@ -75,7 +79,7 @@ const ItemDetailsModal = ({ isOpen, onClose, item, transactions = [], currentSto
     { Header: 'REMARKS', accessor: 'remarks', Cell: ({ value }) => <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>{value}</span> }
   ];
 
-  return (
+  return ReactDOM.createPortal(
     <div className="modal-backdrop">
       <div className="card animate-fade-in glass-panel" style={{ width: '90%', maxWidth: '1000px', maxHeight: '90vh', overflowY: 'auto', padding: 0 }}>
         
@@ -120,10 +124,25 @@ const ItemDetailsModal = ({ isOpen, onClose, item, transactions = [], currentSto
 
         {/* Ledger Table */}
         <div style={{ padding: '1.5rem' }}>
-          <h3 style={{ margin: '0 0 1rem 0', color: 'var(--text-primary)' }}>Transaction Ledger</h3>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+            <h3 style={{ margin: 0, color: 'var(--text-primary)' }}>Transaction Ledger</h3>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <Filter size={16} color="var(--text-muted)" />
+              <select 
+                className="input-field" 
+                style={{ marginBottom: 0, padding: '0.4rem 2rem 0.4rem 0.8rem', width: 'auto' }}
+                value={filterType}
+                onChange={(e) => setFilterType(e.target.value)}
+              >
+                <option value="ALL">All Entries</option>
+                <option value="IN">Stock In Only</option>
+                <option value="OUT">Stock Out Only</option>
+              </select>
+            </div>
+          </div>
           <DataTable 
             columns={columns}
-            data={itemTransactions}
+            data={filterType === 'ALL' ? itemTransactions : itemTransactions.filter(t => t.type === filterType)}
             title={`${item.name.replace(/\s+/g, '_')}_Ledger`}
             searchPlaceholder="Filter by vendor, department, IN, OUT..."
             pagination={true}
@@ -131,7 +150,8 @@ const ItemDetailsModal = ({ isOpen, onClose, item, transactions = [], currentSto
           />
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
 

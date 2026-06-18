@@ -1,5 +1,6 @@
 import { formatDate } from '../utils/dateUtils';
 import React, { useMemo, useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import SkeletonLoader from '../components/common/SkeletonLoader';
 import { Factory, AlertCircle, CheckCircle, Clock, Truck, TrendingUp, Package, FileText, Target, Building2 } from 'lucide-react';
 import { usePO } from '../context/POContext';
@@ -55,6 +56,7 @@ const CustomInspectionTooltip = ({ active, payload, label }) => {
 
 const Dashboard = () => {
   const { currentUser } = useAuth();
+  const navigate = useNavigate();
   const [isInitialLoading, setIsInitialLoading] = useState(true);
 
   const isCompanyMatch = (itemCompany, filterValue) => {
@@ -377,7 +379,7 @@ const Dashboard = () => {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1.5rem', marginBottom: '2rem' }}>
         
         {(hasModule('purchase-orders') || hasModule('inspections')) && (
-          <div className="card stat-card">
+          <div className="card stat-card clickable-card" onClick={() => navigate('/purchase-orders')}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
             <div>
               <h3 style={{ margin: '0 0 0.5rem 0', color: 'var(--text-muted)', fontSize: '0.85rem', textTransform: 'uppercase' }}>Total Active POs</h3>
@@ -392,7 +394,7 @@ const Dashboard = () => {
         )}
 
         {hasModule('inspections') && (
-          <div className="card stat-card">
+          <div className="card stat-card clickable-card" onClick={() => navigate('/inspections')}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
               <div>
                 <h3 style={{ margin: '0 0 0.5rem 0', color: 'var(--text-muted)', fontSize: '0.85rem', textTransform: 'uppercase' }}>Global Delivery Progress</h3>
@@ -407,7 +409,7 @@ const Dashboard = () => {
         )}
 
         {(hasModule('purchase-orders') || hasModule('inspections')) && (
-          <div className="card stat-card">
+          <div className="card stat-card clickable-card" onClick={() => navigate('/inspections')}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
               <div>
                 <h3 style={{ margin: '0 0 0.5rem 0', color: 'var(--text-muted)', fontSize: '0.85rem', textTransform: 'uppercase' }}>Pending Dispatch</h3>
@@ -422,7 +424,7 @@ const Dashboard = () => {
         )}
 
         {hasModule('production') && (
-          <div className="card stat-card">
+          <div className="card stat-card clickable-card" onClick={() => navigate('/production')}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
               <div>
                 <h3 style={{ margin: '0 0 0.5rem 0', color: 'var(--text-muted)', fontSize: '0.85rem', textTransform: 'uppercase' }}>Today's Output</h3>
@@ -437,7 +439,7 @@ const Dashboard = () => {
         )}
 
         {hasModule('production') && (
-          <div className="card stat-card">
+          <div className="card stat-card clickable-card" onClick={() => navigate('/production')}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
               <div>
                 <h3 style={{ margin: '0 0 0.5rem 0', color: 'var(--text-muted)', fontSize: '0.85rem', textTransform: 'uppercase' }}>Today's Fabrication</h3>
@@ -457,7 +459,7 @@ const Dashboard = () => {
         
         {/* Production Velocity Chart */}
         {hasModule('production') && (
-          <div className="card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column' }}>
+          <div className="card clickable-card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column' }} onClick={() => navigate('/production')}>
           <h2 style={{ margin: '0 0 1.5rem 0', fontSize: '1.2rem', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <TrendingUp size={20} color="var(--accent-primary)" />
             7-Day Production Velocity
@@ -487,7 +489,7 @@ const Dashboard = () => {
 
         {/* Upcoming Schedules */}
         {(hasModule('purchase-orders') || hasModule('inspections')) && (
-        <div className="card" style={{ padding: '1.5rem' }}>
+        <div className="card clickable-card" style={{ padding: '1.5rem' }} onClick={() => navigate('/inspections')}>
           <h2 style={{ margin: '0 0 1.5rem 0', fontSize: '1.2rem', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <Clock size={20} color="var(--warning)" />
             Upcoming Delivery Schedules
@@ -526,7 +528,7 @@ const Dashboard = () => {
 
         {/* Milestones */}
         {hasModule('milestones') && (
-        <div className="card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column' }}>
+        <div className="card clickable-card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column' }} onClick={() => navigate('/milestones')}>
           <h2 style={{ margin: '0 0 1.5rem 0', fontSize: '1.2rem', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <Target size={20} color="var(--success)" />
             Active Milestones
@@ -561,7 +563,7 @@ const Dashboard = () => {
         
         {/* Expense Burn Rate */}
         {hasModule('expenses') && (
-        <div className="card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column' }}>
+        <div className="card clickable-card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column' }} onClick={() => navigate('/expenses')}>
           <h2 style={{ margin: '0 0 1.5rem 0', fontSize: '1.2rem', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <FileText size={20} color="var(--danger)" />
             14-Day Expense Burn Rate
@@ -588,7 +590,7 @@ const Dashboard = () => {
 
         {/* Warranty Claims Pie */}
         {hasModule('warranty') && (
-        <div className="card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column' }}>
+        <div className="card clickable-card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column' }} onClick={() => navigate('/warranty')}>
           <h2 style={{ margin: '0 0 1.5rem 0', fontSize: '1.2rem', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <AlertCircle size={20} color="var(--warning)" />
             Warranty Status
@@ -615,7 +617,7 @@ const Dashboard = () => {
 
         {/* Top Inventory */}
         {hasModule('inventory') && (
-        <div className="card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column' }}>
+        <div className="card clickable-card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column' }} onClick={() => navigate('/inventory')}>
           <h2 style={{ margin: '0 0 1.5rem 0', fontSize: '1.2rem', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <Package size={20} color="var(--danger)" />
             Critical Inventory Shortages
@@ -645,7 +647,11 @@ const Dashboard = () => {
         
         {/* Inspection Trends */}
         {hasModule('inspections') && (
-        <div className="card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column' }}>
+        <div className="card clickable-card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column' }} onClick={(e) => {
+          // If they click the select dropdown, don't navigate
+          if (e.target.tagName.toLowerCase() === 'select' || e.target.tagName.toLowerCase() === 'option') return;
+          navigate('/inspections');
+        }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
             <h2 style={{ margin: 0, fontSize: '1.2rem', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               <CheckCircle size={20} color="var(--accent-primary)" />

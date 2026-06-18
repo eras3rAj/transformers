@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { ChevronDown, Search, X } from 'lucide-react';
 
-const MultiSelect = ({ options = [], selectedValues = [], onChange, placeholder = "Select..." }) => {
+const MultiSelect = ({ options = [], selectedValues = [], onChange, placeholder = "Select...", style = {} }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const wrapperRef = useRef(null);
@@ -42,7 +42,7 @@ const MultiSelect = ({ options = [], selectedValues = [], onChange, placeholder 
   };
 
   return (
-    <div ref={wrapperRef} style={{ position: 'relative', width: '220px' }}>
+    <div ref={wrapperRef} style={{ position: 'relative', width: '100%', minWidth: '220px', ...style }}>
       <div 
         onClick={() => setIsOpen(!isOpen)}
         style={{

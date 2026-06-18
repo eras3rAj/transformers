@@ -1,8 +1,9 @@
 import { useState, useMemo } from 'react';
-import { Shield, Plus, Filter, Edit, Trash, Clock, EyeOff } from 'lucide-react';
+import { Shield, Plus, Filter, Edit, Trash, Clock, EyeOff, Download, FileText, AlertTriangle, BarChart3, ListFilter, Building2 } from 'lucide-react';
 import WarrantyForm from '../components/warranty/WarrantyForm';
 import AuditHistoryModal from '../components/warranty/AuditHistoryModal';
 import ConfirmModal from '../components/common/ConfirmModal';
+import { exportToCSV, printDocument } from '../utils/exportUtils';
 import { useLogs } from '../context/LogContext';
 import { usePO } from '../context/POContext';
 import { useAuth } from '../context/AuthContext';
@@ -21,6 +22,7 @@ const WarrantyManagement = () => {
   const [showHistoryFor, setShowHistoryFor] = useState(null); // claimId to view history
   const [deletionPrompt, setDeletionPrompt] = useState({ isOpen: false, claimId: null, reason: '' });
   const [systemConfirm, setSystemConfirm] = useState({ isOpen: false });
+  const [activeSubTab, setActiveSubTab] = useState('summary');
   
   // Filter state
   const [filters, setFilters] = useState({
@@ -176,6 +178,57 @@ const WarrantyManagement = () => {
     }
   };
 
+  // Summary statistics
+  const summaryStats = useMemo(() => {
+    const activeClaims = claims.filter(c => !c.isHidden);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    // Status breakdown
+    const statusCounts = {};
+    activeClaims.forEach(c => {
+      statusCounts[c.status] = (statusCounts[c.status] || 0) + 1;
+    });
+
+    // Board breakdown
+    const boardCounts = {};
+    activeClaims.forEach(c => {
+      boardCounts[c.utilityBoard] = (boardCounts[c.utilityBoard] || 0) + 1;
+    });
+
+    // Capacity breakdown
+    const capacityCounts = {};
+    activeClaims.forEach(c => {
+      capacityCounts[c.capacity] = (capacityCounts[c.capacity] || 0) + 1;
+    });
+
+    // Overdue claims
+    const overdue = activeClaims.filter(c => {
+      if (!c.returnDate) return false;
+      return new Date(c.returnDate) < today && c.status !== 'Resolved' && c.status !== 'Deleted';
+    });
+
+    // Upcoming deadlines (within next 30 days)
+    const thirtyDays = new Date(today);
+    thirtyDays.setDate(thirtyDays.getDate() + 30);
+    const upcoming = activeClaims.filter(c => {
+      if (!c.returnDate) return false;
+      const rd = new Date(c.returnDate);
+      return rd >= today && rd <= thirtyDays && c.status !== 'Resolved' && c.status !== 'Deleted';
+    }).sort((a, b) => new Date(a.returnDate) - new Date(b.returnDate));
+
+    return {
+      total: activeClaims.length,
+      statusCounts,
+      boardCounts,
+      capacityCounts,
+      overdue,
+      upcoming,
+      resolved: activeClaims.filter(c => c.status === 'Resolved').length,
+      pendingDeletion: activeClaims.filter(c => c.status === 'Pending Deletion').length
+    };
+  }, [claims]);
+
   return (
     <div className="warranty-management">
       <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
@@ -185,6 +238,206 @@ const WarrantyManagement = () => {
         </div>
       </div>
 
+      {/* Sub Tabs */}
+      <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem', backgroundColor: 'var(--bg-secondary)', borderRadius: '10px', padding: '0.4rem' }}>
+        <button
+          onClick={() => setActiveSubTab('summary')}
+          style={{ flex: 1, padding: '0.8rem', backgroundColor: activeSubTab === 'summary' ? 'var(--accent-primary)' : 'transparent', color: activeSubTab === 'summary' ? 'white' : 'var(--text-muted)', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', fontSize: '0.95rem', transition: 'all 0.2s', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
+        >
+          <BarChart3 size={18} /> Summary
+        </button>
+        <button
+          onClick={() => setActiveSubTab('claims')}
+          style={{ flex: 1, padding: '0.8rem', backgroundColor: activeSubTab === 'claims' ? 'var(--accent-primary)' : 'transparent', color: activeSubTab === 'claims' ? 'white' : 'var(--text-muted)', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', fontSize: '0.95rem', transition: 'all 0.2s', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
+        >
+          <ListFilter size={18} /> Claims List
+        </button>
+      </div>
+
+      {activeSubTab === 'summary' ? (
+        <div className="animate-fade-in">
+          {/* Top Metric Cards */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
+            <div className="card" style={{ padding: '1.25rem', borderLeft: '4px solid var(--accent-primary)' }}>
+              <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '0.5rem' }}>Total Active Claims</div>
+              <div style={{ fontSize: '2rem', fontWeight: '700', color: 'var(--text-primary)' }}>{summaryStats.total}</div>
+            </div>
+            <div className="card" style={{ padding: '1.25rem', borderLeft: '4px solid var(--danger)' }}>
+              <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '0.5rem' }}>Overdue</div>
+              <div style={{ fontSize: '2rem', fontWeight: '700', color: 'var(--danger)' }}>{summaryStats.overdue.length}</div>
+            </div>
+            <div className="card" style={{ padding: '1.25rem', borderLeft: '4px solid var(--warning)' }}>
+              <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '0.5rem' }}>Due Within 30 Days</div>
+              <div style={{ fontSize: '2rem', fontWeight: '700', color: 'var(--warning)' }}>{summaryStats.upcoming.length}</div>
+            </div>
+            <div className="card" style={{ padding: '1.25rem', borderLeft: '4px solid var(--success)' }}>
+              <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '0.5rem' }}>Resolved</div>
+              <div style={{ fontSize: '2rem', fontWeight: '700', color: 'var(--success)' }}>{summaryStats.resolved}</div>
+            </div>
+          </div>
+
+          {/* Status Breakdown + Board Breakdown */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))', gap: '1.5rem', marginBottom: '1.5rem' }}>
+            {/* Status Breakdown */}
+            <div className="card" style={{ padding: '1.5rem' }}>
+              <h3 style={{ margin: '0 0 1rem 0', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <Shield size={20} color="var(--accent-primary)" /> Status Breakdown
+              </h3>
+              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                <thead>
+                  <tr style={{ borderBottom: '1px solid var(--border-color)' }}>
+                    <th style={{ padding: '0.75rem', textAlign: 'left', fontSize: '0.8rem', color: 'var(--text-muted)' }}>STATUS</th>
+                    <th style={{ padding: '0.75rem', textAlign: 'right', fontSize: '0.8rem', color: 'var(--text-muted)' }}>COUNT</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {Object.entries(summaryStats.statusCounts).sort((a, b) => b[1] - a[1]).map(([status, count]) => (
+                    <tr key={status} style={{ borderBottom: '1px solid var(--border-color)' }}>
+                      <td style={{ padding: '0.75rem' }}>
+                        <span style={{ display: 'inline-block', padding: '0.2rem 0.6rem', borderRadius: '50px', fontSize: '0.8rem', fontWeight: '600', backgroundColor: `${getStatusColor(status)}20`, color: getStatusColor(status) }}>{status}</span>
+                      </td>
+                      <td style={{ padding: '0.75rem', textAlign: 'right', fontWeight: '700', fontSize: '1.1rem' }}>{count}</td>
+                    </tr>
+                  ))}
+                  <tr style={{ backgroundColor: 'var(--bg-tertiary)' }}>
+                    <td style={{ padding: '0.75rem', fontWeight: '700' }}>Total</td>
+                    <td style={{ padding: '0.75rem', textAlign: 'right', fontWeight: '700', fontSize: '1.1rem', color: 'var(--accent-primary)' }}>{summaryStats.total}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            {/* Capacity Distribution */}
+            <div className="card" style={{ padding: '1.5rem' }}>
+              <h3 style={{ margin: '0 0 1rem 0', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <BarChart3 size={20} color="var(--accent-primary)" /> Claims by Capacity
+              </h3>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem' }}>
+                {Object.entries(summaryStats.capacityCounts).sort((a, b) => b[1] - a[1]).map(([cap, count]) => (
+                  <div key={cap} className="card" style={{ padding: '0.75rem 1.25rem', display: 'flex', alignItems: 'center', gap: '0.75rem', minWidth: '140px' }}>
+                    <span style={{ fontWeight: '500', fontSize: '0.9rem' }}>{cap}</span>
+                    <span style={{ marginLeft: 'auto', fontWeight: '700', fontSize: '1.2rem', color: 'var(--accent-primary)' }}>{count}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Overdue Claims Table */}
+          {summaryStats.overdue.length > 0 && (
+            <div className="card" style={{ padding: '1.5rem', marginBottom: '1.5rem', borderLeft: '4px solid var(--danger)' }}>
+              <h3 style={{ margin: '0 0 1rem 0', display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--danger)' }}>
+                <AlertTriangle size={20} /> Overdue Claims ({summaryStats.overdue.length})
+              </h3>
+              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                <thead>
+                  <tr style={{ borderBottom: '1px solid var(--border-color)' }}>
+                    <th style={{ padding: '0.75rem', textAlign: 'left', fontSize: '0.8rem', color: 'var(--text-muted)' }}>TRANSFORMER ID</th>
+                    <th style={{ padding: '0.75rem', textAlign: 'left', fontSize: '0.8rem', color: 'var(--text-muted)' }}>UTILITY / STORE</th>
+                    <th style={{ padding: '0.75rem', textAlign: 'left', fontSize: '0.8rem', color: 'var(--text-muted)' }}>RETURN DEADLINE</th>
+                    <th style={{ padding: '0.75rem', textAlign: 'left', fontSize: '0.8rem', color: 'var(--text-muted)' }}>DAYS OVERDUE</th>
+                    <th style={{ padding: '0.75rem', textAlign: 'left', fontSize: '0.8rem', color: 'var(--text-muted)' }}>STATUS</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {summaryStats.overdue.sort((a, b) => new Date(a.returnDate) - new Date(b.returnDate)).map(c => {
+                    const daysOverdue = Math.floor((new Date() - new Date(c.returnDate)) / (1000 * 60 * 60 * 24));
+                    return (
+                      <tr key={c.id} style={{ borderBottom: '1px solid var(--border-color)' }}>
+                        <td style={{ padding: '0.75rem' }}>
+                          <div style={{ fontWeight: '600' }}>{c.slNo}</div>
+                          <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{c.capacity}</div>
+                        </td>
+                        <td style={{ padding: '0.75rem' }}>
+                          <div style={{ fontWeight: '500' }}>{c.utilityBoard}</div>
+                          <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{c.storeName}</div>
+                        </td>
+                        <td style={{ padding: '0.75rem', color: 'var(--danger)', fontWeight: '500' }}>{formatDate(c.returnDate)}</td>
+                        <td style={{ padding: '0.75rem' }}>
+                          <span style={{ padding: '0.2rem 0.6rem', borderRadius: '50px', fontSize: '0.8rem', fontWeight: '700', backgroundColor: 'rgba(239,68,68,0.1)', color: 'var(--danger)' }}>{daysOverdue} days</span>
+                        </td>
+                        <td style={{ padding: '0.75rem' }}>
+                          <span style={{ padding: '0.2rem 0.6rem', borderRadius: '50px', fontSize: '0.8rem', fontWeight: '600', backgroundColor: `${getStatusColor(c.status)}20`, color: getStatusColor(c.status) }}>{c.status}</span>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          {/* Upcoming Deadlines */}
+          {summaryStats.upcoming.length > 0 && (
+            <div className="card" style={{ padding: '1.5rem', borderLeft: '4px solid var(--warning)' }}>
+              <h3 style={{ margin: '0 0 1rem 0', display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--warning)' }}>
+                <Clock size={20} /> Upcoming Deadlines - Next 30 Days ({summaryStats.upcoming.length})
+              </h3>
+              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                <thead>
+                  <tr style={{ borderBottom: '1px solid var(--border-color)' }}>
+                    <th style={{ padding: '0.75rem', textAlign: 'left', fontSize: '0.8rem', color: 'var(--text-muted)' }}>TRANSFORMER ID</th>
+                    <th style={{ padding: '0.75rem', textAlign: 'left', fontSize: '0.8rem', color: 'var(--text-muted)' }}>UTILITY / STORE</th>
+                    <th style={{ padding: '0.75rem', textAlign: 'left', fontSize: '0.8rem', color: 'var(--text-muted)' }}>RETURN DEADLINE</th>
+                    <th style={{ padding: '0.75rem', textAlign: 'left', fontSize: '0.8rem', color: 'var(--text-muted)' }}>DAYS LEFT</th>
+                    <th style={{ padding: '0.75rem', textAlign: 'left', fontSize: '0.8rem', color: 'var(--text-muted)' }}>STATUS</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {summaryStats.upcoming.map(c => {
+                    const daysLeft = Math.floor((new Date(c.returnDate) - new Date()) / (1000 * 60 * 60 * 24));
+                    return (
+                      <tr key={c.id} style={{ borderBottom: '1px solid var(--border-color)' }}>
+                        <td style={{ padding: '0.75rem' }}>
+                          <div style={{ fontWeight: '600' }}>{c.slNo}</div>
+                          <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{c.capacity}</div>
+                        </td>
+                        <td style={{ padding: '0.75rem' }}>
+                          <div style={{ fontWeight: '500' }}>{c.utilityBoard}</div>
+                          <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{c.storeName}</div>
+                        </td>
+                        <td style={{ padding: '0.75rem', fontWeight: '500' }}>{formatDate(c.returnDate)}</td>
+                        <td style={{ padding: '0.75rem' }}>
+                          <span style={{ padding: '0.2rem 0.6rem', borderRadius: '50px', fontSize: '0.8rem', fontWeight: '700', backgroundColor: daysLeft <= 7 ? 'rgba(239,68,68,0.1)' : 'rgba(234,179,8,0.1)', color: daysLeft <= 7 ? 'var(--danger)' : 'var(--warning)' }}>{daysLeft} days</span>
+                        </td>
+                        <td style={{ padding: '0.75rem' }}>
+                          <span style={{ padding: '0.2rem 0.6rem', borderRadius: '50px', fontSize: '0.8rem', fontWeight: '600', backgroundColor: `${getStatusColor(c.status)}20`, color: getStatusColor(c.status) }}>{c.status}</span>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          {/* Board Breakdown */}
+          {Object.keys(summaryStats.boardCounts).length > 0 && (
+            <div className="card" style={{ padding: '1.5rem', marginTop: '1.5rem' }}>
+              <h3 style={{ margin: '0 0 1rem 0', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <Building2 size={20} color="var(--accent-primary)" /> Claims by Utility Board
+              </h3>
+              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                <thead>
+                  <tr style={{ borderBottom: '1px solid var(--border-color)' }}>
+                    <th style={{ padding: '0.75rem', textAlign: 'left', fontSize: '0.8rem', color: 'var(--text-muted)' }}>UTILITY BOARD</th>
+                    <th style={{ padding: '0.75rem', textAlign: 'right', fontSize: '0.8rem', color: 'var(--text-muted)' }}>COUNT</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {Object.entries(summaryStats.boardCounts).sort((a, b) => b[1] - a[1]).map(([board, count]) => (
+                    <tr key={board} style={{ borderBottom: '1px solid var(--border-color)' }}>
+                      <td style={{ padding: '0.75rem', fontWeight: '500' }}>{board}</td>
+                      <td style={{ padding: '0.75rem', textAlign: 'right', fontWeight: '700', fontSize: '1.1rem' }}>{count}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      ) : (
+        <div className="animate-fade-in">
       {/* Filter Section */}
       <div className="card" style={{ marginBottom: '1.5rem', display: 'flex', gap: '1rem', alignItems: 'center', padding: '1rem 1.5rem', flexWrap: 'wrap' }}>
         <Filter size={20} color="var(--text-muted)" />
@@ -221,6 +474,39 @@ const WarrantyManagement = () => {
           </label>
         )}
         
+        <button className="btn btn-secondary" title="Download CSV" onClick={() => {
+          const exportData = filteredClaims.map(c => ({
+            'Transformer ID': c.slNo || '',
+            'Capacity': c.capacity || '',
+            'Utility Board': c.utilityBoard || '',
+            'Store Name': c.storeName || '',
+            'PO No': c.poNo || '',
+            'Intimation Date': formatDate(c.intimationDate),
+            'Return Deadline': formatDate(c.returnDate),
+            'Status': c.status || '',
+            'Deletion Reason': c.deletionReason || ''
+          }));
+          exportToCSV(exportData, `Warranty_Claims_${new Date().toISOString().slice(0,10)}.csv`);
+        }}>
+          <Download size={16} /> CSV
+        </button>
+        
+        <button className="btn btn-secondary" title="Print / Save as PDF" onClick={() => {
+          const exportData = filteredClaims.map(c => ({
+            'Transformer ID': c.slNo || '',
+            'Capacity': c.capacity || '',
+            'Utility Board': c.utilityBoard || '',
+            'Store Name': c.storeName || '',
+            'PO No': c.poNo || '',
+            'Intimation Date': formatDate(c.intimationDate),
+            'Return Deadline': formatDate(c.returnDate),
+            'Status': c.status || ''
+          }));
+          printDocument('Warranty Claims Report', exportData);
+        }}>
+          <FileText size={16} /> PDF
+        </button>
+
         <button className="btn btn-primary" onClick={() => { setEditingClaim(null); setShowForm(true); }}>
           <Plus size={18} /> New Claim
         </button>
@@ -298,6 +584,8 @@ const WarrantyManagement = () => {
           </div>
         )}
       </div>
+      </div>
+      )}
 
       {showForm && (
         <WarrantyForm 

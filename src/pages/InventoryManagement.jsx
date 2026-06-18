@@ -1,5 +1,5 @@
 import { formatDate } from '../utils/dateUtils';
-import { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { PackageSearch, Search, Plus, MapPin, Database, Archive, Settings, FilePlus, LogIn, LogOut, Trash2, Building2, Edit, FileText } from 'lucide-react';
 import { generateTransactionPDF, generateBatchIssuePDF } from '../utils/pdfGenerator';
 import { useInventory } from '../context/InventoryContext';
@@ -43,6 +43,9 @@ const InventoryManagement = () => {
   const [showDepartmentModal, setShowDepartmentModal] = useState(false);
   const [showCategoryModal, setShowCategoryModal] = useState(false);
   const [showTxnModal, setShowTxnModal] = useState({ isOpen: false, type: 'IN', item: null });
+  const [showBatchInModal, setShowBatchInModal] = useState(false);
+  const [batchInData, setBatchInData] = useState({ companyName: '', billNo: '', receivingDate: new Date().toISOString().split('T')[0], billDate: '', generatePdf: true, items: [] });
+  const [batchInSelectedItems, setBatchInSelectedItems] = useState([]);
   const [editingMaster, setEditingMaster] = useState(null); // { type, id, oldName }
   const [issueCart, setIssueCart] = useState([]);
   const [batchUsageType, setBatchUsageType] = useState('INTERNAL');
@@ -52,7 +55,7 @@ const InventoryManagement = () => {
   const [locName, setLocName] = useState('');
   const [unitName, setUnitName] = useState('');
   const [companyFormName, setCompanyFormName] = useState('');
-  const [companyData, setCompanyData] = useState({ name: '', address: '', mobile: '', poc: '', gst: '' });
+  const [companyData, setCompanyData] = useState({ name: '', address: '', mobile: '', poc: '', gst: '', linkedCategories: [], linkedItems: [] });
   const [departmentFormName, setDepartmentFormName] = useState('');
   const [categoryData, setCategoryData] = useState({ name: '', suppliers: [] });
   const [itemData, setItemData] = useState({ name: '', unit: '', category: '', isNewCategory: false, suppliers: [], minStockLevels: {}, secondaryUnit: '', conversionFactor: '' });
@@ -65,6 +68,8 @@ const InventoryManagement = () => {
   const [batchDepartmentSearch, setBatchDepartmentSearch] = useState('');
   const [batchDepartmentDropdownOpen, setBatchDepartmentDropdownOpen] = useState(false);
   const [supplierSearch, setSupplierSearch] = useState('');
+  const [companyCatSearch, setCompanyCatSearch] = useState('');
+  const [companyItemSearch, setCompanyItemSearch] = useState('');
   const [activeSettingsTab, setActiveSettingsTab] = useState('Supplier Companies');
   
   // Item search state for location view
@@ -139,7 +144,26 @@ const InventoryManagement = () => {
       if (!success) setAlert({ isOpen: true, message: "Company name already exists!" });
     }
     if (success) {
-      setCompanyData({ name: '', address: '', mobile: '', poc: '', gst: '' });
+      const companyName = companyData.name.trim();
+      for (const cat of categories) {
+        const isLinked = companyData.linkedCategories.includes(cat.name);
+        const hasCompany = cat.suppliers && cat.suppliers.includes(companyName);
+        if (isLinked && !hasCompany) {
+          await editEntity('inv_category', cat.id, cat.name, cat.name, { suppliers: [...(cat.suppliers || []), companyName] });
+        } else if (!isLinked && hasCompany) {
+          await editEntity('inv_category', cat.id, cat.name, cat.name, { suppliers: cat.suppliers.filter(s => s !== companyName) });
+        }
+      }
+      for (const item of items) {
+        const isLinked = companyData.linkedItems.includes(item.name);
+        const hasCompany = item.suppliers && item.suppliers.includes(companyName);
+        if (isLinked && !hasCompany) {
+          await editEntity('inv_item', item.id, item.name, item.name, { unit: item.unit, category: item.category, suppliers: [...(item.suppliers || []), companyName], minStockLevels: item.minStockLevels, secondaryUnit: item.secondaryUnit, conversionFactor: item.conversionFactor });
+        } else if (!isLinked && hasCompany) {
+          await editEntity('inv_item', item.id, item.name, item.name, { unit: item.unit, category: item.category, suppliers: item.suppliers.filter(s => s !== companyName), minStockLevels: item.minStockLevels, secondaryUnit: item.secondaryUnit, conversionFactor: item.conversionFactor });
+        }
+      }
+      setCompanyData({ name: '', address: '', mobile: '', poc: '', gst: '', linkedCategories: [], linkedItems: [] });
       setShowCompanyModal(false);
       setEditingMaster(null);
     }
@@ -254,7 +278,7 @@ const InventoryManagement = () => {
     await logTransaction(payload);
     
     if (txnData.generatePdf) {
-      generateTransactionPDF({ ...payload, id: Date.now() });
+      generateTransactionPDF({ ...payload, id: Date.now(), unit: targetItem?.unit || '' });
     }
 
     setTxnData({ qty: '', remarks: '', date: new Date().toISOString().split('T')[0], companyName: '', billNo: '', receivingDate: '', billDate: '', unitPrice: '', usageType: 'INTERNAL', department: '', selectedUnit: 'primary', generatePdf: true });
@@ -337,6 +361,67 @@ const InventoryManagement = () => {
     }
   };
 
+  useEffect(() => {
+    setBatchInData(prev => {
+      const newItems = batchInSelectedItems.map(itemName => {
+        const existing = prev.items.find(i => i.item.name === itemName);
+        if (existing) return existing;
+        const targetItem = items.find(i => i.name === itemName);
+        return { item: targetItem, qtyStr: '', unitPrice: '', remarks: '', selectedUnit: 'primary' };
+      }).filter(Boolean);
+      return { ...prev, items: newItems };
+    });
+  }, [batchInSelectedItems, items]);
+
+  const handleBatchInSubmit = async (e) => {
+    e.preventDefault();
+    if (!batchInData.companyName) {
+      setAlert({ isOpen: true, message: "Company Name is required for Batch In." });
+      return;
+    }
+    const txnsToLog = [];
+    for (const itemRow of batchInData.items) {
+      const validation = validateAndCalculateQuantity(itemRow.qtyStr);
+      if (!validation.valid) {
+        setAlert({ isOpen: true, message: `Invalid quantity for ${itemRow.item.name}: ${validation.message || 'Check input format'}` });
+        return;
+      }
+      let finalQty = validation.total;
+      if (itemRow.selectedUnit === 'secondary' && itemRow.item.conversionFactor) {
+        finalQty = finalQty * Number(itemRow.item.conversionFactor);
+        finalQty = Number(finalQty.toFixed(4));
+      }
+      txnsToLog.push({
+        location: activeTab,
+        item: itemRow.item.name,
+        type: 'IN',
+        qty: finalQty,
+        date: batchInData.receivingDate || new Date().toISOString().split('T')[0],
+        remarks: itemRow.remarks || '',
+        companyName: batchInData.companyName,
+        billNo: batchInData.billNo || '',
+        receivingDate: batchInData.receivingDate || '',
+        billDate: batchInData.billDate || '',
+        unitPrice: itemRow.unitPrice ? Number(itemRow.unitPrice) : '',
+        usageType: 'INTERNAL',
+        department: ''
+      });
+    }
+    if (txnsToLog.length === 0) {
+      setAlert({ isOpen: true, message: 'Please select items and enter valid quantities.' });
+      return;
+    }
+    const success = await logBatchTransactions(txnsToLog);
+    if (success) {
+      setShowBatchInModal(false);
+      setBatchInData({ companyName: '', billNo: '', receivingDate: new Date().toISOString().split('T')[0], billDate: '', generatePdf: true, items: [] });
+      setBatchInSelectedItems([]);
+      setAlert({ isOpen: true, message: `Successfully received ${txnsToLog.length} items in batch.` });
+    } else {
+      setAlert({ isOpen: true, message: 'Failed to log batch transactions.' });
+    }
+  };
+
   const addToCart = (item) => {
     if (!issueCart.find(c => c.item.name === item.name)) {
       setIssueCart([...issueCart, { item, qtyStr: '', remarks: '', selectedUnit: 'primary' }]);
@@ -394,7 +479,7 @@ const InventoryManagement = () => {
               {catItems.map(item => {
                 const globalStock = getGlobalStock(item.name);
                 return (
-                  <div key={item.id} className="card stat-card" style={{ borderLeft: `4px solid ${globalStock > 0 ? 'var(--success)' : 'var(--danger)'}` }}>
+                  <div key={item.id} className="card stat-card" style={{ borderLeft: `4px solid ${globalStock > 0 ? 'var(--success)' : 'var(--danger)'}`, cursor: 'pointer' }} onClick={() => setSelectedItemDetails(item)}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                       <div>
                         <h3 style={{ margin: '0 0 0.5rem 0', color: 'var(--text-muted)', fontSize: '0.85rem', textTransform: 'uppercase' }}>{item.name}</h3>
@@ -651,16 +736,21 @@ const InventoryManagement = () => {
             <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               <MapPin size={20} color="var(--success)" /> Stock at {locName}
             </h3>
-            <div style={{ position: 'relative', width: '300px', maxWidth: '100%' }}>
-              <PackageSearch size={18} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
-              <input 
-                type="text" 
-                className="input-field" 
-                placeholder="Search items..." 
-                value={itemSearch}
-                onChange={e => setItemSearch(e.target.value)}
-                style={{ paddingLeft: '35px', marginBottom: 0 }}
-              />
+            <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
+              <button className="btn btn-primary" onClick={() => setShowBatchInModal(true)} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <LogIn size={16} /> Batch Stock In
+              </button>
+              <div style={{ position: 'relative', width: '300px', maxWidth: '100%' }}>
+                <PackageSearch size={18} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+                <input 
+                  type="text" 
+                  className="input-field" 
+                  placeholder="Search items..." 
+                  value={itemSearch}
+                  onChange={e => setItemSearch(e.target.value)}
+                  style={{ paddingLeft: '35px', marginBottom: 0 }}
+                />
+              </div>
             </div>
           </div>
           
@@ -678,9 +768,11 @@ const InventoryManagement = () => {
                     <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '600px', tableLayout: 'fixed' }}>
                       <thead>
                         <tr style={{ backgroundColor: 'var(--bg-tertiary)', borderBottom: '1px solid var(--border-color)' }}>
-                          <th style={{ width: '50%', padding: '0.8rem 1rem', fontSize: '0.85rem', color: 'var(--text-muted)' }}>ITEM/RATING</th>
-                          <th style={{ width: '20%', padding: '0.8rem 1rem', fontSize: '0.85rem', color: 'var(--text-muted)', textAlign: 'center' }}>CURRENT STOCK</th>
-                          <th style={{ width: '30%', padding: '0.8rem 1rem', fontSize: '0.85rem', color: 'var(--text-muted)', textAlign: 'right' }}>QUICK ACTIONS</th>
+                          <th style={{ width: '30%', padding: '0.8rem 1rem', fontSize: '0.85rem', color: 'var(--text-muted)' }}>ITEM/RATING</th>
+                          <th style={{ width: '15%', padding: '0.8rem 1rem', fontSize: '0.85rem', color: 'var(--text-muted)', textAlign: 'center' }}>TOTAL IN</th>
+                          <th style={{ width: '15%', padding: '0.8rem 1rem', fontSize: '0.85rem', color: 'var(--text-muted)', textAlign: 'center' }}>TOTAL OUT</th>
+                          <th style={{ width: '15%', padding: '0.8rem 1rem', fontSize: '0.85rem', color: 'var(--text-muted)', textAlign: 'center' }}>CURRENT STOCK</th>
+                          <th style={{ width: '25%', padding: '0.8rem 1rem', fontSize: '0.85rem', color: 'var(--text-muted)', textAlign: 'right' }}>QUICK ACTIONS</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -688,15 +780,26 @@ const InventoryManagement = () => {
                           const stock = getStockAtLocation(item.name, locName);
                           const minStock = item.minStockLevels?.[locName] || 0;
                           const isLowStock = minStock > 0 && stock < minStock;
+                          
+                          const itemTxns = transactions.filter(t => t.item === item.name && t.location === locName);
+                          const totalIn = itemTxns.filter(t => t.type === 'IN').reduce((acc, t) => acc + Number(t.qty || 0), 0);
+                          const totalOut = itemTxns.filter(t => t.type === 'OUT').reduce((acc, t) => acc + Number(t.qty || 0), 0);
+
                           return (
                             <tr key={item.id} style={{ borderBottom: '1px solid var(--border-color)', backgroundColor: isLowStock ? 'rgba(239, 68, 68, 0.05)' : 'transparent' }}>
                               <td style={{ padding: '1rem', fontWeight: '600' }}>
                                 {item.name} <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>({item.unit})</span>
                                 {isLowStock && <span style={{ marginLeft: '0.5rem', fontSize: '0.7rem', padding: '0.2rem 0.4rem', backgroundColor: 'var(--danger)', color: 'white', borderRadius: '4px', whiteSpace: 'nowrap' }}>Low Stock (Min {minStock})</span>}
                               </td>
+                              <td style={{ padding: '1rem', textAlign: 'center', color: 'var(--text-secondary)' }}>
+                                {Number(totalIn).toLocaleString()}
+                              </td>
+                              <td style={{ padding: '1rem', textAlign: 'center', color: 'var(--text-secondary)' }}>
+                                {Number(totalOut).toLocaleString()}
+                              </td>
                               <td style={{ padding: '1rem', textAlign: 'center' }}>
                                 <span style={{ fontSize: '1.1rem', fontWeight: '700', color: isLowStock ? 'var(--danger)' : stock > 0 ? 'var(--success)' : 'var(--danger)' }}>
-                                  {stock.toLocaleString()}
+                                  {Number(stock).toLocaleString()}
                                 </span>
                               </td>
                               <td style={{ padding: '1rem' }}>
@@ -767,7 +870,7 @@ const InventoryManagement = () => {
                   <td style={{ padding: '0.8rem', color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>{txn.user}</td>
                   <td style={{ padding: '0.8rem', color: 'var(--text-muted)' }}>{txn.remarks}</td>
                   <td style={{ padding: '0.8rem', textAlign: 'right' }}>
-                    <button onClick={() => generateTransactionPDF(txn)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--accent-primary)', opacity: 0.8, transition: 'opacity 0.2s', marginRight: isSuperAdmin ? '0.8rem' : '0' }} title="Download PDF Receipt" onMouseEnter={e => e.target.style.opacity = 1} onMouseLeave={e => e.target.style.opacity = 0.8}>
+                    <button onClick={() => generateTransactionPDF({...txn, unit: items.find(i => i.name === txn.item)?.unit || ''})} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--accent-primary)', opacity: 0.8, transition: 'opacity 0.2s', marginRight: isSuperAdmin ? '0.8rem' : '0' }} title="Download PDF Receipt" onMouseEnter={e => e.target.style.opacity = 1} onMouseLeave={e => e.target.style.opacity = 0.8}>
                       <Download size={15} />
                     </button>
                     {isSuperAdmin && (
@@ -950,7 +1053,7 @@ const InventoryManagement = () => {
                   </div>
                   <button className="btn btn-primary" style={{ padding: '0.5rem 1rem', fontSize: '0.85rem', whiteSpace: 'nowrap' }} onClick={() => {
                     setEditingMaster(null);
-                    setCompanyData({ name: '', address: '', mobile: '', poc: '', gst: '' });
+                    setCompanyData({ name: '', address: '', mobile: '', poc: '', gst: '', linkedCategories: [], linkedItems: [] });
                     setShowCompanyModal(true);
                   }}><Plus size={16} style={{ marginRight: '0.4rem' }}/> Add Company</button>
                 </div>
@@ -974,7 +1077,9 @@ const InventoryManagement = () => {
                   <div style={{ display: 'flex', gap: '0.5rem' }}>
                     <button className="icon-btn-small" onClick={() => {
                       setEditingMaster({ type: 'inv_company', id: c.id, oldName: c.name });
-                      setCompanyData({ name: c.name, address: c.address || '', mobile: c.mobile || '', poc: c.poc || '', gst: c.gst || '' });
+                      const cLinkedCats = categories.filter(cat => cat.suppliers && cat.suppliers.includes(c.name)).map(cat => cat.name);
+                      const cLinkedItems = items.filter(item => item.suppliers && item.suppliers.includes(c.name)).map(item => item.name);
+                      setCompanyData({ name: c.name, address: c.address || '', mobile: c.mobile || '', poc: c.poc || '', gst: c.gst || '', linkedCategories: cLinkedCats, linkedItems: cLinkedItems });
                       setShowCompanyModal(true);
                     }} title="Edit Company"><Edit size={14} color="var(--accent-primary)" /></button>
                     <button className="icon-btn-small" onClick={() => handleDeleteMaster('inv_company', c.id, c.name)} title="Delete Company"><Trash2 size={14} color="var(--danger)" /></button>
@@ -1268,15 +1373,15 @@ const InventoryManagement = () => {
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                       <span style={{ color: 'var(--text-muted)' }}>Current Global Stock:</span>
-                      <span style={{ fontWeight: '600', color: 'var(--text-primary)' }}>{insight.currentStock} {insight.unit}</span>
+                      <span style={{ fontWeight: '600', color: 'var(--text-primary)' }}>{typeof insight.currentStock === 'number' ? insight.currentStock.toFixed(2) : insight.currentStock} {insight.unit}</span>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                       <span style={{ color: 'var(--text-muted)' }}>Est. Burn Rate:</span>
-                      <span style={{ fontWeight: '600', color: 'var(--text-primary)' }}>{insight.burnRate} {insight.unit}/day</span>
+                      <span style={{ fontWeight: '600', color: 'var(--text-primary)' }}>{typeof insight.dailyBurnRate === 'number' ? insight.dailyBurnRate.toFixed(2) : insight.dailyBurnRate} {insight.unit}/day</span>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                       <span style={{ color: 'var(--text-muted)' }}>Days Remaining:</span>
-                      <span style={{ fontWeight: '600', color: insight.daysRemaining <= 7 ? 'var(--danger)' : 'var(--text-primary)' }}>{insight.daysRemaining} days</span>
+                      <span style={{ fontWeight: '600', color: typeof insight.runwayDays === 'number' && insight.runwayDays <= 7 ? 'var(--danger)' : 'var(--text-primary)' }}>{insight.runwayDays} {insight.runwayDays !== 'Infinite' && 'days'}</span>
                     </div>
                   </div>
                 </div>
@@ -1554,9 +1659,10 @@ const InventoryManagement = () => {
                   </div>
                   <div style={{ maxHeight: '250px', overflowY: 'auto', padding: '0.5rem' }}>
                     {sortedCompanies.filter(c => c.name.toLowerCase().includes(supplierSearch.toLowerCase())).map(c => (
-                      <label key={c.id} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.4rem', cursor: 'pointer', borderRadius: '4px' }} className="supplier-row">
+                      <label key={c.id} style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'flex-start', textAlign: 'left', gap: '0.8rem', padding: '0.5rem', cursor: 'pointer', borderRadius: '4px' }} className="supplier-row">
                         <input 
                           type="checkbox" 
+                          style={{ marginTop: '0.2rem' }}
                           checked={itemData.suppliers.includes(c.name)}
                           onChange={(e) => {
                             const newSuppliers = e.target.checked 
@@ -1565,7 +1671,7 @@ const InventoryManagement = () => {
                             setItemData({ ...itemData, suppliers: newSuppliers });
                           }}
                         />
-                        <span style={{ fontSize: '0.9rem' }}>{c.name}</span>
+                        <span style={{ fontSize: '0.9rem', textAlign: 'left' }}>{c.name}</span>
                       </label>
                     ))}
                     {sortedCompanies.filter(c => c.name.toLowerCase().includes(supplierSearch.toLowerCase())).length === 0 && <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', padding: '0.5rem' }}>No companies found.</div>}
@@ -1614,7 +1720,7 @@ const InventoryManagement = () => {
 
       {showCompanyModal && (
         <div className="modal-backdrop">
-          <div className="card animate-fade-in" style={{ width: '500px', padding: '2rem', maxHeight: '90vh', overflowY: 'auto' }}>
+          <div className="card animate-fade-in" style={{ width: '700px', padding: '2rem', maxHeight: '90vh', overflowY: 'auto' }}>
             <h3>{editingMaster ? 'Edit' : 'Add'} Supplier Company</h3>
             <form onSubmit={handleAddCompany}>
               <div style={{ marginBottom: '1.5rem' }}>
@@ -1639,8 +1745,78 @@ const InventoryManagement = () => {
                 <label className="input-label">GST Number (Optional)</label>
                 <input type="text" className="input-field" value={companyData.gst} onChange={e => setCompanyData({ ...companyData, gst: e.target.value })} placeholder="e.g. 22AAAAA0000A1Z5" style={{ textTransform: 'uppercase' }} />
               </div>
+              <div style={{ display: 'flex', gap: '1.5rem', marginBottom: '2rem' }}>
+                <div style={{ flex: 1 }}>
+                  <label className="input-label">Link Categories (Optional)</label>
+                  <div style={{ border: '1px solid var(--border-color)', borderRadius: '8px', backgroundColor: 'var(--bg-secondary)', overflow: 'hidden' }}>
+                    <div style={{ padding: '0.5rem', borderBottom: '1px solid var(--border-color)', backgroundColor: 'var(--bg-tertiary)' }}>
+                      <input 
+                        type="text" 
+                        className="input-field" 
+                        placeholder="Search categories..." 
+                        value={companyCatSearch}
+                        onChange={e => setCompanyCatSearch(e.target.value)}
+                        style={{ marginBottom: 0, padding: '0.4rem 0.8rem', fontSize: '0.85rem' }}
+                      />
+                    </div>
+                    <div style={{ maxHeight: '150px', overflowY: 'auto', padding: '0.5rem' }}>
+                      {sortedCategories.filter(c => c.name.toLowerCase().includes(companyCatSearch.toLowerCase())).map(c => (
+                        <label key={c.id} style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'flex-start', textAlign: 'left', gap: '0.8rem', padding: '0.5rem', cursor: 'pointer', borderRadius: '4px' }} className="supplier-row">
+                          <input 
+                            type="checkbox" 
+                            style={{ marginTop: '0.2rem' }}
+                            checked={companyData.linkedCategories.includes(c.name)}
+                            onChange={(e) => {
+                              const newLinked = e.target.checked 
+                                ? [...companyData.linkedCategories, c.name]
+                                : companyData.linkedCategories.filter(s => s !== c.name);
+                              setCompanyData({ ...companyData, linkedCategories: newLinked });
+                            }}
+                          />
+                          <span style={{ fontSize: '0.9rem', textAlign: 'left' }}>{c.name}</span>
+                        </label>
+                      ))}
+                      {sortedCategories.filter(c => c.name.toLowerCase().includes(companyCatSearch.toLowerCase())).length === 0 && <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', padding: '0.5rem' }}>No categories found.</div>}
+                    </div>
+                  </div>
+                </div>
+                <div style={{ flex: 1 }}>
+                  <label className="input-label">Link Items (Optional)</label>
+                  <div style={{ border: '1px solid var(--border-color)', borderRadius: '8px', backgroundColor: 'var(--bg-secondary)', overflow: 'hidden' }}>
+                    <div style={{ padding: '0.5rem', borderBottom: '1px solid var(--border-color)', backgroundColor: 'var(--bg-tertiary)' }}>
+                      <input 
+                        type="text" 
+                        className="input-field" 
+                        placeholder="Search items..." 
+                        value={companyItemSearch}
+                        onChange={e => setCompanyItemSearch(e.target.value)}
+                        style={{ marginBottom: 0, padding: '0.4rem 0.8rem', fontSize: '0.85rem' }}
+                      />
+                    </div>
+                    <div style={{ maxHeight: '150px', overflowY: 'auto', padding: '0.5rem' }}>
+                      {sortedItems.filter(i => i.name.toLowerCase().includes(companyItemSearch.toLowerCase())).map(i => (
+                        <label key={i.id} style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'flex-start', textAlign: 'left', gap: '0.8rem', padding: '0.5rem', cursor: 'pointer', borderRadius: '4px' }} className="supplier-row">
+                          <input 
+                            type="checkbox" 
+                            style={{ marginTop: '0.2rem' }}
+                            checked={companyData.linkedItems.includes(i.name)}
+                            onChange={(e) => {
+                              const newLinked = e.target.checked 
+                                ? [...companyData.linkedItems, i.name]
+                                : companyData.linkedItems.filter(s => s !== i.name);
+                              setCompanyData({ ...companyData, linkedItems: newLinked });
+                            }}
+                          />
+                          <span style={{ fontSize: '0.9rem', textAlign: 'left' }}>{i.name}</span>
+                        </label>
+                      ))}
+                      {sortedItems.filter(i => i.name.toLowerCase().includes(companyItemSearch.toLowerCase())).length === 0 && <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', padding: '0.5rem' }}>No items found.</div>}
+                    </div>
+                  </div>
+                </div>
+              </div>
               <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end' }}>
-                <button type="button" className="btn btn-secondary" onClick={() => { setShowCompanyModal(false); setEditingMaster(null); setCompanyData({ name: '', address: '', mobile: '', poc: '', gst: '' }); }}>Cancel</button>
+                <button type="button" className="btn btn-secondary" onClick={() => { setShowCompanyModal(false); setEditingMaster(null); setCompanyData({ name: '', address: '', mobile: '', poc: '', gst: '', linkedCategories: [], linkedItems: [] }); }}>Cancel</button>
                 <button type="submit" className="btn btn-primary">Save Company</button>
               </div>
             </form>
@@ -1690,9 +1866,10 @@ const InventoryManagement = () => {
                   </div>
                   <div style={{ maxHeight: '250px', overflowY: 'auto', padding: '0.5rem' }}>
                     {sortedCompanies.filter(c => c.name.toLowerCase().includes(supplierSearch.toLowerCase())).map(c => (
-                      <label key={c.id} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.4rem', cursor: 'pointer', borderRadius: '4px' }} className="supplier-row">
+                      <label key={c.id} style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'flex-start', textAlign: 'left', gap: '0.8rem', padding: '0.5rem', cursor: 'pointer', borderRadius: '4px' }} className="supplier-row">
                         <input 
                           type="checkbox" 
+                          style={{ marginTop: '0.2rem' }}
                           checked={categoryData.suppliers.includes(c.name)}
                           onChange={(e) => {
                             const newSuppliers = e.target.checked 
@@ -1701,7 +1878,7 @@ const InventoryManagement = () => {
                             setCategoryData({ ...categoryData, suppliers: newSuppliers });
                           }}
                         />
-                        <span style={{ fontSize: '0.9rem' }}>{c.name}</span>
+                        <span style={{ fontSize: '0.9rem', textAlign: 'left' }}>{c.name}</span>
                       </label>
                     ))}
                     {sortedCompanies.filter(c => c.name.toLowerCase().includes(supplierSearch.toLowerCase())).length === 0 && <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', padding: '0.5rem' }}>No companies found.</div>}
@@ -1711,6 +1888,146 @@ const InventoryManagement = () => {
               <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end' }}>
                 <button type="button" className="btn btn-secondary" onClick={() => setShowCategoryModal(false)}>Cancel</button>
                 <button type="submit" className="btn btn-primary">Save Category</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {showBatchInModal && (
+        <div className="modal-backdrop">
+          <div className="card animate-fade-in" style={{ width: '800px', maxWidth: '95vw', padding: '2.5rem', borderTop: '4px solid var(--success)', overflow: 'visible', display: 'flex', flexDirection: 'column' }}>
+            <h3>Batch Stock In</h3>
+            <p style={{ color: 'var(--text-muted)', marginBottom: '1.5rem' }}>Log multiple items from a single bill for <strong>{activeTab}</strong></p>
+            <form onSubmit={handleBatchInSubmit}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginBottom: '2rem' }}>
+                <div>
+                  <label className="input-label">Supplier Company <span style={{ color: 'var(--danger)' }}>*</span></label>
+                  <select className="input-field" value={batchInData.companyName} onChange={e => setBatchInData({...batchInData, companyName: e.target.value})} required>
+                    <option value="">Select Supplier</option>
+                    {sortedCompanies.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="input-label">Bill Number</label>
+                  <input type="text" className="input-field" value={batchInData.billNo} onChange={e => setBatchInData({...batchInData, billNo: e.target.value})} />
+                </div>
+                <div>
+                  <label className="input-label">Receiving Date <span style={{ color: 'var(--danger)' }}>*</span></label>
+                  <input type="date" className="input-field" value={batchInData.receivingDate} onChange={e => setBatchInData({...batchInData, receivingDate: e.target.value})} required />
+                </div>
+                <div>
+                  <label className="input-label">Bill Date</label>
+                  <input type="date" className="input-field" value={batchInData.billDate} onChange={e => setBatchInData({...batchInData, billDate: e.target.value})} />
+                </div>
+              </div>
+              
+              <div style={{ marginBottom: '2rem' }}>
+                <label className="input-label">Select Items</label>
+                <div style={{ width: '100%' }}>
+                  <MultiSelect 
+                    options={items.map(i => i.name)}
+                    selectedValues={batchInSelectedItems}
+                    onChange={setBatchInSelectedItems}
+                    placeholder="Search and select items..."
+                  />
+                </div>
+              </div>
+
+              {batchInData.items.length > 0 && (
+                <div style={{ overflowX: 'auto', overflowY: 'auto', maxHeight: '40vh', marginBottom: '2rem', border: '1px solid var(--border-color)', borderRadius: '8px' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '600px' }}>
+                    <thead>
+                      <tr style={{ backgroundColor: 'var(--bg-tertiary)', borderBottom: '1px solid var(--border-color)' }}>
+                        <th style={{ padding: '0.8rem', fontSize: '0.85rem', color: 'var(--text-muted)' }}>ITEM</th>
+                        <th style={{ padding: '0.8rem', fontSize: '0.85rem', color: 'var(--text-muted)', width: '20%' }}>QTY (use , or + for bobbins)</th>
+                        <th style={{ padding: '0.8rem', fontSize: '0.85rem', color: 'var(--text-muted)', width: '20%' }}>UNIT PRICE (₹)</th>
+                        <th style={{ padding: '0.8rem', fontSize: '0.85rem', color: 'var(--text-muted)', width: '25%' }}>REMARKS</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {batchInData.items.map((row, idx) => {
+                        const val = validateAndCalculateQuantity(row.qtyStr);
+                        return (
+                          <tr key={idx} style={{ borderBottom: '1px solid var(--border-color)' }}>
+                            <td style={{ padding: '0.8rem', fontWeight: '600', fontSize: '0.9rem' }}>
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                                <span>{row.item.name}</span>
+                                {row.item.secondaryUnit ? (
+                                  <select 
+                                    className="input-field"
+                                    style={{ padding: '0.1rem 0.3rem', fontSize: '0.75rem', marginBottom: 0, width: 'auto', display: 'inline-block' }}
+                                    value={row.selectedUnit || 'primary'}
+                                    onChange={(e) => {
+                                      const newItems = [...batchInData.items];
+                                      newItems[idx].selectedUnit = e.target.value;
+                                      setBatchInData({...batchInData, items: newItems});
+                                    }}
+                                  >
+                                    <option value="primary">{row.item.unit}</option>
+                                    <option value="secondary">{row.item.secondaryUnit}</option>
+                                  </select>
+                                ) : (
+                                  <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{row.item.unit}</span>
+                                )}
+                              </div>
+                            </td>
+                            <td style={{ padding: '0.8rem' }}>
+                              <input 
+                                type="text" 
+                                className="input-field" 
+                                style={{ marginBottom: 0, border: val.valid === false && row.qtyStr ? '1px solid var(--danger)' : undefined }}
+                                value={row.qtyStr}
+                                onChange={(e) => {
+                                  const newItems = [...batchInData.items];
+                                  newItems[idx].qtyStr = e.target.value;
+                                  setBatchInData({...batchInData, items: newItems});
+                                }}
+                                placeholder="e.g. 20"
+                                required
+                              />
+                              {val.valid === false && row.qtyStr && <span style={{ color: 'var(--danger)', fontSize: '0.75rem', marginTop: '4px', display: 'block' }}>{val.message}</span>}
+                              {val.valid && row.qtyStr && <span style={{ color: 'var(--success)', fontSize: '0.75rem', marginTop: '4px', display: 'block', fontWeight: '600' }}>Total: {val.total}</span>}
+                            </td>
+                            <td style={{ padding: '0.8rem' }}>
+                              <input 
+                                type="number" 
+                                className="input-field" 
+                                style={{ marginBottom: 0 }}
+                                value={row.unitPrice}
+                                onChange={(e) => {
+                                  const newItems = [...batchInData.items];
+                                  newItems[idx].unitPrice = e.target.value;
+                                  setBatchInData({...batchInData, items: newItems});
+                                }}
+                                placeholder="0.00"
+                              />
+                            </td>
+                            <td style={{ padding: '0.8rem' }}>
+                              <input 
+                                type="text" 
+                                className="input-field" 
+                                style={{ marginBottom: 0 }}
+                                value={row.remarks}
+                                onChange={(e) => {
+                                  const newItems = [...batchInData.items];
+                                  newItems[idx].remarks = e.target.value;
+                                  setBatchInData({...batchInData, items: newItems});
+                                }}
+                                placeholder="Optional"
+                              />
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+
+              <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end', marginTop: '1rem' }}>
+                <button type="button" className="btn btn-secondary" onClick={() => setShowBatchInModal(false)}>Cancel</button>
+                <button type="submit" className="btn btn-primary" disabled={batchInData.items.length === 0}>Submit Batch</button>
               </div>
             </form>
           </div>
@@ -1899,7 +2216,7 @@ const InventoryManagement = () => {
                     className="icon-btn" 
                     title="Add New Company"
                     style={{ border: '1px solid var(--border-color)', borderRadius: '8px', width: '42px', height: '42px', flexShrink: 0 }}
-                    onClick={() => { setCompanyDropdownOpen(false); setEditingMaster(null); setCompanyData({ name: '', address: '', mobile: '', poc: '', gst: '' }); setShowCompanyModal(true); }}
+                    onClick={() => { setCompanyDropdownOpen(false); setEditingMaster(null); setCompanyData({ name: '', address: '', mobile: '', poc: '', gst: '', linkedCategories: [], linkedItems: [] }); setShowCompanyModal(true); }}
                   >
                     <Plus size={18} />
                   </button>

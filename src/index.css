@@ -453,3 +453,6 @@ input:focus, select:focus, textarea:focus {
   padding: 0.5rem;
   margin-right: 1rem;
 }
+
+.clickable-card { cursor: pointer; transition: transform 0.2s, box-shadow 0.2s; }
+.clickable-card:hover { transform: translateY(-4px); box-shadow: 0 8px 16px rgba(0,0,0,0.4); }
