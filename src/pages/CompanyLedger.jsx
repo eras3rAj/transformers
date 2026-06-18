@@ -230,19 +230,38 @@ const CompanyLedger = () => {
             ) : (
               <DataTable 
                 data={filteredTxns}
-                footerRow={
-                  <>
-                    <td colSpan={3} style={{ textAlign: 'right', padding: '1rem', color: 'var(--text-muted)' }}>NET TOTAL (IN - OUT)</td>
-                    <td style={{ padding: '1rem', color: 'var(--text-primary)', fontSize: '1.05rem', fontWeight: 'bold' }}>
-                      {(summary.totalInQty - summary.totalOutQty).toLocaleString(undefined, { maximumFractionDigits: 2 })}
-                    </td>
-                    <td></td>
-                    <td style={{ padding: '1rem', color: 'var(--text-primary)', fontSize: '1.05rem', fontWeight: 'bold' }}>
-                      {formatCurrency(summary.totalInValue - summary.totalOutValue)}
-                    </td>
-                    <td colSpan={2}></td>
-                  </>
-                }
+                footerRow={(processedData) => {
+                  let filteredTotalInQty = 0;
+                  let filteredTotalOutQty = 0;
+                  let filteredTotalInValue = 0;
+                  let filteredTotalOutValue = 0;
+                  
+                  processedData.forEach(t => {
+                    const qty = Number(t.qty || 0);
+                    const val = qty * Number(t.unitPrice || 0);
+                    if (t.type === 'IN') {
+                      filteredTotalInQty += qty;
+                      filteredTotalInValue += val;
+                    } else if (t.type === 'OUT') {
+                      filteredTotalOutQty += qty;
+                      filteredTotalOutValue += val;
+                    }
+                  });
+
+                  return (
+                    <>
+                      <td colSpan={3} style={{ textAlign: 'right', padding: '1rem', color: 'var(--text-muted)' }}>NET TOTAL (IN - OUT)</td>
+                      <td style={{ padding: '1rem', color: 'var(--text-primary)', fontSize: '1.05rem', fontWeight: 'bold' }}>
+                        {(filteredTotalInQty - filteredTotalOutQty).toLocaleString(undefined, { maximumFractionDigits: 2 })}
+                      </td>
+                      <td></td>
+                      <td style={{ padding: '1rem', color: 'var(--text-primary)', fontSize: '1.05rem', fontWeight: 'bold' }}>
+                        {formatCurrency(filteredTotalInValue - filteredTotalOutValue)}
+                      </td>
+                      <td colSpan={2}></td>
+                    </>
+                  );
+                }}
                 columns={[
                   { Header: 'DATE', accessor: 'date', Cell: ({ value }) => <span style={{ whiteSpace: 'nowrap' }}>{formatDate(value)}</span> },
                   { Header: 'TYPE', accessor: 'type', Cell: ({ value }) => (
