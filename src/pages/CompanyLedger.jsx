@@ -230,6 +230,15 @@ const CompanyLedger = () => {
             ) : (
               <DataTable 
                 data={filteredTxns}
+                footerRow={
+                  <>
+                    <td colSpan={5} style={{ textAlign: 'right', padding: '1rem', color: 'var(--text-muted)' }}>NET TOTAL (IN - OUT)</td>
+                    <td style={{ padding: '1rem', color: 'var(--text-primary)', fontSize: '1.05rem' }}>
+                      {formatCurrency(summary.totalInValue - summary.totalOutValue)}
+                    </td>
+                    <td colSpan={2}></td>
+                  </>
+                }
                 columns={[
                   { Header: 'DATE', accessor: 'date', Cell: ({ value }) => <span style={{ whiteSpace: 'nowrap' }}>{formatDate(value)}</span> },
                   { Header: 'TYPE', accessor: 'type', Cell: ({ value }) => (

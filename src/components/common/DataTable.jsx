@@ -13,7 +13,8 @@ const DataTable = ({
   exportable = true,
   printable = true,
   pagination = true,
-  defaultRowsPerPage = 10 
+  defaultRowsPerPage = 10,
+  footerRow = null
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
@@ -141,6 +142,11 @@ const DataTable = ({
                   ))}
                 </tr>
               ))
+            )}
+            {footerRow && currentTableData.length > 0 && (
+              <tr style={{ backgroundColor: 'var(--bg-tertiary)', fontWeight: 'bold' }}>
+                {footerRow}
+              </tr>
             )}
           </tbody>
         </table>
