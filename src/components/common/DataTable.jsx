@@ -35,10 +35,14 @@ const DataTable = ({
     // Global Search
     if (searchTerm) {
       const lowercasedSearch = searchTerm.toLowerCase();
+      const accessors = columns.map(col => col.accessor).filter(Boolean);
+      
       sortedData = sortedData.filter(item => {
-        return Object.values(item).some(val => 
-          String(val).toLowerCase().includes(lowercasedSearch)
-        );
+        return accessors.some(accessor => {
+          const val = item[accessor];
+          if (val === null || val === undefined) return false;
+          return String(val).toLowerCase().includes(lowercasedSearch);
+        });
       });
     }
 
