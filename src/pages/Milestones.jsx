@@ -22,7 +22,11 @@ const Milestones = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    await addMilestone(formData);
+    const payload = { ...formData };
+    if (!payload.target_date) {
+      payload.target_date = null;
+    }
+    await addMilestone(payload);
     setFormData({ title: '', company: 'All', term_type: activeTab, target_date: '' });
     setShowForm(false);
   };

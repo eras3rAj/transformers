@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Plus, Edit, Anchor, Trash2, Download, ArrowUpDown } from 'lucide-react';
+import { Plus, Edit, Anchor, Trash2, Download, ArrowUpDown, Search } from 'lucide-react';
 import POForm from '../components/po/POForm';
 import ConfirmModal from '../components/common/ConfirmModal';
 import { usePO } from '../context/POContext';
@@ -41,6 +41,7 @@ const PurchaseOrders = () => {
   };
 
   const [boardFilter, setBoardFilter] = useState('All');
+  const [searchQuery, setSearchQuery] = useState('');
   const [sortConfig, setSortConfig] = useState({ key: 'poNo', direction: 'asc' });
 
   const handleSort = (key) => {
@@ -52,11 +53,16 @@ const PurchaseOrders = () => {
   };
 
   const filteredPOs = React.useMemo(() => {
-    return pos.filter(po => 
-      (companyFilter === 'All' || po.companyName === companyFilter) &&
-      (boardFilter === 'All' || po.utilityBoard === boardFilter)
-    );
-  }, [pos, companyFilter, boardFilter]);
+    return pos.filter(po => {
+      const matchesCompany = companyFilter === 'All' || po.companyName === companyFilter;
+      const matchesBoard = boardFilter === 'All' || po.utilityBoard === boardFilter;
+      const matchesSearch = searchQuery === '' || 
+        (po.poNo && po.poNo.toLowerCase().includes(searchQuery.toLowerCase())) ||
+        (po.companyName && po.companyName.toLowerCase().includes(searchQuery.toLowerCase())) ||
+        (po.utilityBoard && po.utilityBoard.toLowerCase().includes(searchQuery.toLowerCase()));
+      return matchesCompany && matchesBoard && matchesSearch;
+    });
+  }, [pos, companyFilter, boardFilter, searchQuery]);
 
   const globalSummary = React.useMemo(() => {
     let totalContractValue = 0;
@@ -141,7 +147,21 @@ const PurchaseOrders = () => {
         </div>
       </div>
 
-      <div className="card" style={{ marginBottom: '1.5rem', display: 'flex', justifyContent: 'flex-end', gap: '1rem', alignItems: 'center', flexWrap: 'wrap', padding: '1rem 1.5rem' }}>
+      <div className="card" style={{ marginBottom: '1.5rem', display: 'flex', justifyContent: 'space-between', gap: '1rem', alignItems: 'center', flexWrap: 'wrap', padding: '1rem 1.5rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flex: '1 1 250px' }}>
+          <div style={{ position: 'relative', width: '100%' }}>
+            <Search size={16} className="text-muted" style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)' }} />
+            <input 
+              type="text" 
+              placeholder="Search PO No, Company or Board..." 
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="input-field"
+              style={{ marginBottom: 0, paddingLeft: '32px', width: '100%' }}
+            />
+          </div>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
           <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Company:</span>
           <select value={companyFilter} onChange={(e) => setCompanyFilter(e.target.value)} className="input-field" style={{ marginBottom: 0, minWidth: '150px' }}>
@@ -164,6 +184,7 @@ const PurchaseOrders = () => {
         <button className="btn btn-secondary" onClick={handleExportCSV}>
           <Download size={18} /> Export CSV
         </button>
+        </div>
       </div>
 
       <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
@@ -205,8 +226,8 @@ const PurchaseOrders = () => {
               
               return (
               <tr key={po.id} style={{ borderBottom: '1px solid var(--border-color)' }} className="table-row">
-                <td style={{ padding: '1rem' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.8rem', marginBottom: '0.4rem' }}>
+                <td style={{ padding: '1rem', wordBreak: 'break-word', whiteSpace: 'normal', maxWidth: '300px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.8rem', marginBottom: '0.4rem', flexWrap: 'wrap' }}>
                     <div style={{ display: 'inline-block', backgroundColor: 'var(--bg-tertiary)', color: 'var(--text-secondary)', padding: '2px 8px', borderRadius: '4px', fontSize: '0.75rem', fontWeight: '600', border: '1px solid var(--border-color)' }}>
                       {po.companyName}
                     </div>
