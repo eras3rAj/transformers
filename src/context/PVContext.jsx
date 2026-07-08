@@ -47,6 +47,9 @@ export const PVProvider = ({ children }) => {
     };
 
     const { data, error } = await supabase.from('pv_indices').insert([dbRecord]).select();
+    if (error) {
+      console.error("Error adding PV index:", error);
+    }
     if (!error && data) {
       const createdIndex = { ...newIndex, id: data[0].id };
       setIndices(prev => [createdIndex, ...prev]);
