@@ -2,6 +2,7 @@ import { formatDate } from '../utils/dateUtils';
 import { useState } from 'react';
 import { ShoppingCart, Plus, Building } from 'lucide-react';
 import { useVendors } from '../context/VendorContext';
+import DatePicker from '../components/common/DatePicker';
 import '../components/layout/Layout.css';
 
 const VendorPurchasing = () => {
@@ -268,7 +269,7 @@ const VendorPurchasing = () => {
               </div>
 
               <label className="input-label">Expected Delivery Date</label>
-              <input type="date" className="input-field" value={poData.expected_delivery} onChange={e => setPoData({...poData, expected_delivery: e.target.value})} />
+              <DatePicker className="input-field" value={poData.expected_delivery} onChange={e => setPoData({...poData, expected_delivery: e.target.value})} />
 
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem', marginTop: '1rem' }}>
                 <button type="button" className="btn btn-secondary" onClick={() => setShowPOForm(false)}>Cancel</button>

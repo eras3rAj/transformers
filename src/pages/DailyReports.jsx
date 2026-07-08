@@ -2,6 +2,8 @@ import { formatDate } from '../utils/dateUtils';
 import SkeletonLoader from '../components/common/SkeletonLoader';
 import React, { useState, useEffect } from 'react';
 import { useDailyReports } from '../context/DailyReportContext';
+import { useLogs } from '../context/LogContext';
+import DatePicker from '../components/common/DatePicker';
 import { usePO } from '../context/POContext';
 import { useTasks } from '../context/TaskContext';
 import { useToast } from '../context/ToastContext';
@@ -458,7 +460,7 @@ const DailyReports = () => {
                 </div>
                 <div className="input-group">
                   <label className="input-label">Expected Resolution Date</label>
-                  <input type="date" className="input-field" value={mp.eta || ''} onChange={(e) => handleProblemChange(section, 'machineProblems', i, 'eta', e.target.value)} />
+                  <DatePicker className="input-field" value={mp.eta || ''} onChange={(e) => handleProblemChange(section, 'machineProblems', i, 'eta', e.target.value)} />
                 </div>
               </div>
               {mp.taskId && (
@@ -492,7 +494,7 @@ const DailyReports = () => {
                 </div>
                 <div className="input-group">
                   <label className="input-label">Expected Resolution Date</label>
-                  <input type="date" className="input-field" value={ms.eta || ''} onChange={(e) => handleProblemChange(section, 'materialShortages', i, 'eta', e.target.value)} />
+                  <DatePicker className="input-field" value={ms.eta || ''} onChange={(e) => handleProblemChange(section, 'materialShortages', i, 'eta', e.target.value)} />
                 </div>
               </div>
               {ms.taskId && (

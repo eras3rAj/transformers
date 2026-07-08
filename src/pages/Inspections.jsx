@@ -4,6 +4,7 @@ import { usePO } from '../context/POContext';
 import { useInspection } from '../context/InspectionContext';
 import { useAuth } from '../context/AuthContext';
 import { ClipboardCheck, Calendar, Plus, X, Edit, Trash2, ChevronDown } from 'lucide-react';
+import DatePicker from '../components/common/DatePicker';
 import { supabase } from '../lib/supabase';
 import ConfirmModal from '../components/common/ConfirmModal';
 import PromptModal from '../components/common/PromptModal';
@@ -431,7 +432,7 @@ const Inspections = () => {
               </h3>
               
               <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem' }}>
-                <input type="date" className="input-field" value={scheduleForm.date} onChange={e => setScheduleForm({...scheduleForm, date: e.target.value})} style={{ flex: 1 }} />
+                <DatePicker className="input-field" value={scheduleForm.date} onChange={e => setScheduleForm({...scheduleForm, date: e.target.value})} style={{ flex: 1 }} />
                 <input type="number" className="input-field" placeholder="Qty" value={scheduleForm.quantity} onChange={e => setScheduleForm({...scheduleForm, quantity: e.target.value})} style={{ width: '80px' }} />
                 <button className="btn btn-primary" onClick={handleAddSchedule}><Plus size={18} /></button>
               </div>
@@ -471,9 +472,9 @@ const Inspections = () => {
                     <option value="Final">Final Inspection</option>
                   </select>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flex: 2 }}>
-                    <input type="date" className="input-field" value={inspectionForm.startDate} onChange={e => setInspectionForm({...inspectionForm, startDate: e.target.value})} title="Start Date" />
+                    <DatePicker className="input-field" value={inspectionForm.startDate} onChange={e => setInspectionForm({...inspectionForm, startDate: e.target.value})} title="Start Date" />
                     <span style={{ color: 'var(--text-muted)' }}>to</span>
-                    <input type="date" className="input-field" value={inspectionForm.endDate} onChange={e => setInspectionForm({...inspectionForm, endDate: e.target.value})} title="End Date" />
+                    <DatePicker className="input-field" value={inspectionForm.endDate} onChange={e => setInspectionForm({...inspectionForm, endDate: e.target.value})} title="End Date" />
                   </div>
                 </div>
                 <div style={{ display: 'flex', gap: '1rem' }}>
