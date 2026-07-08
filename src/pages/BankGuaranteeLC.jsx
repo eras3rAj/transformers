@@ -42,11 +42,6 @@ const BankGuaranteeLC = () => {
   const formatINR = (val) => `₹${Number(val).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   const formatUSD = (val) => `$${Number(val).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   
-  const formatDate = (dateStr) => {
-    if (!dateStr) return '';
-    const date = new Date(dateStr);
-    return formatDate(date);
-  };
 
   // Date dynamic computations
   const getLcDueDate = (blDateStr, days) => {
