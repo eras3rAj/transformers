@@ -79,14 +79,16 @@ const WarrantyForm = ({ onClose, onSubmit, initialData, availablePOs = [] }) => 
     const { name, value } = e.target;
     if (name === 'poNo') {
       const selectedPO = availablePOs.find(p => p.poNo === value);
+      const defaultPrefix = poSeries.find(p => p.poNo === value)?.prefix || '';
       setFormData(prev => ({ 
         ...prev, 
         poNo: value, 
-        poDate: selectedPO ? selectedPO.poDate : prev.poDate,
-        capacity: selectedPO ? selectedPO.capacity : prev.capacity
+        poDate: selectedPO?.poDate || prev.poDate,
+        capacity: selectedPO?.capacity || prev.capacity,
+        utilityBoard: selectedPO?.utilityBoard || prev.utilityBoard
       }));
-      // Reset prefix when PO changes
-      setSelectedPrefix('');
+      // Auto-select first prefix available for this PO
+      setSelectedPrefix(defaultPrefix);
     } else {
       setFormData(prev => ({ ...prev, [name]: value }));
     }
