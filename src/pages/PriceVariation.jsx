@@ -37,39 +37,37 @@ const PriceVariation = () => {
   // Derive unique years from indices for the filter
   const availableYears = useMemo(() => {
     if (!indices || !Array.isArray(indices)) return [];
-    const years = indices.map(i => {
-      const parts = (i?.month || '').split(' ');
-      return parts[parts.length - 1];
-    }).filter(y => y && !isNaN(parseInt(y)));
-    return [...new Set(years)].sort((a, b) => parseInt(b) - parseInt(a));
+    const groupedIndices = indices.reduce((acc, idx) => {
+      const parts = (idx.month || '').trim().split(' ');
+      const year = parts.length === 2 ? parts[1] : 'Unknown';
+      if (!acc[year]) acc[year] = [];
+      acc[year].push(idx);
+      return acc;
+    }, {});
+    return Object.keys(groupedIndices).filter(y => y !== 'Unknown').sort((a, b) => parseInt(b) - parseInt(a));
   }, [indices]);
+
+  const parseMonthYear = (monthStr) => {
+    const parts = (monthStr || '').trim().split(' ');
+    if (parts.length !== 2) return new Date(0);
+    const m = parts[0];
+    const y = parseInt(parts[1]);
+    const mIndex = ['january', 'february', 'march', 'april', 'may', 'june', 'july', 'august', 'september', 'october', 'november', 'december']
+      .findIndex(x => x === m.toLowerCase() || x.startsWith(m.toLowerCase()));
+    if (mIndex === -1 || isNaN(y)) return new Date(0);
+    return new Date(y, mIndex, 1);
+  };
 
   const latestIndex = useMemo(() => {
     if (!indices || !Array.isArray(indices) || indices.length === 0) return null;
-    const monthOrder = { 'January':0, 'February':1, 'March':2, 'April':3, 'May':4, 'June':5, 'July':6, 'August':7, 'September':8, 'October':9, 'November':10, 'December':11 };
-    return [...indices].sort((a, b) => {
-      const [m1, y1] = (a?.month || '').split(' ');
-      const [m2, y2] = (b?.month || '').split(' ');
-      
-      const year1 = parseInt(y1) || 0;
-      const year2 = parseInt(y2) || 0;
-      
-      if (year1 !== year2) return year2 - year1;
-      return (monthOrder[m2] || 0) - (monthOrder[m1] || 0);
-    })[0];
+    return [...indices].sort((a, b) => parseMonthYear(b.month) - parseMonthYear(a.month))[0];
   }, [indices]);
 
   const effectiveYear = (availableYears.length > 0 && !availableYears.includes(selectedYear)) ? availableYears[0] : selectedYear;
   const yearDataSorted = useMemo(() => {
     if (!indices || !Array.isArray(indices)) return [];
     const yearData = indices.filter(i => (i?.month || '').includes(effectiveYear));
-    const monthOrder = { 'January':1, 'February':2, 'March':3, 'April':4, 'May':5, 'June':6, 'July':7, 'August':8, 'September':9, 'October':10, 'November':11, 'December':12 };
-
-    return yearData.sort((a, b) => {
-      const m1 = (a?.month || '').split(' ')[0];
-      const m2 = (b?.month || '').split(' ')[0];
-      return (monthOrder[m1] || 0) - (monthOrder[m2] || 0);
-    });
+    return yearData.sort((a, b) => parseMonthYear(a.month) - parseMonthYear(b.month));
   }, [indices, effectiveYear]);
 
 
@@ -167,10 +165,19 @@ const PriceVariation = () => {
     let savedMonthStr = parsedData.month;
 
     if (editingIndexId) {
-      await updateIndex(editingIndexId, parsedData);
+      const success = await updateIndex(editingIndexId, parsedData);
+      if (!success) {
+        alert("Failed to update rates. Please check your connection and try again.");
+        return;
+      }
     } else {
       const savedIndex = await addIndex(parsedData);
-      if (savedIndex) savedMonthStr = savedIndex.month;
+      if (savedIndex) {
+        savedMonthStr = savedIndex.month;
+      } else {
+        alert(`Failed to add rates for ${parsedData.month}. A record for this month likely already exists, please check the Historical Circular Rates list.`);
+        return;
+      }
     }
     
     setShowAddForm(false);
