@@ -4,6 +4,7 @@ import { usePO } from '../../context/POContext';
 import { useWarranty } from '../../context/WarrantyContext';
 import { useAuth } from '../../context/AuthContext';
 import SearchableSelect from '../common/SearchableSelect';
+import DatePicker from '../common/DatePicker';
 import '../layout/Layout.css';
 
 const WarrantyForm = ({ onClose, onSubmit, initialData, availablePOs = [] }) => {
@@ -287,7 +288,7 @@ const WarrantyForm = ({ onClose, onSubmit, initialData, availablePOs = [] }) => 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                 <div>
                   <label className="input-label">PO Date</label>
-                  <input type="date" name="poDate" value={formData.poDate} readOnly className="input-field" style={{ backgroundColor: 'var(--bg-primary)', color: 'var(--text-secondary)' }} />
+                  <DatePicker name="poDate" value={formData.poDate} readOnly style={{ backgroundColor: 'var(--bg-primary)', color: 'var(--text-secondary)' }} />
                 </div>
                 <div>
                   {renderAddHeader('Capacity / Rating', 'capacity')}
@@ -314,12 +315,12 @@ const WarrantyForm = ({ onClose, onSubmit, initialData, availablePOs = [] }) => 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1.2rem' }}>
               <div>
                 <label className="input-label">Date of Damage</label>
-                <input type="date" name="damageDate" value={formData.damageDate} onChange={handleChange} className="input-field" required />
+                <DatePicker name="damageDate" value={formData.damageDate} onChange={handleChange} required />
               </div>
 
               <div>
                 <label className="input-label">Date of Intimation</label>
-                <input type="date" name="intimationDate" value={formData.intimationDate} onChange={handleChange} className="input-field" required />
+                <DatePicker name="intimationDate" value={formData.intimationDate} onChange={handleChange} required />
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: '120px 1fr', gap: '1rem' }}>
@@ -329,13 +330,13 @@ const WarrantyForm = ({ onClose, onSubmit, initialData, availablePOs = [] }) => 
                 </div>
                 <div>
                   <label className="input-label">Return Deadline</label>
-                  <input type="date" name="returnDate" value={formData.returnDate} readOnly className="input-field" style={{ backgroundColor: 'var(--bg-primary)', color: 'var(--accent-primary)', fontWeight: 'bold' }} />
+                  <DatePicker name="returnDate" value={formData.returnDate} readOnly style={{ backgroundColor: 'var(--bg-primary)', color: 'var(--accent-primary)', fontWeight: 'bold' }} />
                 </div>
               </div>
 
               <div>
                 <label className="input-label">Date of Inspection (Optional)</label>
-                <input type="date" name="inspectionDate" value={formData.inspectionDate} onChange={handleChange} className="input-field" />
+                <DatePicker name="inspectionDate" value={formData.inspectionDate} onChange={handleChange} />
               </div>
 
               <div>

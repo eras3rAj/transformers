@@ -4,6 +4,8 @@ import { formatDate } from '../utils/dateUtils';
 import { Search, Download, Building2, TrendingDown, TrendingUp, ArrowRightLeft } from 'lucide-react';
 import { exportToCSV } from '../utils/MaterialFlowUtils';
 import DataTable from '../components/common/DataTable';
+import DatePicker from '../components/common/DatePicker';
+import '../components/layout/Layout.css';
 
 const CompanyLedger = () => {
   const { transactions, companies } = useInventory();
@@ -142,11 +144,11 @@ const CompanyLedger = () => {
         <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', flex: '2 1 auto' }}>
           <div>
             <label className="input-label">Start Date</label>
-            <input type="date" className="input-field" style={{ marginBottom: 0 }} value={filters.startDate} onChange={e => setFilters({...filters, startDate: e.target.value})} />
+            <DatePicker className="input-field" style={{ marginBottom: 0 }} value={filters.startDate} onChange={e => setFilters({...filters, startDate: e.target.value})} />
           </div>
           <div>
             <label className="input-label">End Date</label>
-            <input type="date" className="input-field" style={{ marginBottom: 0 }} value={filters.endDate} onChange={e => setFilters({...filters, endDate: e.target.value})} />
+            <DatePicker className="input-field" style={{ marginBottom: 0 }} value={filters.endDate} onChange={e => setFilters({...filters, endDate: e.target.value})} />
           </div>
           <div>
             <label className="input-label">Type</label>
