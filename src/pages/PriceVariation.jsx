@@ -14,7 +14,8 @@ const PriceVariation = () => {
   const { currentUser } = useAuth();
   const navigate = useNavigate();
 
-  const [activeTab, setActiveTab] = useState('contracts'); // 'rates' or 'contracts'
+  const [activeTab, setActiveTab] = useState('contracts'); // 'rates' | 'contracts'
+  const [targetMonthId, setTargetMonthId] = useState('');
   const [selectedYear, setSelectedYear] = useState('2026');
   const [isYearDropdownOpen, setIsYearDropdownOpen] = useState(false);
 
@@ -62,6 +63,14 @@ const PriceVariation = () => {
     if (!indices || !Array.isArray(indices) || indices.length === 0) return null;
     return [...indices].sort((a, b) => parseMonthYear(b.month) - parseMonthYear(a.month))[0];
   }, [indices]);
+
+  const comparisonIndex = useMemo(() => {
+    if (targetMonthId) {
+      const found = indices.find(i => i.id === targetMonthId);
+      if (found) return found;
+    }
+    return latestIndex;
+  }, [indices, targetMonthId, latestIndex]);
 
   const effectiveYear = (availableYears.length > 0 && !availableYears.includes(selectedYear)) ? availableYears[0] : selectedYear;
   const yearDataSorted = useMemo(() => {
@@ -310,11 +319,24 @@ const PriceVariation = () => {
       {/* TAB 2: ACTIVE CONTRACTS */}
       {activeTab === 'contracts' && (
         <div className="animate-fade-in">
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
             <h3 style={{ margin: 0, color: 'var(--accent-primary)' }}>Active Purchase Orders</h3>
-            <button className="btn btn-primary" onClick={() => navigate('/purchase-orders?create=true')} style={{ padding: '0.4rem 0.8rem', fontSize: '0.85rem' }}>
-              <Plus size={16} /> Add Purchase Order
-            </button>
+            <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+              <select 
+                className="input-field" 
+                style={{ padding: '0.4rem 0.8rem', minWidth: '200px', backgroundColor: 'var(--bg-tertiary)', margin: 0 }}
+                value={targetMonthId}
+                onChange={(e) => setTargetMonthId(e.target.value)}
+              >
+                <option value="">Use Latest Month ({latestIndex ? latestIndex.month : 'N/A'})</option>
+                {[...indices].sort((a,b) => parseMonthYear(b.month) - parseMonthYear(a.month)).map(idx => (
+                  <option key={idx.id} value={idx.id}>{idx.month}</option>
+                ))}
+              </select>
+              <button className="btn btn-primary" onClick={() => navigate('/purchase-orders?create=true')} style={{ padding: '0.4rem 0.8rem', fontSize: '0.85rem' }}>
+                <Plus size={16} /> Add Purchase Order
+              </button>
+            </div>
           </div>
 
           <div className="card" style={{ padding: 0, overflow: 'hidden', borderTop: '3px solid var(--accent-primary)' }}>
@@ -324,16 +346,16 @@ const PriceVariation = () => {
                   <tr style={{ backgroundColor: 'var(--bg-tertiary)', borderBottom: '1px solid var(--border-color)' }}>
                     <th style={{ padding: '1rem 1.5rem', fontSize: '0.85rem', color: 'var(--text-muted)' }}>PO DETAILS</th>
                     <th style={{ padding: '1rem', fontSize: '0.85rem', color: 'var(--text-muted)' }}>BASE MONTH</th>
-                    <th style={{ padding: '1rem', fontSize: '0.85rem', color: 'var(--accent-primary)' }}>LATEST MONTH</th>
+                    <th style={{ padding: '1rem', fontSize: '0.85rem', color: 'var(--accent-primary)' }}>{targetMonthId ? 'TARGET MONTH' : 'LATEST MONTH'}</th>
                     <th style={{ padding: '1rem', fontSize: '0.85rem', color: 'var(--text-muted)' }}>BASE TOTAL</th>
-                    <th style={{ padding: '1rem', fontSize: '0.85rem', color: 'var(--accent-primary)' }}>LATEST PV TOTAL</th>
+                    <th style={{ padding: '1rem', fontSize: '0.85rem', color: 'var(--accent-primary)' }}>PV TOTAL</th>
                     <th style={{ padding: '1rem 1.5rem', fontSize: '0.85rem', color: 'var(--text-muted)', textAlign: 'right' }}>ACTIONS</th>
                   </tr>
                 </thead>
                 <tbody>
                   {(pos || []).map((po, index) => {
                     const baseData = po.baseMonthStr ? getIndexByMonth(po.baseMonthStr) : null;
-                    const calcResult = (baseData && latestIndex) ? calculatePVFinancials(po, baseData, latestIndex) : null;
+                    const calcResult = (baseData && comparisonIndex) ? calculatePVFinancials(po, baseData, comparisonIndex) : null;
                     const baseTotal = po.exWorks + po.freight + ((po.exWorks + po.freight) * (po.gstRate / 100));
                     
                     return (
@@ -343,7 +365,7 @@ const PriceVariation = () => {
                         <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '4px' }}>{po.capacity || '—'} | Qty: {po.quantity || 1}</div>
                       </td>
                       <td style={{ padding: '1rem' }}><span style={{ backgroundColor: 'var(--bg-tertiary)', padding: '4px 8px', borderRadius: '4px', fontSize: '0.85rem' }}>{po.baseMonthStr || '—'}</span></td>
-                      <td style={{ padding: '1rem' }}><span style={{ backgroundColor: 'rgba(59, 130, 246, 0.1)', color: 'var(--accent-primary)', padding: '4px 8px', borderRadius: '4px', fontSize: '0.85rem', fontWeight: '500' }}>{latestIndex ? latestIndex.month : '—'}</span></td>
+                      <td style={{ padding: '1rem' }}><span style={{ backgroundColor: 'rgba(59, 130, 246, 0.1)', color: 'var(--accent-primary)', padding: '4px 8px', borderRadius: '4px', fontSize: '0.85rem', fontWeight: '500' }}>{comparisonIndex ? comparisonIndex.month : '—'}</span></td>
                       <td style={{ padding: '1rem', fontWeight: '500', color: 'var(--text-muted)' }}>₹{Number(baseTotal || 0).toLocaleString('en-IN', {minimumFractionDigits:2})}</td>
                       <td style={{ padding: '1rem', fontWeight: '600' }}>
                         {calcResult ? (
