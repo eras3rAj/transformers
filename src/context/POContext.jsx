@@ -39,6 +39,7 @@ export const POProvider = ({ children }) => {
         conductorType: po.conductor_type,
         capacity: po.no_of_phases === '1-Phase' && !String(po.capacity).includes('Single Phase') ? `${po.capacity} (Single Phase)` : po.capacity,
         baseMonthStr: po.base_month_str,
+        poDate: po.created_at ? po.created_at.split('T')[0] : '',
         exWorks: Number(po.ex_works),
         freight: Number(po.freight),
         gstRate: Number(po.gst_rate),
