@@ -156,7 +156,7 @@ const WarrantyForm = ({ onClose, onSubmit, initialData, availablePOs = [] }) => 
         <button 
           type="button" 
           onClick={() => setAdding({ ...adding, [type]: true })} 
-          style={{ background: 'none', border: 'none', color: 'var(--accent-primary)', cursor: 'pointer', fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '2px', fontWeight: '500' }}
+          style={{ background: 'none', border: 'none', color: 'var(--accent-primary)', cursor: 'pointer', fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '2px', fontWeight: '500', whiteSpace: 'nowrap' }}
         >
           <Plus size={12} /> Add New
         </button>
@@ -178,7 +178,7 @@ const WarrantyForm = ({ onClose, onSubmit, initialData, availablePOs = [] }) => 
 
         <form onSubmit={handleSubmit}>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem', marginBottom: '1.5rem' }}>
-            {/* Column 1: Identification & Location */}
+            {/* Column 1: Manual Entries */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1.2rem' }}>
               <div>
                 <label className="input-label">Purchase Order (PO)</label>
@@ -248,7 +248,7 @@ const WarrantyForm = ({ onClose, onSubmit, initialData, availablePOs = [] }) => 
                     />
                     {currentUser?.role === 'superadmin' && formData.utilityBoard && (
                       <button type="button" className="btn btn-secondary" onClick={handleDeleteBoard} style={{ padding: '0.5rem' }} title="Delete this Utility Board">
-                        <Trash2 size={16} color="var(--error)" />
+                        <Trash2 size={16} color="var(--danger)" />
                       </button>
                     )}
                   </div>
@@ -275,41 +275,13 @@ const WarrantyForm = ({ onClose, onSubmit, initialData, availablePOs = [] }) => 
                     />
                     {currentUser?.role === 'superadmin' && formData.storeName && (
                       <button type="button" className="btn btn-secondary" onClick={handleDeleteStore} style={{ padding: '0.5rem' }} title="Delete this Store Name">
-                        <Trash2 size={16} color="var(--error)" />
+                        <Trash2 size={16} color="var(--danger)" />
                       </button>
                     )}
                   </div>
                 )}
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                <div>
-                  <label className="input-label">PO Date</label>
-                  <input type="date" name="poDate" value={formData.poDate} readOnly className="input-field" style={{ backgroundColor: 'var(--bg-primary)', color: 'var(--text-secondary)' }} />
-                </div>
-                <div>
-                  {renderAddHeader('Capacity / Rating', 'capacity')}
-                  {adding.capacity ? (
-                    <div style={{ display: 'flex', gap: '0.5rem' }}>
-                      <input type="text" className="input-field" value={newCapacity} onChange={e => setNewCapacity(e.target.value)} placeholder="e.g. 500kVA" autoFocus />
-                      <button type="button" className="btn btn-primary" onClick={saveNewCapacity} style={{ padding: '0.5rem' }}><Check size={16}/></button>
-                    </div>
-                  ) : (
-                    <SearchableSelect 
-                      name="capacity" 
-                      value={formData.capacity} 
-                      onChange={handleChange} 
-                      required 
-                      placeholder="Select Capacity"
-                      options={capacities}
-                    />
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {/* Column 2: Dates & Status */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.2rem' }}>
               <div>
                 <label className="input-label">Date of Damage</label>
                 <input type="date" name="damageDate" value={formData.damageDate} onChange={handleChange} className="input-field" required />
@@ -320,20 +292,9 @@ const WarrantyForm = ({ onClose, onSubmit, initialData, availablePOs = [] }) => 
                 <input type="date" name="intimationDate" value={formData.intimationDate} onChange={handleChange} className="input-field" required />
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '120px 1fr', gap: '1rem' }}>
-                <div>
-                  <label className="input-label">Days to Return</label>
-                  <input type="number" name="returnDays" value={formData.returnDays} onChange={handleChange} className="input-field" required />
-                </div>
-                <div>
-                  <label className="input-label">Return Deadline</label>
-                  <input type="date" name="returnDate" value={formData.returnDate} readOnly className="input-field" style={{ backgroundColor: 'var(--bg-primary)', color: 'var(--accent-primary)', fontWeight: 'bold' }} />
-                </div>
-              </div>
-
               <div>
-                <label className="input-label">Date of Inspection (Optional)</label>
-                <input type="date" name="inspectionDate" value={formData.inspectionDate} onChange={handleChange} className="input-field" />
+                <label className="input-label">Days to Return</label>
+                <input type="number" name="returnDays" value={formData.returnDays} onChange={handleChange} className="input-field" required />
               </div>
 
               <div>
@@ -350,6 +311,43 @@ const WarrantyForm = ({ onClose, onSubmit, initialData, availablePOs = [] }) => 
                     "Resolved"
                   ]}
                 />
+              </div>
+            </div>
+
+            {/* Column 2: Pre-filled & Optional */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.2rem' }}>
+              <div>
+                <label className="input-label">PO Date</label>
+                <input type="date" name="poDate" value={formData.poDate} readOnly className="input-field" style={{ backgroundColor: 'var(--bg-primary)', color: 'var(--text-secondary)' }} />
+              </div>
+
+              <div>
+                {renderAddHeader('Capacity / Rating', 'capacity')}
+                {adding.capacity ? (
+                  <div style={{ display: 'flex', gap: '0.5rem' }}>
+                    <input type="text" className="input-field" value={newCapacity} onChange={e => setNewCapacity(e.target.value)} placeholder="e.g. 500kVA" autoFocus />
+                    <button type="button" className="btn btn-primary" onClick={saveNewCapacity} style={{ padding: '0.5rem' }}><Check size={16}/></button>
+                  </div>
+                ) : (
+                  <SearchableSelect 
+                    name="capacity" 
+                    value={formData.capacity} 
+                    onChange={handleChange} 
+                    required 
+                    placeholder="Select Capacity"
+                    options={capacities}
+                  />
+                )}
+              </div>
+
+              <div>
+                <label className="input-label">Return Deadline</label>
+                <input type="date" name="returnDate" value={formData.returnDate} readOnly className="input-field" style={{ backgroundColor: 'var(--bg-primary)', color: 'var(--accent-primary)', fontWeight: 'bold' }} />
+              </div>
+
+              <div>
+                <label className="input-label">Date of Inspection (Optional)</label>
+                <input type="date" name="inspectionDate" value={formData.inspectionDate} onChange={handleChange} className="input-field" />
               </div>
             </div>
           </div>

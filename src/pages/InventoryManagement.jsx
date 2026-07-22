@@ -1659,10 +1659,9 @@ const InventoryManagement = () => {
                   </div>
                   <div style={{ maxHeight: '250px', overflowY: 'auto', padding: '0.5rem' }}>
                     {sortedCompanies.filter(c => c.name.toLowerCase().includes(supplierSearch.toLowerCase())).map(c => (
-                      <label key={c.id} style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'flex-start', textAlign: 'left', gap: '0.8rem', padding: '0.5rem', cursor: 'pointer', borderRadius: '4px' }} className="supplier-row">
+                      <label key={c.id} style={{ display: 'flex', alignItems: 'center', gap: '0.8rem', padding: '0.5rem', cursor: 'pointer', borderRadius: '4px' }} className="supplier-row">
                         <input 
                           type="checkbox" 
-                          style={{ marginTop: '0.2rem' }}
                           checked={itemData.suppliers.includes(c.name)}
                           onChange={(e) => {
                             const newSuppliers = e.target.checked 
@@ -1761,10 +1760,9 @@ const InventoryManagement = () => {
                     </div>
                     <div style={{ maxHeight: '150px', overflowY: 'auto', padding: '0.5rem' }}>
                       {sortedCategories.filter(c => c.name.toLowerCase().includes(companyCatSearch.toLowerCase())).map(c => (
-                        <label key={c.id} style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'flex-start', textAlign: 'left', gap: '0.8rem', padding: '0.5rem', cursor: 'pointer', borderRadius: '4px' }} className="supplier-row">
+                        <label key={c.id} style={{ display: 'flex', alignItems: 'center', gap: '0.8rem', padding: '0.5rem', cursor: 'pointer', borderRadius: '4px' }}>
                           <input 
                             type="checkbox" 
-                            style={{ marginTop: '0.2rem' }}
                             checked={companyData.linkedCategories.includes(c.name)}
                             onChange={(e) => {
                               const newLinked = e.target.checked 
@@ -1773,7 +1771,7 @@ const InventoryManagement = () => {
                               setCompanyData({ ...companyData, linkedCategories: newLinked });
                             }}
                           />
-                          <span style={{ fontSize: '0.9rem', textAlign: 'left' }}>{c.name}</span>
+                          <span style={{ fontSize: '0.9rem', flex: 1, textAlign: 'left' }}>{c.name}</span>
                         </label>
                       ))}
                       {sortedCategories.filter(c => c.name.toLowerCase().includes(companyCatSearch.toLowerCase())).length === 0 && <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', padding: '0.5rem' }}>No categories found.</div>}
@@ -1795,10 +1793,9 @@ const InventoryManagement = () => {
                     </div>
                     <div style={{ maxHeight: '150px', overflowY: 'auto', padding: '0.5rem' }}>
                       {sortedItems.filter(i => i.name.toLowerCase().includes(companyItemSearch.toLowerCase())).map(i => (
-                        <label key={i.id} style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'flex-start', textAlign: 'left', gap: '0.8rem', padding: '0.5rem', cursor: 'pointer', borderRadius: '4px' }} className="supplier-row">
+                        <label key={i.id} style={{ display: 'flex', alignItems: 'center', gap: '0.8rem', padding: '0.5rem', cursor: 'pointer', borderRadius: '4px' }}>
                           <input 
                             type="checkbox" 
-                            style={{ marginTop: '0.2rem' }}
                             checked={companyData.linkedItems.includes(i.name)}
                             onChange={(e) => {
                               const newLinked = e.target.checked 
@@ -1807,7 +1804,7 @@ const InventoryManagement = () => {
                               setCompanyData({ ...companyData, linkedItems: newLinked });
                             }}
                           />
-                          <span style={{ fontSize: '0.9rem', textAlign: 'left' }}>{i.name}</span>
+                          <span style={{ fontSize: '0.9rem', flex: 1, textAlign: 'left' }}>{i.name}</span>
                         </label>
                       ))}
                       {sortedItems.filter(i => i.name.toLowerCase().includes(companyItemSearch.toLowerCase())).length === 0 && <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', padding: '0.5rem' }}>No items found.</div>}

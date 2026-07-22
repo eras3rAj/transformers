@@ -91,7 +91,7 @@ const UserManagement = () => {
     }
   };
 
-  const handleCreateUser = (e) => {
+  const handleCreateUser = async (e) => {
     e.preventDefault();
     if (users.some(u => u.username === formData.username)) {
       setAlertModal({ isOpen: true, message: "Username already exists! Please choose another one." });
@@ -104,7 +104,13 @@ const UserManagement = () => {
       role: formData.role,
       modules: formData.modules
     };
-    addUser(newUser);
+    
+    const result = await addUser(newUser);
+    if (result && !result.success) {
+      setAlertModal({ isOpen: true, message: `Error creating user: ${result.error}` });
+      return;
+    }
+
     addLog({
       id: Date.now().toString(),
       timestamp: new Date().toISOString(),
@@ -189,7 +195,10 @@ const UserManagement = () => {
           </h1>
           <p>Create and manage employee accounts and their access roles.</p>
         </div>
-        <button className="btn btn-primary" onClick={() => setShowAddForm(true)}>
+        <button className="btn btn-primary" onClick={() => {
+          setFormData(prev => ({ ...prev, role: currentUser?.role === 'superadmin' ? 'admin' : 'normal', username: '', password: '', name: '', modules: [] }));
+          setShowAddForm(true);
+        }}>
           <UserPlus size={18} /> Add New User
         </button>
       </div>
@@ -331,10 +340,12 @@ const UserManagement = () => {
                     <input type="radio" name="role" value="normal" checked={formData.role === 'normal'} onChange={handleInputChange} />
                     <div><div style={{ fontWeight: '600', color: 'var(--success)' }}>Normal</div><div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>No Financials</div></div>
                   </label>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', padding: '0.8rem', border: `2px solid ${formData.role === 'admin' ? 'var(--accent-primary)' : 'var(--border-color)'}`, borderRadius: '8px', flex: 1 }}>
-                    <input type="radio" name="role" value="admin" checked={formData.role === 'admin'} onChange={handleInputChange} />
-                    <div><div style={{ fontWeight: '600' }}>Admin</div><div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Standard Access</div></div>
-                  </label>
+                  {currentUser.role === 'superadmin' && (
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', padding: '0.8rem', border: `2px solid ${formData.role === 'admin' ? 'var(--accent-primary)' : 'var(--border-color)'}`, borderRadius: '8px', flex: 1 }}>
+                      <input type="radio" name="role" value="admin" checked={formData.role === 'admin'} onChange={handleInputChange} />
+                      <div><div style={{ fontWeight: '600' }}>Admin</div><div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Standard Access</div></div>
+                    </label>
+                  )}
                   {currentUser.role === 'superadmin' && (
                     <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', padding: '0.8rem', border: `2px solid ${formData.role === 'superadmin' ? 'var(--danger)' : 'var(--border-color)'}`, borderRadius: '8px', flex: 1 }}>
                       <input type="radio" name="role" value="superadmin" checked={formData.role === 'superadmin'} onChange={handleInputChange} />

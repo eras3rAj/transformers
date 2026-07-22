@@ -165,7 +165,9 @@ const Dashboard = () => {
           } else {
             // Found the next unfulfilled schedule!
             const remainingToDeliver = Number(s.quantity) - remainingDelivered;
-            all.push({ poNo: poSched.poNo, date: s.date, quantity: remainingToDeliver, originalQuantity: s.quantity });
+            const poObj = pos.find(p => p.poNo === poSched.poNo);
+            const rating = poObj ? poObj.capacity : '';
+            all.push({ poNo: poSched.poNo, rating: rating, date: s.date, quantity: remainingToDeliver, originalQuantity: s.quantity });
             break; // only push the immediate next unfulfilled one per PO
           }
         }
@@ -510,7 +512,9 @@ const Dashboard = () => {
                         <Truck size={20} color={isUrgent ? 'var(--danger)' : 'var(--accent-primary)'} />
                       </div>
                       <div>
-                        <h4 style={{ margin: 0, fontSize: '1rem', color: 'var(--text-primary)' }}>{sched.poNo}</h4>
+                        <h4 style={{ margin: 0, fontSize: '1rem', color: 'var(--text-primary)' }}>
+                          {sched.poNo}{sched.rating ? ` - ${sched.rating}` : ''}
+                        </h4>
                         <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-muted)' }}>{formatDate(sched.date)}</p>
                       </div>
                     </div>
