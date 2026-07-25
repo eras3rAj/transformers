@@ -5,7 +5,7 @@ import { useDailyReports } from '../context/DailyReportContext';
 import { usePO } from '../context/POContext';
 import { useTasks } from '../context/TaskContext';
 import { useToast } from '../context/ToastContext';
-import { Save, Check, FileText, Link, Trash2, Copy, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Save, Check, FileText, Link, Trash2, Copy, ChevronLeft, ChevronRight, Download } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import '../components/layout/Layout.css';
 
@@ -993,7 +993,12 @@ const DailyReports = () => {
       <div className="animate-fade-in card">
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
           <h3>Daily Summary for {selectedDate ? `${String(new Date(selectedDate).getDate()).padStart(2, '0')}-${["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"][new Date(selectedDate).getMonth()]}-${new Date(selectedDate).getFullYear()}` : ''} ({summaryShift})</h3>
-          <span className="status-badge" style={{ background: 'var(--success)20', color: 'var(--success)' }}>Auto-Generated</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }} className="no-print">
+            <span className="status-badge" style={{ background: 'var(--success)20', color: 'var(--success)' }}>Auto-Generated</span>
+            <button className="btn btn-secondary" onClick={() => window.print()} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <Download size={16} /> Download PDF
+            </button>
+          </div>
         </div>
         
         {latestReportObj && latestReportObj.submitted_by ? (

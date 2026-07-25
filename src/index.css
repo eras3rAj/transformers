@@ -1,4 +1,4 @@
-﻿@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
 
 :root {
   color-scheme: dark;
@@ -456,3 +456,45 @@ input:focus, select:focus, textarea:focus {
 
 .clickable-card { cursor: pointer; transition: transform 0.2s, box-shadow 0.2s; }
 .clickable-card:hover { transform: translateY(-4px); box-shadow: 0 8px 16px rgba(0,0,0,0.4); }
+
+@media print {
+  .sidebar, header, .no-print, .tabs, .mobile-overlay, .ai-assistant, .command-palette {
+    display: none !important;
+  }
+  
+  .app-container, .main-content, .page-content {
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    height: auto !important;
+    overflow: visible !important;
+    background: #ffffff !important;
+  }
+  
+  body, html {
+    background: #ffffff !important;
+    color: #000000 !important;
+    height: auto !important;
+    overflow: visible !important;
+  }
+
+  .card {
+    box-shadow: none !important;
+    border: none !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+  
+  * {
+    color: #000000 !important;
+  }
+  
+  .status-badge {
+    border: 1px solid #ccc !important;
+    color: #000000 !important;
+    background: transparent !important;
+  }
+}
