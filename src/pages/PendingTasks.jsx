@@ -3,6 +3,7 @@ import { ListTodo, Plus, Calendar } from 'lucide-react';
 import { useTasks } from '../context/TaskContext';
 import { useAuth } from '../context/AuthContext';
 import SkeletonLoader from '../components/common/SkeletonLoader';
+import DatePicker from '../components/common/DatePicker';
 import '../components/layout/Layout.css';
 
 const PendingTasks = () => {
@@ -182,7 +183,7 @@ const PendingTasks = () => {
               </div>
               
               <label className="input-label">Due Date</label>
-              <input type="date" className="input-field" value={taskData.due_date} onChange={e => setTaskData({...taskData, due_date: e.target.value})} />
+              <DatePicker className="input-field" value={taskData.due_date} onChange={e => setTaskData({...taskData, due_date: e.target.value})} />
 
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem', marginTop: '1.5rem' }}>
                 <button type="button" className="btn btn-secondary" onClick={() => setShowTaskForm(false)}>Cancel</button>

@@ -24,11 +24,11 @@ export const processMaterialFlow = (transactions, filters = {}) => {
   if (filters.entity && filters.entity !== 'ALL') { // Department filter
     filteredTxns = filteredTxns.filter(t => t.department === filters.entity);
   }
-  if (filters.vendor && filters.vendor !== 'ALL') {
-    filteredTxns = filteredTxns.filter(t => t.companyName === filters.vendor);
+  if (filters.vendors && filters.vendors.length > 0) {
+    filteredTxns = filteredTxns.filter(t => filters.vendors.includes(t.companyName));
   }
-  if (filters.item && filters.item !== 'ALL') {
-    filteredTxns = filteredTxns.filter(t => t.item === filters.item);
+  if (filters.items && filters.items.length > 0) {
+    filteredTxns = filteredTxns.filter(t => filters.items.includes(t.item));
   }
 
   // 1. Top Consumers (Departments) - based on OUT transactions and unitPrice

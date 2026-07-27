@@ -5,6 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import { useLogs } from '../context/LogContext';
 import { useUsers } from '../context/UserContext';
 import { FileText, Plus, CheckCircle, XCircle, Clock, MessageSquare } from 'lucide-react';
+import DatePicker from '../components/common/DatePicker';
 import ConfirmModal from '../components/common/ConfirmModal';
 import { exportToCSV, printDocument } from '../utils/exportUtils';
 import * as Recharts from 'recharts';
@@ -296,7 +297,7 @@ const DailyExpenses = () => {
               <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem' }}>
                 <div style={{ flex: 1 }}>
                   <label className="input-label">Date</label>
-                  <input type="date" name="date" value={formData.date} onChange={handleInputChange} className="input-field" required />
+                  <DatePicker name="date" value={formData.date} onChange={handleInputChange} required />
                 </div>
                 <div style={{ flex: 1 }}>
                   <label className="input-label">Amount (₹)</label>

@@ -4,6 +4,7 @@ import { usePO } from '../../context/POContext';
 import { useWarranty } from '../../context/WarrantyContext';
 import { useAuth } from '../../context/AuthContext';
 import SearchableSelect from '../common/SearchableSelect';
+import DatePicker from '../common/DatePicker';
 import '../layout/Layout.css';
 
 const WarrantyForm = ({ onClose, onSubmit, initialData, availablePOs = [] }) => {
@@ -79,14 +80,16 @@ const WarrantyForm = ({ onClose, onSubmit, initialData, availablePOs = [] }) => 
     const { name, value } = e.target;
     if (name === 'poNo') {
       const selectedPO = availablePOs.find(p => p.poNo === value);
+      const defaultPrefix = poSeries.find(p => p.poNo === value)?.prefix || '';
       setFormData(prev => ({ 
         ...prev, 
         poNo: value, 
-        poDate: selectedPO ? selectedPO.poDate : prev.poDate,
-        capacity: selectedPO ? selectedPO.capacity : prev.capacity
+        poDate: selectedPO?.poDate || prev.poDate,
+        capacity: selectedPO?.capacity || prev.capacity,
+        utilityBoard: selectedPO?.utilityBoard || prev.utilityBoard
       }));
-      // Reset prefix when PO changes
-      setSelectedPrefix('');
+      // Auto-select first prefix available for this PO
+      setSelectedPrefix(defaultPrefix);
     } else {
       setFormData(prev => ({ ...prev, [name]: value }));
     }
@@ -282,14 +285,15 @@ const WarrantyForm = ({ onClose, onSubmit, initialData, availablePOs = [] }) => 
                 )}
               </div>
 
+
               <div>
                 <label className="input-label">Date of Damage</label>
-                <input type="date" name="damageDate" value={formData.damageDate} onChange={handleChange} className="input-field" required />
+                <DatePicker name="damageDate" value={formData.damageDate} onChange={handleChange} required />
               </div>
 
               <div>
                 <label className="input-label">Date of Intimation</label>
-                <input type="date" name="intimationDate" value={formData.intimationDate} onChange={handleChange} className="input-field" required />
+                <DatePicker name="intimationDate" value={formData.intimationDate} onChange={handleChange} required />
               </div>
 
               <div>
@@ -318,7 +322,7 @@ const WarrantyForm = ({ onClose, onSubmit, initialData, availablePOs = [] }) => 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1.2rem' }}>
               <div>
                 <label className="input-label">PO Date</label>
-                <input type="date" name="poDate" value={formData.poDate} readOnly className="input-field" style={{ backgroundColor: 'var(--bg-primary)', color: 'var(--text-secondary)' }} />
+                <DatePicker name="poDate" value={formData.poDate} readOnly style={{ backgroundColor: 'var(--bg-primary)', color: 'var(--text-secondary)' }} />
               </div>
 
               <div>
@@ -342,12 +346,12 @@ const WarrantyForm = ({ onClose, onSubmit, initialData, availablePOs = [] }) => 
 
               <div>
                 <label className="input-label">Return Deadline</label>
-                <input type="date" name="returnDate" value={formData.returnDate} readOnly className="input-field" style={{ backgroundColor: 'var(--bg-primary)', color: 'var(--accent-primary)', fontWeight: 'bold' }} />
+                <DatePicker name="returnDate" value={formData.returnDate} readOnly style={{ backgroundColor: 'var(--bg-primary)', color: 'var(--accent-primary)', fontWeight: 'bold' }} />
               </div>
 
               <div>
                 <label className="input-label">Date of Inspection (Optional)</label>
-                <input type="date" name="inspectionDate" value={formData.inspectionDate} onChange={handleChange} className="input-field" />
+                <DatePicker name="inspectionDate" value={formData.inspectionDate} onChange={handleChange} />
               </div>
             </div>
           </div>

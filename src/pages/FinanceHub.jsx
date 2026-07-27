@@ -3,6 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import { useLocation, useNavigate } from 'react-router-dom';
 import PurchaseOrders from './PurchaseOrders';
 import VendorPurchasing from './VendorPurchasing';
+import CompanyLedger from './CompanyLedger';
 import PriceVariation from './PriceVariation';
 import CustomDuty from './CustomDuty';
 import BankGuaranteeLC from './BankGuaranteeLC';
@@ -16,6 +17,7 @@ const FinanceHub = () => {
   const allTabs = [
     { id: 'purchase-orders', label: 'Purchase Orders', component: <PurchaseOrders /> },
     { id: 'vendor-purchasing', label: 'Vendor Purchasing', component: <VendorPurchasing /> },
+    { id: 'company-ledger', label: 'Company Ledger', component: <CompanyLedger /> },
     { id: 'price-variation', label: 'Price Variation', component: <PriceVariation /> },
     { id: 'bg-lc', label: 'Bank Guarantee & LC', component: <BankGuaranteeLC /> },
     { id: 'custom-duty', label: 'Custom Duty', component: <CustomDuty /> }

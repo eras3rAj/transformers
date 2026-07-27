@@ -147,6 +147,21 @@ const ItemDetailsModal = ({ isOpen, onClose, item, transactions = [], currentSto
             searchPlaceholder="Filter by vendor, department, IN, OUT..."
             pagination={true}
             defaultRowsPerPage={10}
+            footerRow={(processedData) => {
+              const totalIn = processedData.filter(t => t.type === 'IN').reduce((sum, t) => sum + Number(t.qty || 0), 0);
+              const totalOut = processedData.filter(t => t.type === 'OUT').reduce((sum, t) => sum + Number(t.qty || 0), 0);
+              const netTotal = totalIn - totalOut;
+              
+              return (
+                <>
+                  <td colSpan={4} style={{ textAlign: 'right', padding: '1rem', color: 'var(--text-muted)' }}>NET TOTAL (FILTERED)</td>
+                  <td style={{ padding: '1rem', color: netTotal >= 0 ? 'var(--success)' : 'var(--danger)', fontSize: '1.05rem', fontWeight: 'bold' }}>
+                    {netTotal > 0 ? '+' : ''}{netTotal.toLocaleString()} <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{item.unit}</span>
+                  </td>
+                  <td colSpan={3}></td>
+                </>
+              );
+            }}
           />
         </div>
       </div>

@@ -4,6 +4,7 @@ import { PackageSearch, Search, Plus, MapPin, Database, Archive, Settings, FileP
 import { generateTransactionPDF, generateBatchIssuePDF } from '../utils/pdfGenerator';
 import { useInventory } from '../context/InventoryContext';
 import { useAuth } from '../context/AuthContext';
+import DatePicker from '../components/common/DatePicker';
 import ConfirmModal from '../components/common/ConfirmModal';
 import SkeletonLoader from '../components/common/SkeletonLoader';
 import DataTable from '../components/common/DataTable';
@@ -2039,7 +2040,7 @@ const InventoryManagement = () => {
             <form onSubmit={handleLogTransaction}>
               <div style={{ marginBottom: '1.5rem' }}>
                 <label className="input-label">Date</label>
-                <input type="date" className="input-field" value={txnData.date} onChange={e => setTxnData({ ...txnData, date: e.target.value })} required />
+                <DatePicker className="input-field" value={txnData.date} onChange={e => setTxnData({ ...txnData, date: e.target.value })} required />
               </div>
               {showTxnModal.type === 'OUT' && (
                 <>
@@ -2227,11 +2228,11 @@ const InventoryManagement = () => {
               <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem' }}>
                 <div style={{ flex: 1 }}>
                   <label className="input-label">Bill Date (Optional)</label>
-                  <input type="date" className="input-field" value={txnData.billDate} onChange={e => setTxnData({ ...txnData, billDate: e.target.value })} />
+                  <DatePicker className="input-field" value={txnData.billDate} onChange={e => setTxnData({ ...txnData, billDate: e.target.value })} />
                 </div>
                 <div style={{ flex: 1 }}>
                   <label className="input-label">Receiving Date (Optional)</label>
-                  <input type="date" className="input-field" value={txnData.receivingDate} onChange={e => setTxnData({ ...txnData, receivingDate: e.target.value })} />
+                  <DatePicker className="input-field" value={txnData.receivingDate} onChange={e => setTxnData({ ...txnData, receivingDate: e.target.value })} />
                 </div>
               </div>
               {(() => {

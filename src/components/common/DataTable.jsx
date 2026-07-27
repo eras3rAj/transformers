@@ -13,7 +13,8 @@ const DataTable = ({
   exportable = true,
   printable = true,
   pagination = true,
-  defaultRowsPerPage = 10 
+  defaultRowsPerPage = 10,
+  footerRow = null
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
@@ -34,10 +35,14 @@ const DataTable = ({
     // Global Search
     if (searchTerm) {
       const lowercasedSearch = searchTerm.toLowerCase();
+      const accessors = columns.map(col => col.accessor).filter(Boolean);
+      
       sortedData = sortedData.filter(item => {
-        return Object.values(item).some(val => 
-          String(val).toLowerCase().includes(lowercasedSearch)
-        );
+        return accessors.some(accessor => {
+          const val = item[accessor];
+          if (val === null || val === undefined) return false;
+          return String(val).toLowerCase().includes(lowercasedSearch);
+        });
       });
     }
 
@@ -141,6 +146,11 @@ const DataTable = ({
                   ))}
                 </tr>
               ))
+            )}
+            {footerRow && currentTableData.length > 0 && (
+              <tr style={{ backgroundColor: 'var(--bg-tertiary)', fontWeight: 'bold' }}>
+                {typeof footerRow === 'function' ? footerRow(processedData) : footerRow}
+              </tr>
             )}
           </tbody>
         </table>

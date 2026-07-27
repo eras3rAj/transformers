@@ -1,4 +1,6 @@
 import { formatDate } from '../utils/dateUtils';
+import { useUsers } from '../context/UserContext';
+import DatePicker from '../components/common/DatePicker';
 import { useState } from 'react';
 import { Plus, Edit, Briefcase, CheckCircle, XCircle } from 'lucide-react';
 import { useEmployees } from '../context/EmployeeContext';
@@ -257,7 +259,7 @@ const Employees = () => {
                 </div>
                 <div style={{ flex: 1 }}>
                   <label className="input-label">Join Date</label>
-                  <input type="date" name="join_date" value={formData.join_date} onChange={handleInputChange} className="input-field" required />
+                  <DatePicker name="join_date" value={formData.join_date} onChange={handleInputChange} required />
                 </div>
                 <div style={{ flex: 1 }}>
                   <label className="input-label">Salary (Optional)</label>

@@ -4,6 +4,7 @@ import { Target, Plus, CheckCircle, Clock, Calendar, Building2, Trash2 } from 'l
 import { useMilestones } from '../context/MilestoneContext';
 import { useAuth } from '../context/AuthContext';
 import ConfirmModal from '../components/common/ConfirmModal';
+import DatePicker from '../components/common/DatePicker';
 import '../components/layout/Layout.css';
 
 const Milestones = () => {
@@ -22,7 +23,11 @@ const Milestones = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    await addMilestone(formData);
+    const payload = { ...formData };
+    if (!payload.target_date) {
+      payload.target_date = null;
+    }
+    await addMilestone(payload);
     setFormData({ title: '', company: 'All', term_type: activeTab, target_date: '' });
     setShowForm(false);
   };
@@ -143,7 +148,7 @@ const Milestones = () => {
               </div>
               
               <label className="input-label">Target Date</label>
-              <input type="date" className="input-field" value={formData.target_date} onChange={e => setFormData({...formData, target_date: e.target.value})} />
+              <DatePicker className="input-field" value={formData.target_date} onChange={e => setFormData({...formData, target_date: e.target.value})} />
 
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem', marginTop: '1.5rem' }}>
                 <button type="button" className="btn btn-secondary" onClick={() => setShowForm(false)}>Cancel</button>

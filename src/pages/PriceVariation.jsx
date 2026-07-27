@@ -14,7 +14,8 @@ const PriceVariation = () => {
   const { currentUser } = useAuth();
   const navigate = useNavigate();
 
-  const [activeTab, setActiveTab] = useState('contracts'); // 'rates' or 'contracts'
+  const [activeTab, setActiveTab] = useState('contracts'); // 'rates' | 'contracts'
+  const [targetMonthId, setTargetMonthId] = useState('');
   const [selectedYear, setSelectedYear] = useState('2026');
   const [isYearDropdownOpen, setIsYearDropdownOpen] = useState(false);
 
@@ -37,39 +38,45 @@ const PriceVariation = () => {
   // Derive unique years from indices for the filter
   const availableYears = useMemo(() => {
     if (!indices || !Array.isArray(indices)) return [];
-    const years = indices.map(i => {
-      const parts = (i?.month || '').split(' ');
-      return parts[parts.length - 1];
-    }).filter(y => y && !isNaN(parseInt(y)));
-    return [...new Set(years)].sort((a, b) => parseInt(b) - parseInt(a));
+    const groupedIndices = indices.reduce((acc, idx) => {
+      const parts = (idx.month || '').trim().split(' ');
+      const year = parts.length === 2 ? parts[1] : 'Unknown';
+      if (!acc[year]) acc[year] = [];
+      acc[year].push(idx);
+      return acc;
+    }, {});
+    return Object.keys(groupedIndices).filter(y => y !== 'Unknown').sort((a, b) => parseInt(b) - parseInt(a));
   }, [indices]);
+
+  const parseMonthYear = (monthStr) => {
+    const parts = (monthStr || '').trim().split(' ');
+    if (parts.length !== 2) return new Date(0);
+    const m = parts[0];
+    const y = parseInt(parts[1]);
+    const mIndex = ['january', 'february', 'march', 'april', 'may', 'june', 'july', 'august', 'september', 'october', 'november', 'december']
+      .findIndex(x => x === m.toLowerCase() || x.startsWith(m.toLowerCase()));
+    if (mIndex === -1 || isNaN(y)) return new Date(0);
+    return new Date(y, mIndex, 1);
+  };
 
   const latestIndex = useMemo(() => {
     if (!indices || !Array.isArray(indices) || indices.length === 0) return null;
-    const monthOrder = { 'January':0, 'February':1, 'March':2, 'April':3, 'May':4, 'June':5, 'July':6, 'August':7, 'September':8, 'October':9, 'November':10, 'December':11 };
-    return [...indices].sort((a, b) => {
-      const [m1, y1] = (a?.month || '').split(' ');
-      const [m2, y2] = (b?.month || '').split(' ');
-      
-      const year1 = parseInt(y1) || 0;
-      const year2 = parseInt(y2) || 0;
-      
-      if (year1 !== year2) return year2 - year1;
-      return (monthOrder[m2] || 0) - (monthOrder[m1] || 0);
-    })[0];
+    return [...indices].sort((a, b) => parseMonthYear(b.month) - parseMonthYear(a.month))[0];
   }, [indices]);
+
+  const comparisonIndex = useMemo(() => {
+    if (targetMonthId) {
+      const found = indices.find(i => i.id === targetMonthId);
+      if (found) return found;
+    }
+    return latestIndex;
+  }, [indices, targetMonthId, latestIndex]);
 
   const effectiveYear = (availableYears.length > 0 && !availableYears.includes(selectedYear)) ? availableYears[0] : selectedYear;
   const yearDataSorted = useMemo(() => {
     if (!indices || !Array.isArray(indices)) return [];
     const yearData = indices.filter(i => (i?.month || '').includes(effectiveYear));
-    const monthOrder = { 'January':1, 'February':2, 'March':3, 'April':4, 'May':5, 'June':6, 'July':7, 'August':8, 'September':9, 'October':10, 'November':11, 'December':12 };
-
-    return yearData.sort((a, b) => {
-      const m1 = (a?.month || '').split(' ')[0];
-      const m2 = (b?.month || '').split(' ')[0];
-      return (monthOrder[m1] || 0) - (monthOrder[m2] || 0);
-    });
+    return yearData.sort((a, b) => parseMonthYear(a.month) - parseMonthYear(b.month));
   }, [indices, effectiveYear]);
 
 
@@ -167,10 +174,19 @@ const PriceVariation = () => {
     let savedMonthStr = parsedData.month;
 
     if (editingIndexId) {
-      await updateIndex(editingIndexId, parsedData);
+      const success = await updateIndex(editingIndexId, parsedData);
+      if (!success) {
+        alert("Failed to update rates. Please check your connection and try again.");
+        return;
+      }
     } else {
       const savedIndex = await addIndex(parsedData);
-      if (savedIndex) savedMonthStr = savedIndex.month;
+      if (savedIndex) {
+        savedMonthStr = savedIndex.month;
+      } else {
+        alert(`Failed to add rates for ${parsedData.month}. A record for this month likely already exists, please check the Historical Circular Rates list.`);
+        return;
+      }
     }
     
     setShowAddForm(false);
@@ -303,11 +319,24 @@ const PriceVariation = () => {
       {/* TAB 2: ACTIVE CONTRACTS */}
       {activeTab === 'contracts' && (
         <div className="animate-fade-in">
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
             <h3 style={{ margin: 0, color: 'var(--accent-primary)' }}>Active Purchase Orders</h3>
-            <button className="btn btn-primary" onClick={() => navigate('/purchase-orders?create=true')} style={{ padding: '0.4rem 0.8rem', fontSize: '0.85rem' }}>
-              <Plus size={16} /> Add Purchase Order
-            </button>
+            <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+              <select 
+                className="input-field" 
+                style={{ padding: '0.4rem 0.8rem', minWidth: '200px', backgroundColor: 'var(--bg-tertiary)', margin: 0 }}
+                value={targetMonthId}
+                onChange={(e) => setTargetMonthId(e.target.value)}
+              >
+                <option value="">Use Latest Month ({latestIndex ? latestIndex.month : 'N/A'})</option>
+                {[...indices].sort((a,b) => parseMonthYear(b.month) - parseMonthYear(a.month)).map(idx => (
+                  <option key={idx.id} value={idx.id}>{idx.month}</option>
+                ))}
+              </select>
+              <button className="btn btn-primary" onClick={() => navigate('/purchase-orders?create=true')} style={{ padding: '0.4rem 0.8rem', fontSize: '0.85rem' }}>
+                <Plus size={16} /> Add Purchase Order
+              </button>
+            </div>
           </div>
 
           <div className="card" style={{ padding: 0, overflow: 'hidden', borderTop: '3px solid var(--accent-primary)' }}>
@@ -317,16 +346,16 @@ const PriceVariation = () => {
                   <tr style={{ backgroundColor: 'var(--bg-tertiary)', borderBottom: '1px solid var(--border-color)' }}>
                     <th style={{ padding: '1rem 1.5rem', fontSize: '0.85rem', color: 'var(--text-muted)' }}>PO DETAILS</th>
                     <th style={{ padding: '1rem', fontSize: '0.85rem', color: 'var(--text-muted)' }}>BASE MONTH</th>
-                    <th style={{ padding: '1rem', fontSize: '0.85rem', color: 'var(--accent-primary)' }}>LATEST MONTH</th>
+                    <th style={{ padding: '1rem', fontSize: '0.85rem', color: 'var(--accent-primary)' }}>{targetMonthId ? 'TARGET MONTH' : 'LATEST MONTH'}</th>
                     <th style={{ padding: '1rem', fontSize: '0.85rem', color: 'var(--text-muted)' }}>BASE TOTAL</th>
-                    <th style={{ padding: '1rem', fontSize: '0.85rem', color: 'var(--accent-primary)' }}>LATEST PV TOTAL</th>
+                    <th style={{ padding: '1rem', fontSize: '0.85rem', color: 'var(--accent-primary)' }}>PV TOTAL</th>
                     <th style={{ padding: '1rem 1.5rem', fontSize: '0.85rem', color: 'var(--text-muted)', textAlign: 'right' }}>ACTIONS</th>
                   </tr>
                 </thead>
                 <tbody>
                   {(pos || []).map((po, index) => {
                     const baseData = po.baseMonthStr ? getIndexByMonth(po.baseMonthStr) : null;
-                    const calcResult = (baseData && latestIndex) ? calculatePVFinancials(po, baseData, latestIndex) : null;
+                    const calcResult = (baseData && comparisonIndex) ? calculatePVFinancials(po, baseData, comparisonIndex) : null;
                     const baseTotal = po.exWorks + po.freight + ((po.exWorks + po.freight) * (po.gstRate / 100));
                     
                     return (
@@ -336,7 +365,7 @@ const PriceVariation = () => {
                         <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '4px' }}>{po.capacity || '—'} | Qty: {po.quantity || 1}</div>
                       </td>
                       <td style={{ padding: '1rem' }}><span style={{ backgroundColor: 'var(--bg-tertiary)', padding: '4px 8px', borderRadius: '4px', fontSize: '0.85rem' }}>{po.baseMonthStr || '—'}</span></td>
-                      <td style={{ padding: '1rem' }}><span style={{ backgroundColor: 'rgba(59, 130, 246, 0.1)', color: 'var(--accent-primary)', padding: '4px 8px', borderRadius: '4px', fontSize: '0.85rem', fontWeight: '500' }}>{latestIndex ? latestIndex.month : '—'}</span></td>
+                      <td style={{ padding: '1rem' }}><span style={{ backgroundColor: 'rgba(59, 130, 246, 0.1)', color: 'var(--accent-primary)', padding: '4px 8px', borderRadius: '4px', fontSize: '0.85rem', fontWeight: '500' }}>{comparisonIndex ? comparisonIndex.month : '—'}</span></td>
                       <td style={{ padding: '1rem', fontWeight: '500', color: 'var(--text-muted)' }}>₹{Number(baseTotal || 0).toLocaleString('en-IN', {minimumFractionDigits:2})}</td>
                       <td style={{ padding: '1rem', fontWeight: '600' }}>
                         {calcResult ? (
