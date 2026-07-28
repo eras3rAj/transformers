@@ -114,7 +114,10 @@ const DataTable = ({
                   key={index} 
                   onClick={() => col.sortable !== false && handleSort(col.accessor)}
                   className={col.sortable !== false ? 'sortable-header' : ''}
-                  style={{ width: col.width || 'auto' }}
+                  style={{ 
+                    width: col.width || 'auto',
+                    ...(col.stickyRight ? { position: 'sticky', right: 0, backgroundColor: 'var(--bg-tertiary)', zIndex: 2, boxShadow: '-2px 0 5px rgba(0,0,0,0.05)' } : {})
+                  }}
                 >
                   <div className="header-content">
                     {col.Header}
@@ -140,7 +143,10 @@ const DataTable = ({
               currentTableData.map((row, rowIndex) => (
                 <tr key={rowIndex}>
                   {columns.map((col, colIndex) => (
-                    <td key={colIndex}>
+                    <td 
+                      key={colIndex}
+                      style={col.stickyRight ? { position: 'sticky', right: 0, backgroundColor: 'var(--bg-secondary)', zIndex: 1, boxShadow: '-2px 0 5px rgba(0,0,0,0.05)' } : {}}
+                    >
                       {col.Cell ? col.Cell({ value: row[col.accessor], row }) : row[col.accessor]}
                     </td>
                   ))}

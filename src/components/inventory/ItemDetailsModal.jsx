@@ -106,6 +106,7 @@ const ItemDetailsModal = ({ isOpen, onClose, item, transactions = [], currentSto
     {
       Header: 'ACTIONS',
       accessor: 'actions',
+      stickyRight: true,
       Cell: ({ row }) => (
         <div style={{ display: 'flex', gap: '0.5rem' }}>
           <button className="btn-icon" onClick={() => handleEditClick(row)} title="Edit Entry">
