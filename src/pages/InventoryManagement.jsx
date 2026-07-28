@@ -156,7 +156,7 @@ const InventoryManagement = () => {
         }
       }
       for (const item of items) {
-        const isLinked = companyData.linkedItems.includes(item.name);
+        const isLinked = companyData.linkedItems.includes(item.name) || companyData.linkedCategories.includes(item.category);
         const hasCompany = item.suppliers && item.suppliers.includes(companyName);
         if (isLinked && !hasCompany) {
           await editEntity('inv_item', item.id, item.name, item.name, { unit: item.unit, category: item.category, suppliers: [...(item.suppliers || []), companyName], minStockLevels: item.minStockLevels, secondaryUnit: item.secondaryUnit, conversionFactor: item.conversionFactor });
@@ -202,6 +202,22 @@ const InventoryManagement = () => {
       if (!success) setAlert({ isOpen: true, message: "Error saving category!" });
     }
     if (success) {
+      // Sync suppliers to all items under this category
+      const catName = categoryData.name.trim();
+      const catSuppliers = categoryData.suppliers || [];
+      for (const item of items) {
+        if (item.category === catName) {
+          // Add all category suppliers to the item, keeping any existing ones
+          const currentSuppliers = item.suppliers || [];
+          const missingSuppliers = catSuppliers.filter(s => !currentSuppliers.includes(s));
+          if (missingSuppliers.length > 0) {
+            await editEntity('inv_item', item.id, item.name, item.name, { 
+              ...item,
+              suppliers: [...currentSuppliers, ...missingSuppliers] 
+            });
+          }
+        }
+      }
       setCategoryData({ name: '', suppliers: [] });
       setShowCategoryModal(false);
       setEditingMaster(null);
