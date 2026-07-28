@@ -1,6 +1,11 @@
 import React from 'react';
-import ReactDatePicker from 'react-datepicker';
+import ReactDatePickerRaw from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
+
+// Safely unwrap the default export to handle ESM interop issues in Vite/Rolldown
+const ReactDatePicker = typeof ReactDatePickerRaw === 'function' 
+  ? ReactDatePickerRaw 
+  : (ReactDatePickerRaw.default || ReactDatePickerRaw);
 
 const DatePicker = ({ value, onChange, name, placeholder = "dd/mm/yyyy", className = "input-field", required = false, readOnly = false, style = {} }) => {
   // Convert standard HTML string yyyy-mm-dd to Date object for react-datepicker
