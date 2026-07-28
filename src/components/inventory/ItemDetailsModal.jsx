@@ -1,12 +1,38 @@
 import React, { useMemo, useState } from 'react';
 import ReactDOM from 'react-dom';
-import { X, Box, ArrowDownRight, ArrowUpRight, Truck, Filter } from 'lucide-react';
+import { X, Box, ArrowDownRight, ArrowUpRight, Truck, Filter, Edit, Trash2, Check } from 'lucide-react';
 import DataTable from '../common/DataTable';
 import DynamicMetric from '../common/DynamicMetric';
 import { formatDate } from '../../utils/dateUtils';
+import { useInventory } from '../../context/InventoryContext';
 
 const ItemDetailsModal = ({ isOpen, onClose, item, transactions = [], currentStock = 0 }) => {
   const [filterType, setFilterType] = useState('ALL');
+  const { editTransaction, deleteTransaction } = useInventory();
+  const [editingTxn, setEditingTxn] = useState(null);
+  const [editFormData, setEditFormData] = useState({});
+
+  const handleEditClick = (txn) => {
+    setEditingTxn(txn);
+    setEditFormData({
+      qty: txn.qty,
+      date: txn.date,
+      type: txn.type,
+      remarks: txn.remarks || ''
+    });
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editingTxn) return;
+    await editTransaction(editingTxn.id, editFormData);
+    setEditingTxn(null);
+  };
+
+  const handleDelete = async (txn) => {
+    if (window.confirm('Are you sure you want to delete this entry? This will permanently affect stock calculations.')) {
+      await deleteTransaction(txn.id);
+    }
+  };
 
   // Filter transactions specifically for this item
   const itemTransactions = useMemo(() => {
@@ -76,7 +102,21 @@ const ItemDetailsModal = ({ isOpen, onClose, item, transactions = [], currentSto
     },
     { Header: 'LOCATION', accessor: 'location' },
     { Header: 'LOGGED BY', accessor: 'user' },
-    { Header: 'REMARKS', accessor: 'remarks', Cell: ({ value }) => <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>{value}</span> }
+    { Header: 'REMARKS', accessor: 'remarks', Cell: ({ value }) => <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>{value}</span> },
+    {
+      Header: 'ACTIONS',
+      accessor: 'actions',
+      Cell: ({ row }) => (
+        <div style={{ display: 'flex', gap: '0.5rem' }}>
+          <button className="btn-icon" onClick={() => handleEditClick(row)} title="Edit Entry">
+            <Edit size={16} color="var(--accent-primary)" />
+          </button>
+          <button className="btn-icon" onClick={() => handleDelete(row)} title="Delete Entry">
+            <Trash2 size={16} color="var(--danger)" />
+          </button>
+        </div>
+      )
+    }
   ];
 
   return ReactDOM.createPortal(
@@ -165,6 +205,42 @@ const ItemDetailsModal = ({ isOpen, onClose, item, transactions = [], currentSto
           />
         </div>
       </div>
+
+      {/* Edit Modal Overlay */}
+      {editingTxn && (
+        <div className="modal-backdrop" style={{ zIndex: 100 }}>
+          <div className="card glass-panel" style={{ width: '90%', maxWidth: '500px', padding: '1.5rem', backgroundColor: 'var(--bg-primary)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+              <h3 style={{ margin: 0, color: 'var(--text-primary)' }}>Edit Entry</h3>
+              <button className="btn-icon" onClick={() => setEditingTxn(null)}><X size={20}/></button>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <div>
+                <label className="input-label">Date</label>
+                <input type="date" className="input-field" value={editFormData.date?.split('T')[0] || ''} onChange={e => setEditFormData({...editFormData, date: e.target.value})} />
+              </div>
+              <div>
+                <label className="input-label">Type</label>
+                <select className="input-field" value={editFormData.type} onChange={e => setEditFormData({...editFormData, type: e.target.value})}>
+                  <option value="IN">IN</option>
+                  <option value="OUT">OUT</option>
+                </select>
+              </div>
+              <div>
+                <label className="input-label">Quantity</label>
+                <input type="number" className="input-field" value={editFormData.qty} onChange={e => setEditFormData({...editFormData, qty: e.target.value})} />
+              </div>
+              <div>
+                <label className="input-label">Remarks</label>
+                <input type="text" className="input-field" value={editFormData.remarks} onChange={e => setEditFormData({...editFormData, remarks: e.target.value})} />
+              </div>
+              <button className="btn btn-primary" onClick={handleSaveEdit} style={{ marginTop: '1rem', width: '100%', justifyContent: 'center' }}>
+                <Check size={18} /> Save Changes
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>,
     document.body
   );

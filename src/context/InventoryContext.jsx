@@ -329,6 +329,44 @@ export const InventoryProvider = ({ children }) => {
     return false;
   };
 
+  const editTransaction = async (txnId, updatedData) => {
+    const txn = transactions.find(t => t.id === txnId);
+    if (!txn) return false;
+
+    const mergedChanges = {
+      location: txn.location,
+      item: txn.item,
+      type: txn.type,
+      qty: txn.qty,
+      date: txn.date,
+      remarks: txn.remarks,
+      companyName: txn.companyName || '',
+      billNo: txn.billNo || '',
+      receivingDate: txn.receivingDate || '',
+      billDate: txn.billDate || '',
+      unitPrice: txn.unitPrice || '',
+      usageType: txn.usageType || '',
+      department: txn.department || '',
+      ...updatedData
+    };
+
+    const { data, error } = await supabase.from('system_logs').update({ changes: mergedChanges }).eq('id', txnId).select();
+    if (!error && data) {
+      setTransactions(prev => prev.map(t => t.id === txnId ? { ...t, ...mergedChanges } : t));
+      addLog({
+        id: Date.now().toString(),
+        timestamp: new Date().toISOString(),
+        action: `Edited Inventory Transaction`,
+        user: currentUser?.name,
+        changes: [
+          { field: 'Transaction ID', oldValue: txnId, newValue: 'Edited' }
+        ]
+      });
+      return true;
+    }
+    return false;
+  };
+
 
   const transferStock = async (itemId, fromLoc, toLoc, qty, companyName = '', remarks = '') => {
     // 1. Stock OUT from fromLoc
@@ -507,7 +545,7 @@ export const InventoryProvider = ({ children }) => {
   return (
     <InventoryContext.Provider value={{
       locations, units, items, companies, departments, transactions, categories, loading,
-      addLocation, addUnit, addItem, addCompany, addDepartment, logTransaction, logBatchTransactions, deleteTransaction, transferStock,
+      addLocation, addUnit, addItem, addCompany, addDepartment, logTransaction, logBatchTransactions, deleteTransaction, editTransaction, transferStock,
       getStockAtLocation, getGlobalStock, saveCategory, deleteEntity, editEntity
     }}>
       {children}
