@@ -256,11 +256,13 @@ const EodSummary = () => {
         allEls.forEach(el => {
           const cs = window.getComputedStyle(el);
           el.style.color = cs.color;
-          el.style.backgroundColor = cs.backgroundColor;
-          el.style.borderTopColor = cs.borderTopColor;
-          el.style.borderRightColor = cs.borderRightColor;
-          el.style.borderBottomColor = cs.borderBottomColor;
-          el.style.borderLeftColor = cs.borderLeftColor;
+          if (cs.backgroundColor !== 'rgba(0, 0, 0, 0)' && cs.backgroundColor !== 'transparent') {
+            el.style.backgroundColor = cs.backgroundColor;
+          }
+          if (cs.borderTopColor !== 'rgba(0, 0, 0, 0)') el.style.borderTopColor = cs.borderTopColor;
+          if (cs.borderRightColor !== 'rgba(0, 0, 0, 0)') el.style.borderRightColor = cs.borderRightColor;
+          if (cs.borderBottomColor !== 'rgba(0, 0, 0, 0)') el.style.borderBottomColor = cs.borderBottomColor;
+          if (cs.borderLeftColor !== 'rgba(0, 0, 0, 0)') el.style.borderLeftColor = cs.borderLeftColor;
         });
 
         const opt = {
