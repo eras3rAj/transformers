@@ -334,6 +334,18 @@ const EodSummary = () => {
           gap: 1rem;
         }
 
+        @media (max-width: 600px) {
+          .eod-summary-header {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 1.5rem;
+          }
+          .eod-summary-header .btn-print {
+            width: 100%;
+            justify-content: center;
+          }
+        }
+
         .eod-controls {
           display: flex;
           gap: 1.5rem;
