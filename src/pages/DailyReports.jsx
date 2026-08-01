@@ -1189,7 +1189,12 @@ const DailyReports = () => {
           <p style={{ color: 'var(--text-muted)', padding: '10px 0' }}>No issues reported on this date.</p>
         )}
 
-        <div style={{ marginTop: '40px', paddingTop: '20px', borderTop: '2px dashed var(--border-color)' }}>
+        <style>{`
+          @media screen {
+            .eod-print-only { display: none !important; }
+          }
+        `}</style>
+        <div className="eod-print-only" style={{ marginTop: '40px', paddingTop: '20px', borderTop: '2px dashed var(--border-color)' }}>
           <h3 style={{ marginBottom: '20px', color: 'var(--accent-primary)' }}>End of Day Metrics</h3>
           <EodSummary isEmbedded={true} reportDate={selectedDate} />
         </div>
@@ -1217,7 +1222,7 @@ const DailyReports = () => {
       </div>
 
       <div className="tabs" style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem', overflowX: 'auto', whiteSpace: 'nowrap' }}>
-        {['Daily Report (Entry)', 'Shift Summaries', 'EOD PDF Report'].map(t => (
+        {['Daily Report (Entry)', 'Shift Summaries'].map(t => (
           <button 
             key={t}
             onClick={() => {
@@ -1354,11 +1359,7 @@ const DailyReports = () => {
           </div>
           {renderSummary()}
         </div>
-      ) : (
-        <div className="animate-fade-in">
-          <EodSummary isEmbedded={true} />
-        </div>
-      )}
+      ) : null}
     </div>
   );
 };
