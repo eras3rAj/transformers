@@ -1190,13 +1190,19 @@ const DailyReports = () => {
         )}
 
         <style>{`
-          @media screen {
-            .eod-print-only { display: none !important; }
+          .eod-print-only { display: none !important; }
+          @media print {
+            .eod-print-only { 
+              display: block !important; 
+              page-break-before: always;
+            }
           }
         `}</style>
-        <div className="eod-print-only" style={{ marginTop: '40px', paddingTop: '20px', borderTop: '2px dashed var(--border-color)' }}>
-          <h3 style={{ marginBottom: '20px', color: 'var(--accent-primary)' }}>End of Day Metrics</h3>
-          <EodSummary isEmbedded={true} reportDate={selectedDate} />
+        <div className="eod-print-only">
+          <div style={{ marginTop: '40px', paddingTop: '20px', borderTop: '2px dashed #ccc' }}>
+            <h3 style={{ marginBottom: '20px', color: '#000' }}>End of Day Metrics</h3>
+            <EodSummary isEmbedded={true} reportDate={selectedDate} />
+          </div>
         </div>
       </div>
     );
