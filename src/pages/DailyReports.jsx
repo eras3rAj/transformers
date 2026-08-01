@@ -998,7 +998,7 @@ const DailyReports = () => {
           <h3>Daily Summary for {selectedDate ? `${String(new Date(selectedDate).getDate()).padStart(2, '0')}-${["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"][new Date(selectedDate).getMonth()]}-${new Date(selectedDate).getFullYear()}` : ''} ({summaryShift})</h3>
           <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }} className="no-print">
             <span className="status-badge" style={{ background: 'var(--success)20', color: 'var(--success)' }}>Auto-Generated</span>
-            <button className="btn btn-secondary" onClick={() => window.print()} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <button className="btn btn-primary" onClick={() => window.print()} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               <Download size={16} /> Download PDF
             </button>
           </div>
