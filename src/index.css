@@ -458,6 +458,15 @@ input:focus, select:focus, textarea:focus {
 .clickable-card:hover { transform: translateY(-4px); box-shadow: 0 8px 16px rgba(0,0,0,0.4); }
 
 @media print {
+  * {
+    animation: none !important;
+    transition: none !important;
+  }
+  .animate-fade-in {
+    opacity: 1 !important;
+    transform: none !important;
+  }
+  
   .sidebar, header, .no-print, .tabs, .mobile-overlay, .ai-assistant, .command-palette {
     display: none !important;
   }
@@ -496,5 +505,54 @@ input:focus, select:focus, textarea:focus {
     border: 1px solid #ccc !important;
     color: #000000 !important;
     background: transparent !important;
+  }
+}
+
+/* GLOBAL MOBILE RESPONSIVENESS */
+@media (max-width: 768px) {
+  /* Ensure text wraps nicely */
+  body, html {
+    overflow-x: hidden;
+  }
+
+  h1, h2, h3, h4, h5, h6, p, span, td, th, div {
+    white-space: normal !important;
+    word-break: break-word;
+  }
+
+  /* Keep badges on a single line */
+  .status-badge {
+    white-space: nowrap !important;
+  }
+
+  /* Modals and Cards */
+  .modal-content {
+    width: 95vw !important;
+    min-width: 0 !important;
+    max-width: 95vw !important;
+    padding: 1rem !important;
+    max-height: 90vh;
+    overflow-y: auto;
+  }
+
+  .card {
+    padding: 1rem !important;
+  }
+
+  /* Table Wrapping */
+  .table-responsive {
+    display: block;
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Inputs and buttons */
+  input, select, textarea {
+    max-width: 100%;
+  }
+  
+  .btn {
+    white-space: normal;
   }
 }
