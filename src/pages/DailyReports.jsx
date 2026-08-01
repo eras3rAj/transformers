@@ -10,6 +10,7 @@ import { useToast } from '../context/ToastContext';
 import { Save, Check, FileText, Link, Trash2, Copy, ChevronLeft, ChevronRight, Download } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import '../components/layout/Layout.css';
+import EodSummary from './EodSummary';
 
 const DailyReports = () => {
   const { reports, fetchReportsForDate, saveReport, loading } = useDailyReports();
@@ -31,7 +32,7 @@ const DailyReports = () => {
   };
 
   const tabs = ['Box-up', 'CCA', 'Winding Section', 'Core Cutting', 'Tank Fabrication', 'Loading / Unloading'];
-  const [mainTab, setMainTab] = useState('Daily Summary');
+  const [mainTab, setMainTab] = useState('Daily Report (Entry)');
   const [summaryShift, setSummaryShift] = useState('Latest');
 
   const normalizeDraft = (data) => {
@@ -1187,6 +1188,11 @@ const DailyReports = () => {
         ) : (
           <p style={{ color: 'var(--text-muted)', padding: '10px 0' }}>No issues reported on this date.</p>
         )}
+
+        <div style={{ marginTop: '40px', paddingTop: '20px', borderTop: '2px dashed var(--border-color)' }}>
+          <h3 style={{ marginBottom: '20px', color: 'var(--accent-primary)' }}>End of Day Metrics</h3>
+          <EodSummary isEmbedded={true} reportDate={selectedDate} />
+        </div>
       </div>
     );
   };
@@ -1210,13 +1216,13 @@ const DailyReports = () => {
         </div>
       </div>
 
-      <div className="tabs" style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem' }}>
-        {['Daily Summary', 'Daily Report'].map(t => (
+      <div className="tabs" style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem', overflowX: 'auto', whiteSpace: 'nowrap' }}>
+        {['Daily Report (Entry)', 'Shift Summaries', 'EOD PDF Report'].map(t => (
           <button 
             key={t}
             onClick={() => {
               setMainTab(t);
-              if (t === 'Daily Report') {
+              if (t === 'Daily Report (Entry)') {
                 setSelectedDate(new Date().toISOString().split('T')[0]);
               }
             }}
@@ -1232,7 +1238,7 @@ const DailyReports = () => {
         ))}
       </div>
 
-      {mainTab === 'Daily Report' ? (
+      {mainTab === 'Daily Report (Entry)' ? (
         <div className="animate-fade-in">
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
             <h2 style={{ fontSize: '1.2rem', margin: 0 }}>Data Entry</h2>
@@ -1311,7 +1317,7 @@ const DailyReports = () => {
             {activeTab === 'Loading / Unloading' && renderLoadingUnloading()}
           </div>
         </div>
-      ) : (
+      ) : mainTab === 'Shift Summaries' ? (
         <div className="animate-fade-in">
           <div className="card" style={{ marginBottom: '2rem' }}>
             <div className="grid-2">
@@ -1347,6 +1353,10 @@ const DailyReports = () => {
             {loading && <SkeletonLoader type="text" count={3} />}
           </div>
           {renderSummary()}
+        </div>
+      ) : (
+        <div className="animate-fade-in">
+          <EodSummary isEmbedded={true} />
         </div>
       )}
     </div>

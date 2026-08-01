@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useProduction } from '../context/ProductionContext';
 import { usePO } from '../context/POContext';
 import { useInspection } from '../context/InspectionContext';
@@ -19,7 +19,7 @@ import {
 } from 'lucide-react';
 import '../components/layout/Layout.css';
 
-const EodSummary = () => {
+const EodSummary = ({ isEmbedded = false, reportDate = null }) => {
   const { productionLogs } = useProduction();
   const { pos } = usePO();
   const { schedules } = useInspection();
@@ -28,7 +28,12 @@ const EodSummary = () => {
   const { items, transactions, getGlobalStock } = useInventory();
 
   // Selected date defaults to today
-  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
+  const [selectedDate, setSelectedDate] = useState(reportDate || new Date().toISOString().split('T')[0]);
+
+  // Sync with prop if it changes
+  useEffect(() => {
+    if (reportDate) setSelectedDate(reportDate);
+  }, [reportDate]);
   
   // Custom stock alert threshold, defaults to 0 to show no irrelevant alerts
   const [stockThreshold, setStockThreshold] = useState(0);
@@ -511,20 +516,22 @@ const EodSummary = () => {
       </div>
 
       {/* Screen Title Block */}
-      <div className="eod-summary-header no-print">
-        <div>
-          <h1 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.8rem', color: 'var(--text-primary)' }}>
-            <FileText size={28} color="var(--accent-primary)" />
-            Daily Executive Summary
-          </h1>
-          <p style={{ color: 'var(--text-muted)', marginTop: '0.5rem' }}>
-            Generate operational summary, inventory stock alerts, and print-ready PDF reports for any date.
-          </p>
+      {!isEmbedded && (
+        <div className="eod-summary-header no-print">
+          <div>
+            <h1 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.8rem', color: 'var(--text-primary)' }}>
+              <FileText size={28} color="var(--accent-primary)" />
+              Daily Executive Summary
+            </h1>
+            <p style={{ color: 'var(--text-muted)', marginTop: '0.5rem' }}>
+              Generate operational summary, inventory stock alerts, and print-ready PDF reports for any date.
+            </p>
+          </div>
+          <button className="btn btn-primary btn-print" onClick={handlePrint} disabled={isGenerating}>
+            <Download size={18} /> {isGenerating ? 'Generating PDF...' : 'Download PDF'}
+          </button>
         </div>
-        <button className="btn btn-primary btn-print" onClick={handlePrint} disabled={isGenerating}>
-          <Download size={18} /> {isGenerating ? 'Generating PDF...' : 'Download PDF'}
-        </button>
-      </div>
+      )}
 
       {/* Header controls (Screen Only) */}
       <div className="eod-controls no-print">
