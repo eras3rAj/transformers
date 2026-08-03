@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Shield, Plus, Filter, Edit, Trash, Clock, EyeOff, Download, FileText, AlertTriangle, BarChart3, ListFilter, Building2 } from 'lucide-react';
 import WarrantyForm from '../components/warranty/WarrantyForm';
 import AuditHistoryModal from '../components/warranty/AuditHistoryModal';
@@ -23,7 +23,14 @@ const WarrantyManagement = () => {
   const [deletionPrompt, setDeletionPrompt] = useState({ isOpen: false, claimId: null, reason: '' });
   const [systemConfirm, setSystemConfirm] = useState({ isOpen: false });
   const [activeSubTab, setActiveSubTab] = useState('summary');
-  const [manualSerialNos, setManualSerialNos] = useState({});
+  const [manualSerialNos, setManualSerialNos] = useState(() => {
+    const saved = localStorage.getItem('manualSerialNos');
+    return saved ? JSON.parse(saved) : {};
+  });
+
+  useEffect(() => {
+    localStorage.setItem('manualSerialNos', JSON.stringify(manualSerialNos));
+  }, [manualSerialNos]);
   
   // Filter state
   const [filters, setFilters] = useState({
