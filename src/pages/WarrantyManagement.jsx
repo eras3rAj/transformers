@@ -23,6 +23,7 @@ const WarrantyManagement = () => {
   const [deletionPrompt, setDeletionPrompt] = useState({ isOpen: false, claimId: null, reason: '' });
   const [systemConfirm, setSystemConfirm] = useState({ isOpen: false });
   const [activeSubTab, setActiveSubTab] = useState('summary');
+  const [manualSerialNos, setManualSerialNos] = useState({});
   
   // Filter state
   const [filters, setFilters] = useState({
@@ -516,6 +517,7 @@ const WarrantyManagement = () => {
         <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
           <thead>
             <tr style={{ backgroundColor: 'var(--bg-tertiary)', borderBottom: '1px solid var(--border-color)' }}>
+              <th style={{ padding: '1rem', fontSize: '0.85rem', color: 'var(--text-muted)' }}>S. NO.</th>
               <th style={{ padding: '1rem', fontSize: '0.85rem', color: 'var(--text-muted)' }}>TRANSFORMER ID</th>
               <th style={{ padding: '1rem', fontSize: '0.85rem', color: 'var(--text-muted)' }}>LOCATION & UTILITY</th>
               <th style={{ padding: '1rem', fontSize: '0.85rem', color: 'var(--text-muted)' }}>RETURN DEADLINE</th>
@@ -524,8 +526,29 @@ const WarrantyManagement = () => {
             </tr>
           </thead>
           <tbody>
-            {filteredClaims.map((claim) => (
+            {filteredClaims.map((claim, index) => (
               <tr key={claim.id} style={{ borderBottom: '1px solid var(--border-color)', opacity: claim.isHidden ? 0.5 : 1 }} className="table-row">
+                <td style={{ padding: '1rem', fontWeight: '600', color: 'var(--text-secondary)' }}>
+                  <input
+                    type="text"
+                    value={manualSerialNos[claim.id] !== undefined ? manualSerialNos[claim.id] : (index + 1)}
+                    onChange={(e) => setManualSerialNos(prev => ({ ...prev, [claim.id]: e.target.value }))}
+                    style={{ 
+                      width: '40px', 
+                      background: 'transparent', 
+                      border: '1px solid transparent', 
+                      color: 'inherit', 
+                      fontWeight: 'inherit',
+                      padding: '2px 4px',
+                      borderRadius: '4px',
+                      outline: 'none',
+                      transition: 'border-color 0.2s'
+                    }}
+                    onFocus={(e) => e.target.style.border = '1px solid var(--border-color)'}
+                    onBlur={(e) => e.target.style.border = '1px solid transparent'}
+                    title="Click to edit serial number"
+                  />
+                </td>
                 <td style={{ padding: '1rem' }}>
                   <div style={{ fontWeight: '600' }}>{claim.slNo} {claim.isHidden && <span style={{ color: 'var(--danger)', fontSize: '0.7rem', padding: '2px 6px', border: '1px solid var(--danger)', borderRadius: '4px', marginLeft: '4px' }}>DELETED</span>}</div>
                   <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{claim.capacity}</div>
