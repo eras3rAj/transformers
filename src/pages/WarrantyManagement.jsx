@@ -237,6 +237,11 @@ const WarrantyManagement = () => {
     };
   }, [claims]);
 
+  const getStableSerialNumber = (claimId) => {
+    const idx = claims.findIndex(c => c.id === claimId);
+    return idx !== -1 ? claims.length - idx : '';
+  };
+
   return (
     <div className="warranty-management">
       <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
@@ -533,12 +538,12 @@ const WarrantyManagement = () => {
             </tr>
           </thead>
           <tbody>
-            {filteredClaims.map((claim, index) => (
+            {filteredClaims.map((claim) => (
               <tr key={claim.id} style={{ borderBottom: '1px solid var(--border-color)', opacity: claim.isHidden ? 0.5 : 1 }} className="table-row">
                 <td style={{ padding: '1rem', fontWeight: '600', color: 'var(--text-secondary)' }}>
                   <input
                     type="text"
-                    value={manualSerialNos[claim.id] !== undefined ? manualSerialNos[claim.id] : (index + 1)}
+                    value={manualSerialNos[claim.id] !== undefined ? manualSerialNos[claim.id] : getStableSerialNumber(claim.id)}
                     onChange={(e) => setManualSerialNos(prev => ({ ...prev, [claim.id]: e.target.value }))}
                     style={{ 
                       width: '40px', 
