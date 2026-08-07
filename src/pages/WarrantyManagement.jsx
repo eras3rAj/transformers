@@ -166,6 +166,18 @@ const WarrantyManagement = () => {
         if (!b.returnDate) return -1;
         return new Date(a.returnDate) - new Date(b.returnDate);
       });
+    } else if (filters.sortBy === 'sr_no_asc') {
+      result = result.sort((a, b) => {
+        const idxA = claims.findIndex(c => c.id === a.id);
+        const idxB = claims.findIndex(c => c.id === b.id);
+        return idxB - idxA;
+      });
+    } else {
+      result = result.sort((a, b) => {
+        const idxA = claims.findIndex(c => c.id === a.id);
+        const idxB = claims.findIndex(c => c.id === b.id);
+        return idxA - idxB;
+      });
     }
 
     return result;
@@ -220,6 +232,7 @@ const WarrantyManagement = () => {
         <select name="sortBy" value={filters.sortBy} onChange={handleFilterChange} className="input-field" style={{ width: '180px', padding: '0.4rem 0.8rem', marginBottom: 0 }}>
           <option value="newest">Sort: Newest First</option>
           <option value="nearest_deadline">Sort: Nearest Deadline</option>
+          <option value="sr_no_asc">Sort: Sr. No.</option>
         </select>
 
         <div style={{ flex: 1 }} />
